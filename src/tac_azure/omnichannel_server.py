@@ -169,11 +169,11 @@ class OmniChannelServer:
                 body=body_for_validation,
             )
         except ImportError:
-            logger.warning(
-                "twilio package not installed — webhook validation skipped. "
-                "Install with: pip install twilio"
+            raise RuntimeError(
+                "Webhook validation is enabled but the 'twilio' package is not "
+                "installed. Either install it (pip install twilio) or set "
+                "validate_webhooks=False to disable signature checking."
             )
-            return True
         except Exception:
             logger.error("Webhook signature validation error", exc_info=True)
             return False

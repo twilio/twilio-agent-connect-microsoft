@@ -18,7 +18,7 @@ from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from tac import TAC, TACConfig
 
-from tac_azure import ConversationSession, OmniChannelServer
+from tac_azure import ConversationSession, OmniChannelServer, format_memory_context
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool, fetch_knowledge_base_info
 
 load_dotenv()
@@ -100,6 +100,29 @@ def create_agent(session: ConversationSession):
 
 
 # ---------------------------------------------------------------------------
+# on_message hook (optional) — customize how SMS messages are augmented
+# ---------------------------------------------------------------------------
+# By default, auto-retrieved memory is prepended to the user message via
+# format_memory_context(). Override this to add custom context, transform
+# the message, or skip memory injection entirely.
+#
+# Signature: (user_message: str, context: ConversationSession,
+#              memory_response: TACMemoryResponse | None) -> str
+#
+# The returned string is what gets passed to agent.run().
+#
+# To disable memory fetching entirely (saves latency), set
+# auto_retrieve_memory=False on OmniChannelServer instead.
+# memory_response will then always be None.
+
+
+def on_message(user_message, context, memory_response):
+    """Prepend the customer's phone number to every SMS for context."""
+    prefix = f"[Customer: {context.from_number}]\n"
+    return prefix + format_memory_context(memory_response, user_message)
+
+
+# ---------------------------------------------------------------------------
 # Startup — async init (e.g., fetch KB metadata)
 # ---------------------------------------------------------------------------
 
@@ -120,6 +143,7 @@ server = OmniChannelServer(
     public_domain=os.environ["TWILIO_TAC_VOICE_PUBLIC_DOMAIN"],
     welcome_greeting="Hello! I'm your Owl Internet assistant. How can I help?",
     channels=["voice", "sms"],
+    on_message=on_message,
     on_startup=startup,
 )
 

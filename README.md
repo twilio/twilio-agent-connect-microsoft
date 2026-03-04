@@ -160,7 +160,7 @@ server = OmniChannelServer(
     channels=["voice", "sms"],        # Channels to enable (default: both)
     public_domain="example.ngrok.app",# Required when voice is enabled
     welcome_greeting="Hello!",        # Initial voice greeting
-    on_message=None,                  # SMS message augmentation hook
+    on_message=None,                  # SMS hook: (msg, context, memory) -> str
     auto_retrieve_memory=True,        # Auto-retrieve memory on message arrival
     session_store=None,               # SessionStore impl (default: InMemorySessionStore)
     validate_webhooks=True,           # Validate Twilio webhook signatures
@@ -211,7 +211,7 @@ handler = OmniChannelHandler(
     channels=["voice", "sms"],        # Channels to enable (default: both)
     public_domain="example.ngrok.app",# Required when voice is enabled
     welcome_greeting="Hello!",        # Initial voice greeting
-    on_message=None,                  # SMS message augmentation hook
+    on_message=None,                  # SMS hook: (msg, context, memory) -> str
     auto_retrieve_memory=True,        # Auto-retrieve memory on message arrival
     session_store=None,               # SessionStore impl (default: InMemorySessionStore)
     websocket_path="/ws",             # WebSocket path (used in TwiML generation)
@@ -228,9 +228,7 @@ handler = OmniChannelHandler(
 
 ---
 
-### Protocols
-
-#### `SessionStore`
+### `SessionStore`
 
 Protocol for persisting `AgentSession` between requests. Enables conversation continuity across SMS messages and background persistence for voice sessions.
 
@@ -246,7 +244,7 @@ class SessionStore(Protocol):
 
 ### Tools
 
-All tool factory functions return plain functions that Agent Framework discovers via function name, docstring, and type annotations.
+Tool factory functions return plain callables that Agent Framework auto-discovers via function name, docstring, and type annotations. Memory and knowledge tools delegate to TAC's tool primitives (`TACTool`) internally.
 
 #### `create_memory_recall_tool(tac, session) -> Callable`
 
@@ -329,6 +327,66 @@ Formats TAC auto-retrieved memory as structured context prepended to the user me
 augmented = format_memory_context(memory_response, "What's my plan?")
 # "[User Observations]\n- Prefers premium plan\n\n[User Message]\nWhat's my plan?"
 ```
+
+---
+
+## `on_message` Hook
+
+By default, TAC auto-retrieves memory before each SMS message and the handler prepends it to the user prompt via `format_memory_context()`. The `on_message` hook lets you customize or replace this behavior.
+
+**Signature:**
+
+```python
+def on_message(
+    user_message: str,
+    context: ConversationSession,
+    memory_response: TACMemoryResponse | None,
+) -> str:
+    """Return the final prompt string passed to agent.run()."""
+```
+
+**Examples:**
+
+```python
+# Add custom context on top of default memory formatting
+def on_message(user_message, context, memory_response):
+    prefix = f"[Customer: {context.from_number}, Channel: {context.channel}]\n"
+    return prefix + format_memory_context(memory_response, user_message)
+
+# Skip memory formatting entirely (use the recall tool instead)
+def on_message(user_message, context, memory_response):
+    return user_message
+
+server = OmniChannelServer(..., on_message=on_message)
+```
+
+To disable memory *fetching* entirely (saves latency), set `auto_retrieve_memory=False` instead. The `on_message` hook still fires but `memory_response` will be `None`.
+
+---
+
+## Error Handling
+
+### SMS
+
+When `agent.run()` raises an exception during SMS processing, the handler:
+1. Logs the full traceback
+2. Sends `"Sorry, something went wrong. Please try again."` to the user
+3. Still persists the `AgentSession` (it may contain a newly created Foundry thread)
+
+To customize the error message or add retry logic, use `OmniChannelHandler` directly instead of `OmniChannelServer` and write your own SMS webhook handler. See the [Custom FastAPI Demo](examples/responses_custom_fastapi_demo/) for an example.
+
+### Voice
+
+When streaming fails mid-utterance, the handler:
+1. Logs the error
+2. Cleans up the voice agent for that conversation
+3. Raises the exception (TAC handles the WebSocket lifecycle)
+
+Voice errors do **not** send a fallback message — the call continues and the user can speak again to retry.
+
+### Webhook Validation
+
+When `validate_webhooks=True` (default) and a request fails signature validation, the server returns `403 Forbidden`. If the `twilio` package is not installed, the server raises `RuntimeError` at the first webhook request rather than silently skipping validation.
 
 ---
 
