@@ -1,4 +1,8 @@
-"""Owl Internet Voice + SMS Agent — using OmniChannelServer."""
+"""Owl Internet Voice + SMS Agent — Azure OpenAI Responses API.
+
+Uses AzureOpenAIResponsesClient (Chat Completions). Simpler setup than Foundry —
+no managed threads, no hosted tools. Good starting point for Azure OpenAI users.
+"""
 
 # Fix SSL certificate verification on macOS (must be before other imports)
 import truststore
@@ -16,12 +20,20 @@ from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
 
 load_dotenv()
 
+# ---------------------------------------------------------------------------
+# Azure AI client
+# ---------------------------------------------------------------------------
+
 credential = DefaultAzureCredential()
 client = AzureOpenAIResponsesClient(
     credential=credential,
     project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
     deployment_name="gpt-4o",
 )
+
+# ---------------------------------------------------------------------------
+# System prompts — channel-aware
+# ---------------------------------------------------------------------------
 
 VOICE_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant on a phone call.
 Keep responses clear, concise, and conversational.
@@ -31,9 +43,19 @@ SMS_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant over SM
 Keep responses concise and formatted for text messaging.
 Use short paragraphs. Bullet points are OK."""
 
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
+
+
 def look_up_outage_tool(zip_code: str) -> str:
     """Check if there is a recent internet outage in a specific zip code."""
     return f"No reported outages in {zip_code}. Service is operating normally."
+
+
+# ---------------------------------------------------------------------------
+# TAC + knowledge base
+# ---------------------------------------------------------------------------
 
 tac = TAC(config=TACConfig.from_env())
 knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
@@ -42,6 +64,10 @@ KB_DESCRIPTION = (
     "Search for information about Twilio's Sierra initiative, including Memora "
     "(conversation memory service) and Maestro (orchestration service)."
 )
+
+# ---------------------------------------------------------------------------
+# Agent factory — called once per voice call, once per SMS message
+# ---------------------------------------------------------------------------
 
 
 def create_agent(session: ConversationSession):
@@ -60,6 +86,10 @@ def create_agent(session: ConversationSession):
         tools=tools,
     )
 
+
+# ---------------------------------------------------------------------------
+# Server
+# ---------------------------------------------------------------------------
 
 server = OmniChannelServer(
     tac=tac,

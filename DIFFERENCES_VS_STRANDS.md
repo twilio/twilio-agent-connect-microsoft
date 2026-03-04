@@ -3,7 +3,7 @@
 ## Net-New Features
 
 - **Webhook signature validation** — built-in, on by default
-- **Memory auto-injection** — auto-prepends retrieved memory to prompts; customizable via `on_message` hook
+- **Memory auto-injection** — fetched memory auto-prepended to prompts. Opt out of fetching (`auto_retrieve_memory=False`) or customize formatting (`on_message` hook)
 - **Multi-provider support** — Azure OpenAI, Foundry, OpenAI, Anthropic, Bedrock, Ollama, GitHub Copilot, etc. via MS Agent Framework
 - **`SessionStore` protocol** — pluggable persistence (default: in-memory; swap for Redis, CosmosDB, etc.)
 - **Incremental voice session persistence** — background-saves after each utterance for auditing without impacting latency
@@ -12,7 +12,7 @@
 
 ## Simplified Agent Interface
 
-- Replaces `AgentProxy` ABC (3 methods, 2 classes) with a single `AgentLike` Protocol (`async run()`)
+- Replaces `AgentProxy` ABC (3 methods, 2 classes) — uses `agent_framework.Agent` directly
 - Factory receives full `ConversationSession` instead of two strings — enables channel-aware agents
 - Streaming uses `chunk.text` instead of deep dict traversal
 

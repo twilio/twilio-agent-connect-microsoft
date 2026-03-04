@@ -2,21 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from agent_framework import AgentSession
-
-
-@runtime_checkable
-class AgentLike(Protocol):
-    """Protocol defining the agent interface expected by OmniChannelHandler.
-
-    Any object with an async ``run`` method accepting a prompt string
-    satisfies this protocol.  This covers Microsoft Agent Framework agents
-    (``client.as_agent(...)``), custom wrappers, and test doubles.
-    """
-
-    async def run(self, prompt: str, **kwargs: Any) -> Any: ...
 
 
 @runtime_checkable

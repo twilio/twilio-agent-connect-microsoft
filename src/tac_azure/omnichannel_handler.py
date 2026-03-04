@@ -7,7 +7,7 @@ Key differences from Strands version:
 - No AgentProxy abstraction — handler calls agent.run() directly
 - SMS: handler internally manages the on_message_ready callback
 - Voice: handler manages internally via create_agent + streaming
-- create_agent returns an AgentLike object (anything with async run())
+- create_agent returns an Agent Framework ``Agent``
 - Explicit ``channels`` parameter controls which channels are initialised
 
 Conversation history:
@@ -39,7 +39,7 @@ import asyncio
 from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING, Any
 
-from agent_framework import AgentSession
+from agent_framework import Agent, AgentSession
 from fastapi import HTTPException, WebSocket
 from tac.session import ThreadSafeSessionManager
 from tac.channels.sms import SMSChannel
@@ -47,7 +47,7 @@ from tac.channels.voice import VoiceChannel
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 
-from .types import AgentLike, InMemorySessionStore, SessionStore
+from .types import InMemorySessionStore, SessionStore
 from .utils import format_memory_context
 
 if TYPE_CHECKING:
@@ -72,7 +72,7 @@ class OmniChannelHandler:
 
     Args:
         tac: TAC instance.
-        create_agent: ``(session: ConversationSession) -> AgentLike``.
+        create_agent: ``(session: ConversationSession) -> Agent``.
         channels: List of channels to enable.  Defaults to ``["voice", "sms"]``.
         public_domain: Public domain for WebSocket/callback URLs (e.g. ngrok domain).
             **Required** when ``"voice"`` is in *channels*.
@@ -95,7 +95,7 @@ class OmniChannelHandler:
     def __init__(
         self,
         tac: Any,
-        create_agent: Callable[[ConversationSession], AgentLike],
+        create_agent: Callable[[ConversationSession], Agent],
         channels: list[str] | None = None,
         public_domain: str | None = None,
         welcome_greeting: str | None = None,
@@ -130,7 +130,7 @@ class OmniChannelHandler:
             )
 
         # -- Voice channel (only when enabled) --------------------------------
-        self._voice_agents: dict[str, AgentLike] = {}
+        self._voice_agents: dict[str, Agent] = {}
         self._voice_sessions: dict[str, AgentSession] = {}
         self.tac_session_manager: ThreadSafeSessionManager | None = None
         self.voice_channel: VoiceChannel | None = None
@@ -335,7 +335,7 @@ class OmniChannelHandler:
             self._cleanup_voice_agent(session_id)
             raise
 
-    def _get_or_create_voice_agent(self, conversation_id: str) -> AgentLike:
+    def _get_or_create_voice_agent(self, conversation_id: str) -> Agent:
         """Get existing voice agent or create new one for conversation."""
         if conversation_id not in self._voice_agents:
             logger.info("Creating new voice agent", conversation_id=conversation_id)

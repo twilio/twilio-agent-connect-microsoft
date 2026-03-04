@@ -1,9 +1,9 @@
-"""Owl Internet Voice + SMS Agent — using Azure AI Foundry Agent Service.
+"""Owl Internet Voice + SMS Agent — Azure AI Foundry Agent Service.
 
-This example mirrors voice_sms_demo but uses AzureAIAgentClient instead of
-AzureOpenAIResponsesClient. The key difference is that Foundry Agent Service
-runs agents server-side with managed threads, and supports hosted tools like
-code interpreter, Bing web search, and file search.
+Uses AzureAIAgentClient which runs agents server-side with managed threads.
+Supports hosted tools like code interpreter, Bing web search, and file search.
+
+This is the recommended starting point for Azure Foundry users.
 """
 
 # Fix SSL certificate verification on macOS (must be before other imports)
@@ -25,12 +25,20 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# ---------------------------------------------------------------------------
+# Azure AI client
+# ---------------------------------------------------------------------------
+
 credential = DefaultAzureCredential()
 client = AzureAIAgentClient(
     credential=credential,
     project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
     model_deployment_name=os.environ.get("AZURE_AI_MODEL_DEPLOYMENT_NAME", "gpt-4o"),
 )
+
+# ---------------------------------------------------------------------------
+# System prompts — channel-aware
+# ---------------------------------------------------------------------------
 
 VOICE_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant on a phone call.
 Keep responses clear, concise, and conversational.
@@ -39,6 +47,10 @@ Use plain text only — no markdown, no lists, no special formatting."""
 SMS_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant over SMS.
 Keep responses concise and formatted for text messaging.
 Use short paragraphs. Bullet points are OK."""
+
+# ---------------------------------------------------------------------------
+# Tools
+# ---------------------------------------------------------------------------
 
 
 def look_up_outage_tool(zip_code: str) -> str:
@@ -55,9 +67,17 @@ try:
 except ValueError:
     logger.info("Bing web search tool not configured (set BING_CONNECTION_ID to enable)")
 
+# ---------------------------------------------------------------------------
+# TAC + knowledge base
+# ---------------------------------------------------------------------------
+
 tac = TAC(config=TACConfig.from_env())
 knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
 kb_info = None
+
+# ---------------------------------------------------------------------------
+# Agent factory — called once per voice call, once per SMS message
+# ---------------------------------------------------------------------------
 
 
 def create_agent(session: ConversationSession):
@@ -79,11 +99,20 @@ def create_agent(session: ConversationSession):
     )
 
 
+# ---------------------------------------------------------------------------
+# Startup — async init (e.g., fetch KB metadata)
+# ---------------------------------------------------------------------------
+
+
 async def startup():
     global kb_info
     if knowledge_base_id:
         kb_info = await fetch_knowledge_base_info(tac, knowledge_base_id)
 
+
+# ---------------------------------------------------------------------------
+# Server
+# ---------------------------------------------------------------------------
 
 server = OmniChannelServer(
     tac=tac,

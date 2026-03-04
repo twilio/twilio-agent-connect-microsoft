@@ -1,7 +1,10 @@
-"""Knowledge base search tool for Agent Framework agents.
+"""Knowledge base search tool — thin wrapper around TAC's tool primitives.
 
-Ported from strands_communications.twilio.tools.knowledge — stripped of @tool decorator.
-Agent Framework discovers tools from function name + docstring + type annotations.
+Uses TAC's ``search_knowledge`` function and ``function_tool`` decorator to
+build a TACTool, then extracts ``.implementation`` for Agent Framework.
+
+``create_knowledge_tool`` is sync.  Use the async ``fetch_knowledge_base_info``
+helper separately if you need to pull name/description from the KB at startup.
 """
 
 from __future__ import annotations
@@ -9,12 +12,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from tac.core.logging import get_logger
+from tac.tools.base import function_tool
+from tac.tools.knowledge import search_knowledge
 
 if TYPE_CHECKING:
     from tac import TAC
-
-logger = get_logger(__name__)
 
 
 @dataclass
@@ -71,17 +73,17 @@ def create_knowledge_tool(
     name: str = "search_knowledge_base",
     top_k: int = 5,
 ) -> Any:
-    """Create a knowledge base search tool.
+    """Create a knowledge base search tool backed by TAC's KnowledgeClient.
 
-    Returns a plain async function — no decorator needed.  Agent Framework
-    discovers tools from the function name, docstring, and type annotations.
+    Returns a plain async function suitable for Agent Framework's tools list.
+    Uses TAC's ``search_knowledge`` function with dependency injection,
+    then extracts ``.implementation`` for Agent Framework auto-discovery.
 
     Args:
-        tac: TAC instance (provides access to KnowledgeClient internally).
+        tac: TAC instance (must have ``knowledge_client`` initialised).
         knowledge_base_id: The knowledge base ID to search
             (format: ``know_knowledgebase_*``).
         description: Description of what this knowledge base contains.
-            Helps the LLM decide when to use the tool.
         name: Tool function name (default: ``"search_knowledge_base"``).
         top_k: Number of results to return (default: 5).
 
@@ -110,37 +112,10 @@ def create_knowledge_tool(
             "(knowledge client shares the same authentication)."
         )
 
-    knowledge_client = tac.knowledge_client
-
-    async def search_knowledge_base(query: str) -> list[dict[str, Any]]:
-        """Search the knowledge base with the given query.
-
-        Args:
-            query: The search query string (max 2048 characters).
-
-        Returns:
-            List of knowledge chunk results with content, knowledge_id,
-            created_at, and score fields.
-        """
-        try:
-            logger.debug(
-                f"[KB TOOL] Searching knowledge base '{knowledge_base_id}' "
-                f"with query: {query[:100]}..."
-            )
-            result = await knowledge_client.search_knowledge_base(
-                knowledge_base_id=knowledge_base_id,
-                query=query,
-                top_k=top_k,
-            )
-            logger.debug(f"[KB TOOL] Found {len(result)} results from knowledge base")
-            return [r.model_dump() for r in result]
-        except Exception as e:
-            logger.error(f"[KB TOOL] Error searching knowledge base: {e}", exc_info=True)
-            raise
-
-    search_knowledge_base.__name__ = name
-    search_knowledge_base.__doc__ = (
-        f"{description}\n\nArgs:\n    query: The search query string."
+    tac_tool = function_tool(name=name, description=description)(search_knowledge)
+    tac_tool.configure_injection(
+        knowledge_client=tac.knowledge_client,
+        knowledge_base_id=knowledge_base_id,
+        top_k=top_k,
     )
-
-    return search_knowledge_base
+    return tac_tool.implementation

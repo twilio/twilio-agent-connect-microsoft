@@ -17,14 +17,13 @@ from fastapi import FastAPI, Request, WebSocket
 from fastapi.responses import JSONResponse, Response
 from tac.core.logging import get_logger
 
-from .handler import OmniChannelHandler
+from .omnichannel_handler import OmniChannelHandler
 from .types import SessionStore
 
 if TYPE_CHECKING:
+    from agent_framework import Agent
     from tac.models.tac import TACMemoryResponse
     from tac.models.session import ConversationSession
-
-    from .types import AgentLike
 
 logger = get_logger(__name__)
 
@@ -38,7 +37,7 @@ class OmniChannelServer:
 
     Args:
         tac: TAC instance.
-        create_agent: ``(session: ConversationSession) -> AgentLike``.
+        create_agent: ``(session: ConversationSession) -> Agent``.
         channels: Channels to enable.  Defaults to ``["voice", "sms"]``.
         public_domain: Required when ``"voice"`` is in *channels*.
         welcome_greeting: Initial voice greeting.
@@ -63,7 +62,7 @@ class OmniChannelServer:
     def __init__(
         self,
         tac: Any,
-        create_agent: Callable[[ConversationSession], AgentLike],
+        create_agent: Callable[[ConversationSession], Agent],
         channels: list[str] | None = None,
         public_domain: str | None = None,
         welcome_greeting: str | None = None,
@@ -143,8 +142,9 @@ class OmniChannelServer:
     async def _validate_signature(self, request: Request, body: bytes) -> bool:
         """Validate Twilio webhook signature.
 
-        Uses the ``twilio`` library's ``RequestValidator`` with the auth
-        token from ``tac.config.twilio_auth_token``.
+        Delegates to TAC's ``validate_twilio_webhook`` which handles proxy
+        headers (``X-Forwarded-Proto``, ``X-Forwarded-Host``) and
+        comma-separated values for multi-proxy environments.
 
         Returns True if valid or validation is disabled.
         """
@@ -152,34 +152,26 @@ class OmniChannelServer:
             return True
 
         try:
-            from twilio.request_validator import RequestValidator
-
-            validator = RequestValidator(self.tac.config.twilio_auth_token)
-
-            # Reconstruct the full URL Twilio signed against.
-            # When behind a proxy (ngrok, ALB, etc.) the X-Forwarded-Proto
-            # header should be used instead of the scheme reported by the
-            # ASGI server.
-            url = str(request.url)
-            proto = request.headers.get("x-forwarded-proto")
-            if proto:
-                url = url.replace("http://", f"{proto}://", 1)
-
-            signature = request.headers.get("x-twilio-signature", "")
+            from tac.server.webhook import validate_twilio_webhook
 
             # For form-encoded requests (TwiML), pass the form dict.
             # For JSON requests (SMS webhook), pass the body string.
             content_type = request.headers.get("content-type", "")
             if "application/x-www-form-urlencoded" in content_type:
                 form = await request.form()
-                params = dict(form)
+                body_for_validation: str | dict[str, str] = dict(form)
             else:
-                params = body.decode("utf-8") if body else ""
+                body_for_validation = body.decode("utf-8") if body else ""
 
-            return validator.validate(url, params, signature)
+            return validate_twilio_webhook(
+                request=request,
+                auth_token=self.tac.config.twilio_auth_token,
+                body=body_for_validation,
+            )
         except ImportError:
             logger.warning(
-                "twilio package not installed — webhook validation skipped"
+                "twilio package not installed — webhook validation skipped. "
+                "Install with: pip install twilio"
             )
             return True
         except Exception:

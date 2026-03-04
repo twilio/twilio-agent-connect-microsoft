@@ -106,7 +106,7 @@ See individual examples for complete environment variable requirements.
 
 - **`OmniChannelHandler`** — Main orchestrator handling both voice and SMS channels. Manages conversation sessions, agent lifecycle, and streaming responses through TAC channels.
 - **`OmniChannelServer`** — Batteries-included FastAPI wrapper with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
-- **`AgentLike`** / **`SessionStore`** — Protocols enabling pluggable agent implementations and session persistence backends.
+- **`SessionStore`** — Protocol enabling pluggable session persistence backends.
 
 ### Built-in Tools
 
@@ -130,12 +130,12 @@ All public APIs are exported from the top-level `tac_azure` package:
 from tac_azure import (
     OmniChannelServer,
     OmniChannelHandler,
-    AgentLike,
     SessionStore,
     InMemorySessionStore,
     ConversationSession,
     format_memory_context,
 )
+from agent_framework import Agent  # Agent type from MS Agent Framework
 from tac_azure.tools import (
     create_memory_recall_tool,
     create_knowledge_tool,
@@ -156,7 +156,7 @@ Batteries-included FastAPI server wrapping `OmniChannelHandler`. Pre-wires route
 ```python
 server = OmniChannelServer(
     tac=tac,                          # TAC instance
-    create_agent=create_agent,        # (ConversationSession) -> AgentLike
+    create_agent=create_agent,        # (ConversationSession) -> Agent
     channels=["voice", "sms"],        # Channels to enable (default: both)
     public_domain="example.ngrok.app",# Required when voice is enabled
     welcome_greeting="Hello!",        # Initial voice greeting
@@ -207,7 +207,7 @@ Lower-level handler for integrating into your own FastAPI app. Use this when you
 ```python
 handler = OmniChannelHandler(
     tac=tac,                          # TAC instance
-    create_agent=create_agent,        # (ConversationSession) -> AgentLike
+    create_agent=create_agent,        # (ConversationSession) -> Agent
     channels=["voice", "sms"],        # Channels to enable (default: both)
     public_domain="example.ngrok.app",# Required when voice is enabled
     welcome_greeting="Hello!",        # Initial voice greeting
@@ -229,15 +229,6 @@ handler = OmniChannelHandler(
 ---
 
 ### Protocols
-
-#### `AgentLike`
-
-Any object with an async `run` method satisfies this protocol. This covers agents created via `client.as_agent(...)`, custom wrappers, and test doubles.
-
-```python
-class AgentLike(Protocol):
-    async def run(self, prompt: str, **kwargs: Any) -> Any: ...
-```
 
 #### `SessionStore`
 
