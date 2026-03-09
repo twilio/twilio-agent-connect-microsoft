@@ -69,7 +69,7 @@ Some features are partly enabled by a **newer TAC pin** (unified `on_message_rea
 | `on_message` hook              | Lets customers customize memory formatting without subclassing                                                    |
 | Sync `create_knowledge_tool`   | Async metadata fetch is separate (`fetch_knowledge_base_info`); tool creation stays sync for use in agent factory |
 
-## Open Questions for Board
+## Open Questions
 
 - Naming — do we tie to Azure or keep it generic (users don't have to use Azure)?
   - Repo: `azure-twilio-agent-connect-python` vs `microsoft-agent-framework-twilio-agent-connect-python`?
@@ -77,6 +77,7 @@ Some features are partly enabled by a **newer TAC pin** (unified `on_message_rea
 - Python-only OK? MS Agent Framework supports Python + .NET only.
 - OK to depend on MS Agent Framework while in RC?
 - Do we want auto memory fetching and injection on or off by default?
+- Should we document an opinionated deployment guide for azure?
 - Generate/export SDK code from Foundry playground?
 - When will MS Agent Framework GA? (question for Microsoft)
 

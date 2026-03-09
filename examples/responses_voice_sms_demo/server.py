@@ -60,11 +60,6 @@ def look_up_outage_tool(zip_code: str) -> str:
 tac = TAC(config=TACConfig.from_env())
 knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
 
-KB_DESCRIPTION = (
-    "Search for information about Twilio's Sierra initiative, including Memora "
-    "(conversation memory service) and Maestro (orchestration service)."
-)
-
 # ---------------------------------------------------------------------------
 # Agent factory — called once per voice call, once per SMS message
 # ---------------------------------------------------------------------------
@@ -77,7 +72,8 @@ def create_agent(session: ConversationSession):
     if knowledge_base_id:
         tools.append(create_knowledge_tool(
             tac, knowledge_base_id=knowledge_base_id,
-            description=KB_DESCRIPTION,
+            description="Search for information about Twilio's Sierra initiative, including Memora "
+            "(conversation memory service) and Maestro (orchestration service).",
         ))
 
     return client.as_agent(
