@@ -1,6 +1,6 @@
 """Owl Internet SMS Agent — with file-based session persistence.
 
-Demonstrates how to implement a custom ``SessionStore`` to persist
+Demonstrates how to implement a custom ``AgentSessionStore`` to persist
 conversation sessions across SMS messages.  Sessions are stored as JSON
 files on disk so conversation history survives server restarts.
 
@@ -9,11 +9,11 @@ session files when a conversation closes.
 
 This uses the Responses API (AzureOpenAIResponsesClient).  Agent Framework
 auto-injects ``InMemoryHistoryProvider`` which stores messages in the
-session state dict.  The ``FileSessionStore`` persists that state to disk
+session state dict.  The ``FileAgentSessionStore`` persists that state to disk
 between messages, giving multi-turn conversation memory.
 
-For horizontal scaling, replace ``FileSessionStore`` with an implementation
-backed by a shared store (Redis, CosmosDB, etc.) — the ``SessionStore``
+For horizontal scaling, replace ``FileAgentSessionStore`` with an implementation
+backed by a shared store (Redis, CosmosDB, etc.) — the ``AgentSessionStore``
 protocol is the same.
 """
 
@@ -43,11 +43,11 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Custom SessionStore — file-based persistence
+# Custom AgentSessionStore — file-based persistence
 # ---------------------------------------------------------------------------
 
 
-class FileSessionStore:
+class FileAgentSessionStore:
     """Persist sessions as JSON files on the local filesystem.
 
     Each session is written to ``{storage_dir}/{session_id}.json``
@@ -93,7 +93,7 @@ Keep responses concise and formatted for text messaging.
 Use short paragraphs. Bullet points are OK."""
 
 tac = TAC(config=TACConfig.from_env())
-session_store = FileSessionStore("/tmp/owl_sms_sessions")
+session_store = FileAgentSessionStore("/tmp/owl_sms_sessions")
 
 
 # ---------------------------------------------------------------------------

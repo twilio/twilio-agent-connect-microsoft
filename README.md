@@ -82,7 +82,7 @@ uv run python examples/foundry_voice_sms_demo/server.py
 - Custom landing page example
 
 **[File-Based SMS Sessions](examples/sms_file_sessions/)**
-- Custom `SessionStore` implementation using JSON files
+- Custom `AgentSessionStore` implementation using JSON files
 - SMS-only setup with session persistence across restarts
 - Demonstrates `on_conversation_ended` lifecycle hook
 
@@ -106,7 +106,7 @@ See individual examples for complete environment variable requirements.
 
 - **`OmniChannelHandler`** — Main orchestrator handling both voice and SMS channels. Manages conversation sessions, agent lifecycle, and streaming responses through TAC channels.
 - **`OmniChannelServer`** — Batteries-included FastAPI wrapper with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
-- **`SessionStore`** — Protocol enabling pluggable session persistence backends.
+- **`AgentSessionStore`** — Protocol enabling pluggable session persistence backends.
 
 ### Built-in Tools
 
@@ -130,8 +130,8 @@ All public APIs are exported from the top-level `tac_azure` package:
 from tac_azure import (
     OmniChannelServer,
     OmniChannelHandler,
-    SessionStore,
-    InMemorySessionStore,
+    AgentSessionStore,
+    InMemoryAgentSessionStore,
     ConversationSession,
     format_memory_context,
 )
@@ -162,7 +162,7 @@ server = OmniChannelServer(
     welcome_greeting="Hello!",        # Initial voice greeting
     on_message=None,                  # SMS hook: (msg, context, memory) -> str
     auto_retrieve_memory=True,        # Auto-retrieve memory on message arrival
-    session_store=None,               # SessionStore impl (default: InMemorySessionStore)
+    session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
     validate_webhooks=True,           # Validate Twilio webhook signatures
     websocket_path="/ws",             # WebSocket endpoint path
     twiml_path="/twiml",              # TwiML endpoint path
@@ -213,7 +213,7 @@ handler = OmniChannelHandler(
     welcome_greeting="Hello!",        # Initial voice greeting
     on_message=None,                  # SMS hook: (msg, context, memory) -> str
     auto_retrieve_memory=True,        # Auto-retrieve memory on message arrival
-    session_store=None,               # SessionStore impl (default: InMemorySessionStore)
+    session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
     websocket_path="/ws",             # WebSocket path (used in TwiML generation)
 )
 ```
@@ -228,17 +228,17 @@ handler = OmniChannelHandler(
 
 ---
 
-### `SessionStore`
+### `AgentSessionStore`
 
 Protocol for persisting `AgentSession` between requests. Enables conversation continuity across SMS messages and background persistence for voice sessions.
 
 ```python
-class SessionStore(Protocol):
+class AgentSessionStore(Protocol):
     async def load(self, session_id: str) -> AgentSession | None: ...
     async def save(self, session_id: str, session: AgentSession) -> None: ...
 ```
 
-`InMemorySessionStore` is the default implementation. For horizontal scaling, implement `SessionStore` backed by Redis, CosmosDB, or another shared store. `AgentSession` supports serialization via `to_dict()` / `from_dict()`.
+`InMemoryAgentSessionStore` is the default implementation. For horizontal scaling, implement `AgentSessionStore` backed by Redis, CosmosDB, or another shared store. `AgentSession` supports serialization via `to_dict()` / `from_dict()`.
 
 ---
 

@@ -8,7 +8,7 @@ from agent_framework import AgentSession
 
 
 @runtime_checkable
-class SessionStore(Protocol):
+class AgentSessionStore(Protocol):
     """Protocol for persisting AgentSession between requests.
 
     Implementations store and retrieve ``AgentSession`` objects keyed by
@@ -23,7 +23,7 @@ class SessionStore(Protocol):
       (including message history from ``InMemoryHistoryProvider``) so
       conversation context is available across messages.
 
-    The default :class:`InMemorySessionStore` works for single-instance
+    The default :class:`InMemoryAgentSessionStore` works for single-instance
     deployments.  For horizontal scaling, provide an implementation
     backed by Redis, CosmosDB, or another shared store.  ``AgentSession``
     supports serialisation via ``to_dict()`` / ``from_dict()``.
@@ -38,7 +38,7 @@ class SessionStore(Protocol):
         ...
 
 
-class InMemorySessionStore:
+class InMemoryAgentSessionStore:
     """In-memory session store for single-instance deployments.
 
     Stores sessions in a plain dict.  Suitable for development and

@@ -8,7 +8,7 @@ Ordered from biggest departure to smallest.
    - Factory gets full `ConversationSession` instead of two strings (agent has context on current channel)
    - Streaming: `chunk.text` instead of `event["event"]["contentBlockDelta"]["delta"]["text"]`
 
-3. **`SessionStore` interface** — pluggable session persistence. `AgentSession` is Agent Framework's abstraction for agent history (e.g. thread ID for Foundry Agent Service, full conversation history for Chat Completions).
+3. **`AgentSessionStore` interface** — pluggable session persistence. `AgentSession` is Agent Framework's abstraction for agent history (e.g. thread ID for Foundry Agent Service, full conversation history for Chat Completions).
    - SMS: handler auto-loads/saves `AgentSession` around every `agent.run()`
    - Voice: background saves after each utterance (non-blocking)
    - Default: in-memory. Swap for Redis/CosmosDB for horizontal scaling

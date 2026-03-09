@@ -16,10 +16,10 @@ Conversation history:
 - Voice: agent + session are cached in-memory for the duration of the
   WebSocket call.  The same agent handles all utterances within a single
   call, and history accumulates naturally.  The session is also persisted
-  to the ``SessionStore`` in the background (fire-and-forget) after each
+  to the ``AgentSessionStore`` in the background (fire-and-forget) after each
   utterance and on disconnect, enabling auditing and persistence of
   Foundry thread IDs without impacting voice latency.
-- SMS: a ``SessionStore`` persists the ``AgentSession`` between messages.
+- SMS: an ``AgentSessionStore`` persists the ``AgentSession`` between messages.
   Before each ``agent.run()``, the handler loads the session from the store
   (or creates a new one); after the run it saves the session back.  This
   enables conversation continuity across messages for all provider types:
@@ -28,7 +28,7 @@ Conversation history:
       reuse the same thread.
     - Responses API / Chat Completions: session state (including messages
       from ``InMemoryHistoryProvider``) is preserved across messages.
-  The default ``InMemorySessionStore`` works for single-instance
+  The default ``InMemoryAgentSessionStore`` works for single-instance
   deployments.  For horizontal scaling, supply a persistent store
   (Redis, CosmosDB, etc.) via the ``session_store`` parameter.
 """
@@ -47,7 +47,7 @@ from tac.channels.voice import VoiceChannel
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 
-from .types import InMemorySessionStore, SessionStore
+from .types import InMemoryAgentSessionStore, AgentSessionStore
 from .utils import format_memory_context
 
 if TYPE_CHECKING:
@@ -66,9 +66,9 @@ class OmniChannelHandler:
 
     Conversation history is managed via Agent Framework's ``AgentSession``.
     For voice, the agent and session persist in-memory for the duration of
-    the WebSocket call, with background saves to the ``SessionStore`` after
+    the WebSocket call, with background saves to the ``AgentSessionStore`` after
     each utterance for persistence/auditing.  For SMS, the session is loaded
-    from and saved to the ``SessionStore`` on every message.
+    from and saved to the ``AgentSessionStore`` on every message.
 
     Args:
         tac: TAC instance.
@@ -86,7 +86,7 @@ class OmniChannelHandler:
         session_store: Persistence layer for ``AgentSession`` objects.
             Used for SMS session continuity across messages and for
             background persistence of voice sessions (auditing, Foundry
-            thread IDs).  Defaults to ``InMemorySessionStore`` (suitable
+            thread IDs).  Defaults to ``InMemoryAgentSessionStore`` (suitable
             for single-instance deployments).  For horizontal scaling,
             provide a persistent implementation (Redis, CosmosDB, etc.).
         websocket_path: WebSocket path (used in TwiML generation).
@@ -107,7 +107,7 @@ class OmniChannelHandler:
             | None
         ) = None,
         auto_retrieve_memory: bool = True,
-        session_store: SessionStore | None = None,
+        session_store: AgentSessionStore | None = None,
         websocket_path: str = "/ws",
     ):
         self.tac = tac
@@ -117,8 +117,8 @@ class OmniChannelHandler:
         self.welcome_greeting = welcome_greeting or "Hello! How can I help you today!"
         self.websocket_path = websocket_path
         self.on_message = on_message
-        self.session_store: SessionStore = (
-            session_store if session_store is not None else InMemorySessionStore()
+        self.session_store: AgentSessionStore = (
+            session_store if session_store is not None else InMemoryAgentSessionStore()
         )
 
         # -- Validate configuration ------------------------------------------

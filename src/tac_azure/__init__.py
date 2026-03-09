@@ -8,14 +8,14 @@ from tac.models.session import ConversationSession
 
 from .omnichannel_handler import OmniChannelHandler
 from .omnichannel_server import OmniChannelServer
-from .types import InMemorySessionStore, SessionStore
+from .types import InMemoryAgentSessionStore, AgentSessionStore
 from .utils import format_memory_context
 
 __all__ = [
     "ConversationSession",
-    "InMemorySessionStore",
+    "AgentSessionStore",
+    "InMemoryAgentSessionStore",
     "OmniChannelHandler",
     "OmniChannelServer",
-    "SessionStore",
     "format_memory_context",
 ]

@@ -18,7 +18,7 @@ from fastapi.responses import JSONResponse, Response
 from tac.core.logging import get_logger
 
 from .omnichannel_handler import OmniChannelHandler
-from .types import SessionStore
+from .types import AgentSessionStore
 
 if TYPE_CHECKING:
     from agent_framework import Agent
@@ -74,7 +74,7 @@ class OmniChannelServer:
             | None
         ) = None,
         auto_retrieve_memory: bool = True,
-        session_store: SessionStore | None = None,
+        session_store: AgentSessionStore | None = None,
         validate_webhooks: bool = True,
         websocket_path: str = "/ws",
         twiml_path: str = "/twiml",
