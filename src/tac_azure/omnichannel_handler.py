@@ -80,9 +80,8 @@ class OmniChannelHandler:
         on_message: Optional hook called before ``agent.run()`` for SMS.
             Signature: ``(user_message, context, memory_response) -> str``.
             When *None*, defaults to ``format_memory_context(memory, msg)``.
-        auto_retrieve_memory: If *True* (default), TAC channels auto-retrieve
-            memory before invoking callbacks.  Set to *False* to skip the
-            latency of auto-retrieval (use the memory recall tool instead).
+        auto_retrieve_memory: If *True*, TAC channels auto-retrieve
+            memory before invoking callbacks.  Defaults to *False*.
         session_store: Persistence layer for ``AgentSession`` objects.
             Used for SMS session continuity across messages and for
             background persistence of voice sessions (auditing, Foundry
@@ -106,7 +105,7 @@ class OmniChannelHandler:
             ]
             | None
         ) = None,
-        auto_retrieve_memory: bool = True,
+        auto_retrieve_memory: bool = False,
         session_store: AgentSessionStore | None = None,
         websocket_path: str = "/ws",
     ):

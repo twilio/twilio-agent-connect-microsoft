@@ -85,6 +85,7 @@ handler = OmniChannelHandler(
     public_domain=os.environ["TWILIO_TAC_VOICE_PUBLIC_DOMAIN"],
     welcome_greeting="Hello! I'm your Owl Internet assistant. How can I help?",
     channels=["voice", "sms"],
+    auto_retrieve_memory=True,
 )
 
 

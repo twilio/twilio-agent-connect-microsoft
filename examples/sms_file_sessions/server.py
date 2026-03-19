@@ -125,6 +125,7 @@ server = OmniChannelServer(
     tac=tac,
     create_agent=create_agent,
     channels=["sms"],
+    auto_retrieve_memory=True,
     session_store=session_store,
 )
 

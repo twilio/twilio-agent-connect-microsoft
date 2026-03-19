@@ -161,7 +161,7 @@ server = OmniChannelServer(
     public_domain="example.ngrok.app",# Required when voice is enabled
     welcome_greeting="Hello!",        # Initial voice greeting
     on_message=None,                  # SMS hook: (msg, context, memory) -> str
-    auto_retrieve_memory=True,        # Auto-retrieve memory on message arrival
+    auto_retrieve_memory=False,        # Auto-retrieve memory on message arrival
     session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
     validate_webhooks=True,           # Validate Twilio webhook signatures
     websocket_path="/ws",             # WebSocket endpoint path
@@ -212,7 +212,7 @@ handler = OmniChannelHandler(
     public_domain="example.ngrok.app",# Required when voice is enabled
     welcome_greeting="Hello!",        # Initial voice greeting
     on_message=None,                  # SMS hook: (msg, context, memory) -> str
-    auto_retrieve_memory=True,        # Auto-retrieve memory on message arrival
+    auto_retrieve_memory=False,        # Auto-retrieve memory on message arrival
     session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
     websocket_path="/ws",             # WebSocket path (used in TwiML generation)
 )

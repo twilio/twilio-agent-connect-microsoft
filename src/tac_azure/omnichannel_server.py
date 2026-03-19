@@ -42,7 +42,7 @@ class OmniChannelServer:
         public_domain: Required when ``"voice"`` is in *channels*.
         welcome_greeting: Initial voice greeting.
         on_message: SMS message augmentation hook.
-        auto_retrieve_memory: Pass through to TAC channels.
+        auto_retrieve_memory: Pass through to TAC channels (default *False*).
         session_store: Persistence layer for ``AgentSession`` between
             SMS messages.  Defaults to in-memory.  For horizontal scaling,
             provide a persistent implementation.
@@ -73,7 +73,7 @@ class OmniChannelServer:
             ]
             | None
         ) = None,
-        auto_retrieve_memory: bool = True,
+        auto_retrieve_memory: bool = False,
         session_store: AgentSessionStore | None = None,
         validate_webhooks: bool = True,
         websocket_path: str = "/ws",
