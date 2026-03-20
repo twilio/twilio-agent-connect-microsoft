@@ -33,8 +33,9 @@ from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from tac import TAC, TACConfig
+from tac.server import TACServer
 
-from tac_azure import ConversationSession, OmniChannelServer
+from tac_azure import ConversationSession, MultiChannelBridge
 from tac_azure.tools import create_memory_recall_tool
 
 load_dotenv()
@@ -118,16 +119,20 @@ def create_agent(session: ConversationSession):
 
 
 # ---------------------------------------------------------------------------
-# Server
+# Bridge + Server
 # ---------------------------------------------------------------------------
 
-server = OmniChannelServer(
+bridge = MultiChannelBridge(
     tac=tac,
     create_agent=create_agent,
-    channels=["sms"],
     auto_retrieve_memory=True,
     session_store=session_store,
 )
 
+server = TACServer(
+    tac=tac,
+    sms_channel=bridge.sms_channel,
+)
+
 if __name__ == "__main__":
-    server.serve()
+    server.start()

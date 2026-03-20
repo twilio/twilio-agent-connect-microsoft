@@ -1,8 +1,9 @@
-"""Owl Internet Voice + SMS Agent — using OmniChannelHandler with a custom FastAPI app.
+"""Owl Internet Voice + SMS Agent — using MultiChannelBridge with custom FastAPI routes.
 
-This example is identical to responses_voice_sms_demo in functionality, but builds
-the FastAPI application manually instead of relying on OmniChannelServer. This gives
-full control over routes, middleware, and application lifecycle.
+This example uses MultiChannelBridge + TACServer but adds custom routes by
+accessing ``server.app`` (the underlying FastAPI instance). This gives full
+control over additional routes and middleware while TACServer handles the
+standard Twilio routing.
 """
 
 # Fix SSL certificate verification on macOS (must be before other imports)
@@ -10,20 +11,17 @@ import truststore
 
 truststore.inject_into_ssl()
 
-import asyncio
 import logging
 import os
-from contextlib import asynccontextmanager
 
-import uvicorn
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.responses import HTMLResponse
 from tac import TAC, TACConfig
+from tac.server import TACServer
 
 from agent_framework.azure import AzureOpenAIResponsesClient
-from tac_azure import ConversationSession, OmniChannelHandler
+from tac_azure import ConversationSession, MultiChannelBridge
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool, fetch_knowledge_base_info
 
 load_dotenv()
@@ -76,39 +74,40 @@ def create_agent(session: ConversationSession):
 
 
 # ---------------------------------------------------------------------------
-# OmniChannelHandler — handles voice & SMS logic without owning the FastAPI app
+# Startup — async init (e.g., fetch KB metadata)
 # ---------------------------------------------------------------------------
 
-handler = OmniChannelHandler(
+
+async def startup():
+    global kb_info
+    if knowledge_base_id:
+        kb_info = await fetch_knowledge_base_info(tac, knowledge_base_id)
+
+
+# ---------------------------------------------------------------------------
+# Bridge + Server
+# ---------------------------------------------------------------------------
+
+bridge = MultiChannelBridge(
     tac=tac,
     create_agent=create_agent,
-    public_domain=os.environ["TWILIO_TAC_VOICE_PUBLIC_DOMAIN"],
-    welcome_greeting="Hello! I'm your Owl Internet assistant. How can I help?",
-    channels=["voice", "sms"],
     auto_retrieve_memory=True,
+)
+
+server = TACServer(
+    tac=tac,
+    voice_channel=bridge.voice_channel,
+    sms_channel=bridge.sms_channel,
+    on_startup=startup,
 )
 
 
 # ---------------------------------------------------------------------------
-# FastAPI application — fully developer-owned
+# Custom routes — added via server.app (the FastAPI instance)
 # ---------------------------------------------------------------------------
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global kb_info
-    if knowledge_base_id:
-        kb_info = await fetch_knowledge_base_info(tac, knowledge_base_id)
-    yield
-
-
-app = FastAPI(title="Owl Internet (Custom FastAPI)", lifespan=lifespan)
-
-
-# -- Custom landing page (not available with OmniChannelServer) -------------
-
-
-@app.get("/", response_class=HTMLResponse)
+@server.app.get("/", response_class=HTMLResponse)
 async def landing_page():
     return """
     <html>
@@ -124,69 +123,9 @@ async def landing_page():
     """
 
 
-# -- Voice routes -----------------------------------------------------------
-
-
-@app.post("/twiml")
-async def post_twiml(request: Request) -> Response:
-    form = await request.form()
-    xml = await handler.handle_twiml_request(
-        from_number=str(form["From"]),
-        to_number=str(form["To"]),
-        call_sid=str(form["CallSid"]),
-    )
-    return Response(content=xml, media_type="application/xml")
-
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket) -> None:
-    await handler.handle_websocket_connection(websocket)
-
-
-@app.post("/conversation-relay-callback")
-async def conversation_relay_callback(request: Request) -> Response:
-    assert handler.voice_channel is not None
-    form_data = await request.form()
-    payload_dict = {key: str(value) for key, value in form_data.items()}
-    result = await handler.voice_channel.handle_conversation_relay_callback(payload_dict)
-    if result is not None:
-        return Response(content=result, media_type="text/xml")
-    return Response(content="OK", media_type="text/plain")
-
-
-# -- SMS route --------------------------------------------------------------
-
-
-@app.post("/webhook")
-async def post_sms(request: Request):
-    webhook_data = await request.json()
-    idempotency_token = request.headers.get("i-twilio-idempotency-token")
-
-    async def _process():
-        try:
-            await handler.handle_sms_webhook(webhook_data, idempotency_token)
-        except Exception:
-            logging.getLogger(__name__).error("Webhook processing failed", exc_info=True)
-
-    asyncio.create_task(_process())
-    return JSONResponse(content={"status": "ok"})
-
-
-# -- Health check -----------------------------------------------------------
-
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "server": "tac-azure (custom fastapi)",
-        "channels": handler.channels,
-    }
-
-
 # ---------------------------------------------------------------------------
-# Run with uvicorn directly
+# Run
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    server.start()

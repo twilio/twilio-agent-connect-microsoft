@@ -17,8 +17,9 @@ from agent_framework.azure import AzureAIAgentClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from tac import TAC, TACConfig
+from tac.server import TACServer
 
-from tac_azure import ConversationSession, OmniChannelServer, format_memory_context
+from tac_azure import ConversationSession, MultiChannelBridge, format_memory_context
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool, fetch_knowledge_base_info
 
 load_dotenv()
@@ -112,7 +113,7 @@ def create_agent(session: ConversationSession):
 # The returned string is what gets passed to agent.run().
 #
 # To disable memory fetching entirely (saves latency), set
-# auto_retrieve_memory=False on OmniChannelServer instead.
+# auto_retrieve_memory=False on MultiChannelBridge instead.
 # memory_response will then always be None.
 
 
@@ -134,19 +135,22 @@ async def startup():
 
 
 # ---------------------------------------------------------------------------
-# Server
+# Bridge + Server
 # ---------------------------------------------------------------------------
 
-server = OmniChannelServer(
+bridge = MultiChannelBridge(
     tac=tac,
     create_agent=create_agent,
-    public_domain=os.environ["TWILIO_TAC_VOICE_PUBLIC_DOMAIN"],
-    welcome_greeting="Hello! I'm your Owl Internet assistant. How can I help?",
-    channels=["voice", "sms"],
     auto_retrieve_memory=True,
     on_message=on_message,
+)
+
+server = TACServer(
+    tac=tac,
+    voice_channel=bridge.voice_channel,
+    sms_channel=bridge.sms_channel,
     on_startup=startup,
 )
 
 if __name__ == "__main__":
-    server.serve()
+    server.start()

@@ -1,13 +1,8 @@
-"""TAC Agent Framework integration.
-
-Provides OmniChannelHandler and OmniChannelServer for building Twilio
-voice and SMS agents with Microsoft Agent Framework.
-"""
+"""TAC Azure integration — Microsoft Agent Framework bridge for Twilio channels."""
 
 from tac.models.session import ConversationSession
 
-from .omnichannel_handler import OmniChannelHandler
-from .omnichannel_server import OmniChannelServer
+from .multi_channel_bridge import MultiChannelBridge
 from .types import InMemoryAgentSessionStore, AgentSessionStore
 from .utils import format_memory_context
 
@@ -15,7 +10,6 @@ __all__ = [
     "ConversationSession",
     "AgentSessionStore",
     "InMemoryAgentSessionStore",
-    "OmniChannelHandler",
-    "OmniChannelServer",
+    "MultiChannelBridge",
     "format_memory_context",
 ]

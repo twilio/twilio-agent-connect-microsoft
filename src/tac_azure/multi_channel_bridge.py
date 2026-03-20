@@ -1,17 +1,17 @@
 """
-OmniChannel Handler for Agent Framework + TAC
+MultiChannel Bridge for Agent Framework + TAC
 
-Ported from strands_communications.twilio.omnichannel — adapted for Microsoft Agent Framework.
+Bridge logic (agent lifecycle, session management, tool factories) for Microsoft
+Agent Framework.  HTTP/WebSocket routing is delegated to ``TACServer`` from the
+``tac`` package.
 
-Key differences from Strands version:
-- No AgentProxy abstraction — handler calls agent.run() directly
-- SMS: handler internally manages the on_message_ready callback
-- Voice: handler manages internally via create_agent + streaming
-- create_agent returns an Agent Framework ``Agent``
-- Explicit ``channels`` parameter controls which channels are initialised
+Key design:
+- ``create_agent`` factory returns an Agent Framework ``Agent``
+- Voice and SMS channel instances are exposed as ``voice_channel`` / ``sms_channel``
+  — pass whichever you need to ``TACServer`` to wire up routing
 
 Conversation history:
-- The handler passes an ``AgentSession`` to every ``agent.run()`` call so
+- The bridge passes an ``AgentSession`` to every ``agent.run()`` call so
   that Agent Framework can load/save conversation history automatically.
 - Voice: agent + session are cached in-memory for the duration of the
   WebSocket call.  The same agent handles all utterances within a single
@@ -20,7 +20,7 @@ Conversation history:
   utterance and on disconnect, enabling auditing and persistence of
   Foundry thread IDs without impacting voice latency.
 - SMS: an ``AgentSessionStore`` persists the ``AgentSession`` between messages.
-  Before each ``agent.run()``, the handler loads the session from the store
+  Before each ``agent.run()``, the bridge loads the session from the store
   (or creates a new one); after the run it saves the session back.  This
   enables conversation continuity across messages for all provider types:
     - Foundry Agent Service: the server-side ``thread_id`` (stored as
@@ -40,7 +40,6 @@ from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING, Any
 
 from agent_framework import Agent, AgentSession
-from fastapi import HTTPException, WebSocket
 from tac.session import ThreadSafeSessionManager
 from tac.channels.sms import SMSChannel
 from tac.channels.voice import VoiceChannel
@@ -56,13 +55,15 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class OmniChannelHandler:
+class MultiChannelBridge:
     """
-    Handler for Twilio channels (Voice and SMS) with Agent Framework agents.
+    Bridge for Twilio channels (Voice and SMS) with Agent Framework agents.
 
     Both voice and SMS flows are fully managed internally.  The developer
     supplies a ``create_agent`` factory and, optionally, an ``on_message``
-    hook for SMS message augmentation.
+    hook for SMS message augmentation.  HTTP/WebSocket routing is handled
+    by ``TACServer`` — pass ``voice_channel`` and/or ``sms_channel`` to it
+    to control which channels are active.
 
     Conversation history is managed via Agent Framework's ``AgentSession``.
     For voice, the agent and session persist in-memory for the duration of
@@ -73,10 +74,6 @@ class OmniChannelHandler:
     Args:
         tac: TAC instance.
         create_agent: ``(session: ConversationSession) -> Agent``.
-        channels: List of channels to enable.  Defaults to ``["voice", "sms"]``.
-        public_domain: Public domain for WebSocket/callback URLs (e.g. ngrok domain).
-            **Required** when ``"voice"`` is in *channels*.
-        welcome_greeting: Initial greeting for voice callers.
         on_message: Optional hook called before ``agent.run()`` for SMS.
             Signature: ``(user_message, context, memory_response) -> str``.
             When *None*, defaults to ``format_memory_context(memory, msg)``.
@@ -88,16 +85,12 @@ class OmniChannelHandler:
             thread IDs).  Defaults to ``InMemoryAgentSessionStore`` (suitable
             for single-instance deployments).  For horizontal scaling,
             provide a persistent implementation (Redis, CosmosDB, etc.).
-        websocket_path: WebSocket path (used in TwiML generation).
     """
 
     def __init__(
         self,
         tac: Any,
         create_agent: Callable[[ConversationSession], Agent],
-        channels: list[str] | None = None,
-        public_domain: str | None = None,
-        welcome_greeting: str | None = None,
         on_message: (
             Callable[
                 [str, ConversationSession, TACMemoryResponse | None],
@@ -107,57 +100,34 @@ class OmniChannelHandler:
         ) = None,
         auto_retrieve_memory: bool = False,
         session_store: AgentSessionStore | None = None,
-        websocket_path: str = "/ws",
     ):
         self.tac = tac
         self.create_agent = create_agent
-        self.channels: list[str] = channels if channels is not None else ["voice", "sms"]
-        self.public_domain = public_domain
-        self.welcome_greeting = welcome_greeting or "Hello! How can I help you today!"
-        self.websocket_path = websocket_path
         self.on_message = on_message
         self.session_store: AgentSessionStore = (
             session_store if session_store is not None else InMemoryAgentSessionStore()
         )
 
-        # -- Validate configuration ------------------------------------------
-        if "voice" in self.channels and not self.public_domain:
-            raise ValueError(
-                "public_domain is required when 'voice' is in channels. "
-                "Provide the public domain (e.g. your ngrok domain) used for "
-                "WebSocket and callback URLs."
-            )
-
-        # -- Voice channel (only when enabled) --------------------------------
+        # -- Voice channel ----------------------------------------------------
         self._voice_agents: dict[str, Agent] = {}
         self._voice_sessions: dict[str, AgentSession] = {}
-        self.tac_session_manager: ThreadSafeSessionManager | None = None
-        self.voice_channel: VoiceChannel | None = None
+        self.tac_session_manager = ThreadSafeSessionManager()
+        self.voice_channel = VoiceChannel(
+            tac=self.tac,
+            session_manager=self.tac_session_manager,
+            auto_retrieve_memory=auto_retrieve_memory,
+        )
 
-        if "voice" in self.channels:
-            self.tac_session_manager = ThreadSafeSessionManager()
-            self.voice_channel = VoiceChannel(
-                tac=self.tac,
-                session_manager=self.tac_session_manager,
-                auto_retrieve_memory=auto_retrieve_memory,
-            )
-
-        # -- SMS channel (only when enabled) ----------------------------------
-        self.sms_channel: SMSChannel | None = None
-
-        if "sms" in self.channels:
-            self.sms_channel = SMSChannel(
-                tac=self.tac,
-                auto_retrieve_memory=auto_retrieve_memory,
-            )
+        # -- SMS channel ------------------------------------------------------
+        self.sms_channel = SMSChannel(
+            tac=self.tac,
+            auto_retrieve_memory=auto_retrieve_memory,
+        )
 
         # Register a single unified callback that dispatches by channel
         self.tac.on_message_ready(self._handle_message)
 
-        logger.info(
-            "OmniChannel handler initialized (Agent Framework)",
-            channels=self.channels,
-        )
+        logger.info("MultiChannelBridge initialized (Agent Framework)")
 
     # -------------------------------------------------------------------------
     # Unified message callback
@@ -199,9 +169,6 @@ class OmniChannelHandler:
 
         Streams the agent response back through the voice channel.
         """
-        if self.voice_channel is None:
-            return
-
         await self.voice_channel.send_response(
             context.conversation_id,
             self._stream_response(user_message, context.conversation_id),
@@ -227,8 +194,6 @@ class OmniChannelHandler:
         """
         if not context or context.channel != "sms":
             return
-
-        assert self.sms_channel is not None  # guaranteed by __init__
 
         # Apply on_message hook (or default to format_memory_context)
         if self.on_message is not None:
@@ -345,9 +310,8 @@ class OmniChannelHandler:
                     "Cannot create agent: profile_id is None",
                     conversation_id=conversation_id,
                 )
-                raise HTTPException(
-                    status_code=409,
-                    detail="Cannot create agent: profile_id is not set for this conversation.",
+                raise RuntimeError(
+                    "Cannot create agent: profile_id is not set for this conversation."
                 )
             self._voice_agents[conversation_id] = self.create_agent(session)
         return self._voice_agents[conversation_id]
@@ -406,101 +370,4 @@ class OmniChannelHandler:
         if not agent:
             logger.warning(
                 "No voice agent found to cleanup", conversation_id=conversation_id
-            )
-
-    # -------------------------------------------------------------------------
-    # Public methods (route handlers)
-    # -------------------------------------------------------------------------
-
-    async def handle_twiml_request(self, from_number: str, to_number: str, call_sid: str) -> str:
-        """Handle incoming TwiML requests for call setup.
-
-        Args:
-            from_number: The phone number of the caller
-            to_number: The phone number being called
-            call_sid: The Twilio call SID
-
-        Returns:
-            TwiML XML content string
-
-        Raises:
-            RuntimeError: If voice channel is not enabled.
-        """
-        if self.voice_channel is None:
-            raise RuntimeError(
-                "Voice channel is not enabled. Add 'voice' to channels to use this method."
-            )
-
-        websocket_url = f"wss://{self.public_domain}{self.websocket_path}"
-        callback_url = f"https://{self.public_domain}/conversation-relay-callback"
-
-        clean_from_number = from_number.replace("client:", "") if from_number else ""
-        clean_to_number = to_number.replace("client:", "") if to_number else ""
-
-        return await self.voice_channel.handle_incoming_call(
-            to_number=clean_to_number,
-            from_number=clean_from_number,
-            options={
-                "websocket_url": websocket_url,
-                "action_url": callback_url,
-                "welcome_greeting": self.welcome_greeting,
-            },
-            call_sid=call_sid,
-        )
-
-    async def handle_websocket_connection(self, websocket: WebSocket) -> None:
-        """Handle WebSocket connection for audio streaming.
-
-        Creates agent on connect, manages call duration, cleans up on disconnect.
-
-        Raises:
-            RuntimeError: If voice channel is not enabled.
-        """
-        if self.voice_channel is None:
-            raise RuntimeError(
-                "Voice channel is not enabled. Add 'voice' to channels to use this method."
-            )
-
-        logger.info("WebSocket connection established")
-
-        try:
-            await self.voice_channel.handle_websocket(websocket)
-        finally:
-            logger.info(
-                "WebSocket disconnected, agents cleaned up via stream generator completion"
-            )
-
-    async def handle_sms_webhook(
-        self,
-        webhook_data: dict[str, Any],
-        idempotency_token: str | None = None,
-    ) -> None:
-        """Handle incoming SMS webhook from Twilio.
-
-        Args:
-            webhook_data: The parsed webhook payload dict
-            idempotency_token: Optional Twilio idempotency token from the
-                ``i-twilio-idempotency-token`` request header.
-
-        Raises:
-            RuntimeError: If SMS channel is not enabled.
-        """
-        if self.sms_channel is None:
-            raise RuntimeError(
-                "SMS channel is not enabled. Add 'sms' to channels to use this method."
-            )
-
-        try:
-            logger.info(
-                "Calling sms_channel.process_webhook",
-                channel="sms",
-                webhook_data=webhook_data,
-            )
-            await self.sms_channel.process_webhook(webhook_data, idempotency_token)
-        except Exception as e:
-            logger.error(
-                "Error processing SMS webhook",
-                channel="sms",
-                exc_info=True,
-                error=str(e),
             )

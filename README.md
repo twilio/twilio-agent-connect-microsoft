@@ -1,6 +1,6 @@
 ## Introduction
 
-Twilio communications tools and a native Omnichannel handler for Microsoft Agent Framework, supporting ConversationRelay voice streaming and SMS. It enables you to:
+Twilio communications tools and a native MultiChannel bridge for Microsoft Agent Framework, supporting ConversationRelay voice streaming and SMS. It enables you to:
 
 - Build and deploy Twilio-powered voice and messaging applications using Azure AI agents
 - Integrate communication patterns using Twilio's platform with Microsoft Agent Framework workflows
@@ -16,7 +16,7 @@ It makes it easy to manage calls, send and receive messages, and leverage Azure 
 - **Multi-Provider Support:** Works with Azure AI Foundry Agent Service, Azure OpenAI Responses API, or any custom LLM implementation.
 - **Real-Time Intelligence:** Agents can access, update, and reason over customer memory, knowledge, and context in real time.
 - **Rapid Innovation:** Unlocks new use cases—AI-powered contact centers, automated workflows, and personalized experiences—without custom backend plumbing.
-- **Developer Velocity:** Both batteries-included (`OmniChannelServer`) and low-level (`OmniChannelHandler`) APIs for full control.
+- **Developer Velocity:** `MultiChannelBridge` owns agent lifecycle and session management; `TACServer` (from the `tac` package) handles HTTP/WebSocket routing.
 - **Future-Proof:** Designed to evolve with both Azure and Twilio, supporting new channels, features, and AI capabilities as they launch.
 
 ## Installation
@@ -77,8 +77,8 @@ uv run python examples/foundry_voice_sms_demo/server.py
 - Same omnichannel architecture
 
 **[Custom FastAPI Demo](examples/responses_custom_fastapi_demo/)**
-- Uses `OmniChannelHandler` directly instead of `OmniChannelServer`
-- Full control over FastAPI app, routing, and lifecycle
+- Uses `MultiChannelBridge` + `TACServer` with custom routes via `server.app`
+- Full control over additional routes and middleware
 - Custom landing page example
 
 **[File-Based SMS Sessions](examples/sms_file_sessions/)**
@@ -104,8 +104,8 @@ See individual examples for complete environment variable requirements.
 
 ### Core Components
 
-- **`OmniChannelHandler`** — Main orchestrator handling both voice and SMS channels. Manages conversation sessions, agent lifecycle, and streaming responses through TAC channels.
-- **`OmniChannelServer`** — Batteries-included FastAPI wrapper with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
+- **`MultiChannelBridge`** — Bridge handling agent lifecycle, session management, and streaming responses for voice and SMS channels. Exposes `voice_channel` and `sms_channel` for `TACServer` to wire up routing.
+- **`TACServer`** (from `tac` package) — HTTP/WebSocket server with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
 - **`AgentSessionStore`** — Protocol enabling pluggable session persistence backends.
 
 ### Built-in Tools
@@ -128,13 +128,13 @@ All public APIs are exported from the top-level `tac_azure` package:
 
 ```python
 from tac_azure import (
-    OmniChannelServer,
-    OmniChannelHandler,
+    MultiChannelBridge,
     AgentSessionStore,
     InMemoryAgentSessionStore,
     ConversationSession,
     format_memory_context,
 )
+from tac.server import TACServer
 from agent_framework import Agent  # Agent type from MS Agent Framework
 from tac_azure.tools import (
     create_memory_recall_tool,
@@ -149,26 +149,40 @@ from tac_azure.tools import (
 
 ---
 
-### `OmniChannelServer`
+### `MultiChannelBridge`
 
-Batteries-included FastAPI server wrapping `OmniChannelHandler`. Pre-wires routes for TwiML, WebSocket, SMS webhooks, and health checks.
+Bridge for voice and SMS channels with Agent Framework agents. Owns agent lifecycle, session management, and streaming. Delegates HTTP/WebSocket routing to `TACServer`. Both channel instances are always created — pass whichever you need to `TACServer`.
 
 ```python
-server = OmniChannelServer(
+bridge = MultiChannelBridge(
     tac=tac,                          # TAC instance
     create_agent=create_agent,        # (ConversationSession) -> Agent
-    channels=["voice", "sms"],        # Channels to enable (default: both)
-    public_domain="example.ngrok.app",# Required when voice is enabled
-    welcome_greeting="Hello!",        # Initial voice greeting
     on_message=None,                  # SMS hook: (msg, context, memory) -> str
-    auto_retrieve_memory=False,        # Auto-retrieve memory on message arrival
+    auto_retrieve_memory=False,       # Auto-retrieve memory on message arrival
     session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
-    validate_webhooks=True,           # Validate Twilio webhook signatures
-    websocket_path="/ws",             # WebSocket endpoint path
-    twiml_path="/twiml",              # TwiML endpoint path
-    sms_path="/webhook",              # SMS webhook endpoint path
-    host="0.0.0.0",                   # Bind address
-    port=8000,                        # Bind port
+)
+```
+
+**Properties:**
+
+| Property | Description |
+|---|---|
+| `voice_channel` | The `VoiceChannel` instance. Pass to `TACServer` to enable voice. |
+| `sms_channel` | The `SMSChannel` instance. Pass to `TACServer` to enable SMS. |
+
+---
+
+### `TACServer`
+
+HTTP/WebSocket server from the `tac` package. Handles TwiML, WebSocket, SMS webhooks, and health check routing.
+
+```python
+from tac.server import TACServer
+
+server = TACServer(
+    tac=tac,                          # TAC instance
+    voice_channel=bridge.voice_channel,  # From MultiChannelBridge
+    sms_channel=bridge.sms_channel,      # From MultiChannelBridge
     on_startup=None,                  # Async callback invoked once at startup
 )
 ```
@@ -177,54 +191,13 @@ server = OmniChannelServer(
 
 | Method | Description |
 |---|---|
-| `serve()` | Start the server (blocking). |
-| `await serve_async()` | Start the server asynchronously. |
-| `stop()` | Initiate graceful shutdown. |
+| `start()` | Start the server (blocking). |
 
 **Properties:**
 
 | Property | Description |
 |---|---|
-| `app` | The underlying FastAPI application (lazily created). |
-| `handler` | The underlying `OmniChannelHandler`. |
-
-**Default Routes:**
-
-| Route | Method | Channel | Description |
-|---|---|---|---|
-| `/twiml` | POST | Voice | Incoming call TwiML |
-| `/ws` | WebSocket | Voice | Audio streaming |
-| `/conversation-relay-callback` | POST | Voice | ConversationRelay callbacks |
-| `/webhook` | POST | SMS | Incoming SMS webhook |
-| `/health` | GET | — | Health check |
-
----
-
-### `OmniChannelHandler`
-
-Lower-level handler for integrating into your own FastAPI app. Use this when you need full control over routing, middleware, and lifecycle.
-
-```python
-handler = OmniChannelHandler(
-    tac=tac,                          # TAC instance
-    create_agent=create_agent,        # (ConversationSession) -> Agent
-    channels=["voice", "sms"],        # Channels to enable (default: both)
-    public_domain="example.ngrok.app",# Required when voice is enabled
-    welcome_greeting="Hello!",        # Initial voice greeting
-    on_message=None,                  # SMS hook: (msg, context, memory) -> str
-    auto_retrieve_memory=False,        # Auto-retrieve memory on message arrival
-    session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
-    websocket_path="/ws",             # WebSocket path (used in TwiML generation)
-)
-```
-
-**Methods:**
-
-| Method | Description |
-|---|---|
-| `await handle_twiml_request(from_number, to_number, call_sid)` | Handle incoming TwiML request. Returns XML string. |
-| `await handle_websocket_connection(websocket)` | Handle WebSocket connection for voice audio streaming. |
-| `await handle_sms_webhook(webhook_data, idempotency_token=None)` | Handle incoming SMS webhook payload. |
+| `app` | The underlying FastAPI application. Use to add custom routes. |
 
 ---
 
@@ -332,7 +305,7 @@ augmented = format_memory_context(memory_response, "What's my plan?")
 
 ## `on_message` Hook
 
-By default, TAC auto-retrieves memory before each SMS message and the handler prepends it to the user prompt via `format_memory_context()`. The `on_message` hook lets you customize or replace this behavior.
+By default, TAC auto-retrieves memory before each SMS message and the bridge prepends it to the user prompt via `format_memory_context()`. The `on_message` hook lets you customize or replace this behavior.
 
 **Signature:**
 
@@ -357,7 +330,7 @@ def on_message(user_message, context, memory_response):
 def on_message(user_message, context, memory_response):
     return user_message
 
-server = OmniChannelServer(..., on_message=on_message)
+bridge = MultiChannelBridge(..., on_message=on_message)
 ```
 
 To disable memory *fetching* entirely (saves latency), set `auto_retrieve_memory=False` instead. The `on_message` hook still fires but `memory_response` will be `None`.
@@ -368,25 +341,19 @@ To disable memory *fetching* entirely (saves latency), set `auto_retrieve_memory
 
 ### SMS
 
-When `agent.run()` raises an exception during SMS processing, the handler:
+When `agent.run()` raises an exception during SMS processing, the bridge:
 1. Logs the full traceback
 2. Sends `"Sorry, something went wrong. Please try again."` to the user
 3. Still persists the `AgentSession` (it may contain a newly created Foundry thread)
 
-To customize the error message or add retry logic, use `OmniChannelHandler` directly instead of `OmniChannelServer` and write your own SMS webhook handler. See the [Custom FastAPI Demo](examples/responses_custom_fastapi_demo/) for an example.
-
 ### Voice
 
-When streaming fails mid-utterance, the handler:
+When streaming fails mid-utterance, the bridge:
 1. Logs the error
 2. Cleans up the voice agent for that conversation
 3. Raises the exception (TAC handles the WebSocket lifecycle)
 
 Voice errors do **not** send a fallback message — the call continues and the user can speak again to retry.
-
-### Webhook Validation
-
-When `validate_webhooks=True` (default) and a request fails signature validation, the server returns `403 Forbidden`. If the `twilio` package is not installed, the server raises `RuntimeError` at the first webhook request rather than silently skipping validation.
 
 ---
 
