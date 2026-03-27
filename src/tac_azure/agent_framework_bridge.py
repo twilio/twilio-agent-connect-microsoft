@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class AgentFrameworkBridge:
+class AgentFrameworkConnector:
     """
     Bridge for Twilio channels (Voice and SMS) with Agent Framework agents.
 
@@ -127,7 +127,7 @@ class AgentFrameworkBridge:
         # Register a single unified callback that dispatches by channel
         self.tac.on_message_ready(self._handle_message)
 
-        logger.info("AgentFrameworkBridge initialized")
+        logger.info("AgentFrameworkConnector initialized")
 
     # -------------------------------------------------------------------------
     # Unified message callback

@@ -1,5 +1,5 @@
 """
-POC: tac_aws partner package — three AgentFrameworkBridge implementations.
+POC: tac_aws partner package — three AgentFrameworkConnector implementations.
 
 Each bridge has the same external interface (voice_channel, sms_channel)
 and plugs into TACServer identically. Internals differ per agent framework.
@@ -79,7 +79,7 @@ async def _stream_from_sync_iterator(
 # ---------------------------------------------------------------------------
 
 
-class BaseAgentFrameworkBridge(ABC):
+class BaseAgentFrameworkConnector(ABC):
     """Base class defining the shared external interface for all bridges.
 
     Every bridge:
@@ -204,7 +204,7 @@ class BaseAgentFrameworkBridge(ABC):
 # ===========================================================================
 
 
-class StrandsBridge(BaseAgentFrameworkBridge):
+class StrandsBridge(BaseAgentFrameworkConnector):
     """Bridge for Strands SDK agents.
 
     Strands agents run locally. The bridge manages agent lifecycle,
@@ -322,7 +322,7 @@ class StrandsBridge(BaseAgentFrameworkBridge):
 # ===========================================================================
 
 
-class BedrockAgentsBridge(BaseAgentFrameworkBridge):
+class BedrockAgentsBridge(BaseAgentFrameworkConnector):
     """Bridge for Amazon Bedrock Agents (managed service).
 
     Bedrock Agents are invoked via the boto3 bedrock-agent-runtime API.
@@ -447,7 +447,7 @@ class BedrockAgentsBridge(BaseAgentFrameworkBridge):
 # ===========================================================================
 
 
-class AgentCoreBridge(BaseAgentFrameworkBridge):
+class AgentCoreBridge(BaseAgentFrameworkConnector):
     """Bridge for Amazon Bedrock AgentCore Runtime.
 
     AgentCore hosts agents as managed runtimes invoked via

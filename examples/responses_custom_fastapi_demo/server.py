@@ -1,6 +1,6 @@
-"""Owl Internet Voice + SMS Agent — using AgentFrameworkBridge with custom FastAPI routes.
+"""Owl Internet Voice + SMS Agent — using AgentFrameworkConnector with custom FastAPI routes.
 
-This example uses AgentFrameworkBridge + TACServer but adds custom routes by
+This example uses AgentFrameworkConnector + TACServer but adds custom routes by
 accessing ``server.app`` (the underlying FastAPI instance). This gives full
 control over additional routes and middleware while TACServer handles the
 standard Twilio routing.
@@ -21,7 +21,7 @@ from tac import TAC, TACConfig
 from tac.server import TACServer
 
 from agent_framework.azure import AzureOpenAIResponsesClient
-from tac_azure import ConversationSession, AgentFrameworkBridge
+from tac_azure import ConversationSession, AgentFrameworkConnector
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool, fetch_knowledge_base_info
 
 load_dotenv()
@@ -88,7 +88,7 @@ async def startup():
 # Bridge + Server
 # ---------------------------------------------------------------------------
 
-bridge = AgentFrameworkBridge(
+bridge = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     auto_retrieve_memory=True,

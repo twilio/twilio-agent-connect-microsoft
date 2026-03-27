@@ -54,7 +54,7 @@ Meanwhile, TAC already has `TACServer` which does all of this. The SDKs re-wrap 
 | Component | tac-azure | strands | TAC |
 |---|---|---|---|
 | Server + routes | `OmniChannelServer` (266 lines, FastAPI) | `OmniChannelServer` (559 lines, FastAPI) | `TACServer` (~130 lines, FastAPI) |
-| Channel creation | In `AgentFrameworkBridge.__init__` | In both handler and server | User creates, passes to `TACServer` |
+| Channel creation | In `AgentFrameworkConnector.__init__` | In both handler and server | User creates, passes to `TACServer` |
 | Voice streaming bridge | `_stream_response()` — `agent.run(stream=True)` → `AsyncGenerator` | `_stream_strands_response()` — `agent.stream_async()` → parse Bedrock events → `yield` | N/A — framework-specific |
 | Agent lifecycle | `_get_or_create_voice_agent`, `_voice_agents` dict | Same pattern, identical code | N/A — framework-specific |
 | Agent session persistence | `AgentSessionStore` protocol + load/save around `agent.run()` | None (ephemeral agents) | N/A — framework-specific |
@@ -66,9 +66,9 @@ Meanwhile, TAC already has `TACServer` which does all of this. The SDKs re-wrap 
 
 ### The duplication problem
 
-**Strands:** `OmniChannelServer` and `AgentFrameworkBridge` are independent implementations with no shared base class. Both create channels, implement `_stream_strands_response()`, `_get_or_create_voice_agent()`, `_cleanup_voice_agent()`, and `handle_twiml_request()`. ~200 lines of identical code between the two files.
+**Strands:** `OmniChannelServer` and `AgentFrameworkConnector` are independent implementations with no shared base class. Both create channels, implement `_stream_strands_response()`, `_get_or_create_voice_agent()`, `_cleanup_voice_agent()`, and `handle_twiml_request()`. ~200 lines of identical code between the two files.
 
-**tac-azure:** Fixed the handler/server duplication (server composes handler), but `AgentFrameworkBridge` still duplicates TAC's channel creation and URL construction. Its public methods (`handle_twiml_request`, `handle_websocket_connection`, `handle_sms_webhook`) are 1:1 pass-throughs to TAC channel methods.
+**tac-azure:** Fixed the handler/server duplication (server composes handler), but `AgentFrameworkConnector` still duplicates TAC's channel creation and URL construction. Its public methods (`handle_twiml_request`, `handle_websocket_connection`, `handle_sms_webhook`) are 1:1 pass-throughs to TAC channel methods.
 
 ### Both access private TAC internals
 
@@ -438,7 +438,7 @@ class TACServer:
 
 **Removed:**
 - `OmniChannelServer` — use `TACServer` or `FoundryServer`
-- `AgentFrameworkBridge` public route methods — handler works through `MessageHandler`
+- `AgentFrameworkConnector` public route methods — handler works through `MessageHandler`
 - Placeholder tools (flex, messaging) — remove until implemented
 - `truststore`, `python-dotenv` dependencies — app-level concerns
 
@@ -468,7 +468,7 @@ class TACServer:
 
 **Removed:**
 - `OmniChannelServer` — use `TACServer` or `AgentCoreServer`
-- `AgentFrameworkBridge` — replaced by `StrandsHandler`
+- `AgentFrameworkConnector` — replaced by `StrandsHandler`
 - Duplicated streaming/agent/cleanup code between handler and server
 - Fabricated SMS webhook translation (needs resolution — see Open Questions)
 
@@ -1916,7 +1916,7 @@ The Strands SDK must also address:
 
 5. **Should `format_memory_context()` stay in tac-azure?** It composes `TACMemoryResponse` data into an augmented prompt string. TAC provides `build_memory_prompts()` which returns a list of sections. The adapter's function is a thin composition layer — reasonable to keep as a convenience.
 
-6. **PR #10 (`simplify-examples-and-add-omni-server`):** This open PR on strands-communications-twilio goes in a similar direction — deletes `AgentFrameworkBridge`, `OmniChannelServer`, and `AgentProxy`, replacing them with `OmniServer` backed by `BedrockAgentCoreApp`. The example simplification is good. However, it pushes agent lifecycle (caching, streaming, channel routing) entirely to userland and creates channels internally. The `OmniServer` should be reworked to accept channels and a `MessageHandler`, becoming `AgentCoreServer` as described here.
+6. **PR #10 (`simplify-examples-and-add-omni-server`):** This open PR on strands-communications-twilio goes in a similar direction — deletes `AgentFrameworkConnector`, `OmniChannelServer`, and `AgentProxy`, replacing them with `OmniServer` backed by `BedrockAgentCoreApp`. The example simplification is good. However, it pushes agent lifecycle (caching, streaming, channel routing) entirely to userland and creates channels internally. The `OmniServer` should be reworked to accept channels and a `MessageHandler`, becoming `AgentCoreServer` as described here.
 
 7. **Foundry `from_agent_framework()` vs `create_agent` factory:** The `FoundryServer` takes a `foundry_agent` (for `/responses`) and a `message_handler` with a `create_agent` factory (for Twilio voice/SMS). These create separate agent instances — one for Foundry invocations, one per Twilio conversation. This is correct (they serve different interaction patterns), but the developer needs to understand why they provide the agent twice. Documentation should make this clear.
 

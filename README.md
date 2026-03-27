@@ -16,7 +16,7 @@ It makes it easy to manage calls, send and receive messages, and leverage Azure 
 - **Multi-Provider Support:** Works with Azure AI Foundry Agent Service, Azure OpenAI Responses API, or any custom LLM implementation.
 - **Real-Time Intelligence:** Agents can access, update, and reason over customer memory, knowledge, and context in real time.
 - **Rapid Innovation:** Unlocks new use cases—AI-powered contact centers, automated workflows, and personalized experiences—without custom backend plumbing.
-- **Developer Velocity:** `AgentFrameworkBridge` owns agent lifecycle and session management; `TACServer` (from the `tac` package) handles HTTP/WebSocket routing.
+- **Developer Velocity:** `AgentFrameworkConnector` owns agent lifecycle and session management; `TACServer` (from the `tac` package) handles HTTP/WebSocket routing.
 - **Future-Proof:** Designed to evolve with both Azure and Twilio, supporting new channels, features, and AI capabilities as they launch.
 
 ## Installation
@@ -77,7 +77,7 @@ uv run python examples/foundry_voice_sms_demo/server.py
 - Same omnichannel architecture
 
 **[Custom FastAPI Demo](examples/responses_custom_fastapi_demo/)**
-- Uses `AgentFrameworkBridge` + `TACServer` with custom routes via `server.app`
+- Uses `AgentFrameworkConnector` + `TACServer` with custom routes via `server.app`
 - Full control over additional routes and middleware
 - Custom landing page example
 
@@ -104,7 +104,7 @@ See individual examples for complete environment variable requirements.
 
 ### Core Components
 
-- **`AgentFrameworkBridge`** — Bridge handling agent lifecycle, session management, and streaming responses for voice and SMS channels. Exposes `voice_channel` and `sms_channel` for `TACServer` to wire up routing.
+- **`AgentFrameworkConnector`** — Bridge handling agent lifecycle, session management, and streaming responses for voice and SMS channels. Exposes `voice_channel` and `sms_channel` for `TACServer` to wire up routing.
 - **`TACServer`** (from `tac` package) — HTTP/WebSocket server with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
 - **`AgentSessionStore`** — Protocol enabling pluggable session persistence backends.
 
@@ -128,7 +128,7 @@ All public APIs are exported from the top-level `tac_azure` package:
 
 ```python
 from tac_azure import (
-    AgentFrameworkBridge,
+    AgentFrameworkConnector,
     AgentSessionStore,
     InMemoryAgentSessionStore,
     ConversationSession,
@@ -149,12 +149,12 @@ from tac_azure.tools import (
 
 ---
 
-### `AgentFrameworkBridge`
+### `AgentFrameworkConnector`
 
 Bridge for voice and SMS channels with Agent Framework agents. Owns agent lifecycle, session management, and streaming. Delegates HTTP/WebSocket routing to `TACServer`. Both channel instances are always created — pass whichever you need to `TACServer`.
 
 ```python
-bridge = AgentFrameworkBridge(
+bridge = AgentFrameworkConnector(
     tac=tac,                          # TAC instance
     create_agent=create_agent,        # (ConversationSession) -> Agent
     on_message=None,                  # SMS hook: (msg, context, memory) -> str
@@ -181,8 +181,8 @@ from tac.server import TACServer
 
 server = TACServer(
     tac=tac,                          # TAC instance
-    voice_channel=bridge.voice_channel,  # From AgentFrameworkBridge
-    sms_channel=bridge.sms_channel,      # From AgentFrameworkBridge
+    voice_channel=bridge.voice_channel,  # From AgentFrameworkConnector
+    sms_channel=bridge.sms_channel,      # From AgentFrameworkConnector
     on_startup=None,                  # Async callback invoked once at startup
 )
 ```
@@ -330,7 +330,7 @@ def on_message(user_message, context, memory_response):
 def on_message(user_message, context, memory_response):
     return user_message
 
-bridge = AgentFrameworkBridge(..., on_message=on_message)
+bridge = AgentFrameworkConnector(..., on_message=on_message)
 ```
 
 To disable memory *fetching* entirely (saves latency), set `auto_retrieve_memory=False` instead. The `on_message` hook still fires but `memory_response` will be `None`.

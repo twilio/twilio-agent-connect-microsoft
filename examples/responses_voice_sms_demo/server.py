@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from tac import TAC, TACConfig
 from tac.server import TACServer
 
-from tac_azure import ConversationSession, AgentFrameworkBridge
+from tac_azure import ConversationSession, AgentFrameworkConnector
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
 
 load_dotenv()
@@ -88,7 +88,7 @@ def create_agent(session: ConversationSession):
 # Bridge + Server
 # ---------------------------------------------------------------------------
 
-bridge = AgentFrameworkBridge(
+bridge = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     auto_retrieve_memory=True,
