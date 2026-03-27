@@ -22,7 +22,7 @@ Tracked work items for `tac-azure` based on deep SDK review.
 
 ## API Fixes
 
-- [ ] **Type the `tac` parameter properly** — both `OmniChannelHandler` and `OmniChannelServer` accept `tac: Any`. Kills IDE autocomplete and type checking. Should be the actual `TAC` class or a Protocol describing the required interface.
+- [ ] **Type the `tac` parameter properly** — both `AgentFrameworkBridge` and `OmniChannelServer` accept `tac: Any`. Kills IDE autocomplete and type checking. Should be the actual `TAC` class or a Protocol describing the required interface.
 - [ ] **Use `Literal["voice", "sms"]` for channels** — currently `list[str]`, so typos like `["Voice"]` silently produce no channels. Use `Literal` or an enum.
 - [ ] **Make `on_message` hook support async** — currently sync-only (`Callable[..., str]`), called from async context. Prevents users from doing async operations (DB lookups, API calls) in the hook. Accept `Callable[..., str | Awaitable[str]]`.
 - [ ] **Consider making `create_agent` support async** — lower priority than `on_message`, but same limitation. Blocks async setup per-agent (feature flags, config fetches).
@@ -52,7 +52,7 @@ Tracked work items for `tac-azure` based on deep SDK review.
 
 ## Production Readiness
 
-- [ ] **Add test suite** — no tests exist. At minimum: unit tests for `OmniChannelHandler` (mock TAC/Agent), `AgentSessionStore` protocol conformance, `format_memory_context`, and tool factories.
+- [ ] **Add test suite** — no tests exist. At minimum: unit tests for `AgentFrameworkBridge` (mock TAC/Agent), `AgentSessionStore` protocol conformance, `format_memory_context`, and tool factories.
 - [ ] **Add linting and type checking config** — ruff + mypy (or pyright). Add to CI.
 - [ ] **Add CI/CD** — GitHub Actions for lint, type check, and test on every PR.
 - [ ] **Add lifecycle hooks** — `on_call_start`, `on_call_end`, `on_sms_start`, `on_sms_end`, `on_error`. These are the most-requested extension points in similar SDKs.

@@ -1,14 +1,14 @@
 """
 POC: tac_aws partner package — AgentProxy pattern.
 
-Single OmniChannelHandler that works with any AgentProxy implementation.
+Single AgentFrameworkBridge that works with any AgentProxy implementation.
 The bridge handles TAC channel wiring; the proxy handles agent invocation.
 
     proxy = StrandsAgentProxy(agent)
     proxy = BedrockAgentProxy(client, agent_id, agent_alias_id, session_id)
     proxy = AgentCoreProxy(client, agent_runtime_arn, session_id)
 
-    bridge = OmniChannelHandler(tac=tac, create_agent=factory)
+    bridge = AgentFrameworkBridge(tac=tac, create_agent=factory)
     server = TACServer(tac=tac, voice_channel=bridge.voice_channel,
                        sms_channel=bridge.sms_channel)
     server.start()
@@ -281,11 +281,11 @@ class AgentCoreProxy(AgentProxy):
 
 
 # ===========================================================================
-# OmniChannelHandler — single bridge class, works with any AgentProxy
+# AgentFrameworkBridge — single bridge class, works with any AgentProxy
 # ===========================================================================
 
 
-class OmniChannelHandler:
+class AgentFrameworkBridge:
     """Bridges TAC channels to any agent framework via AgentProxy.
 
     The bridge handles all TAC channel wiring (voice streaming, SMS
@@ -347,7 +347,7 @@ class OmniChannelHandler:
         # Register unified callback
         self.tac.on_message_ready(self._handle_message)
 
-        logger.info("OmniChannelHandler initialized", channels=self.channels)
+        logger.info("AgentFrameworkBridge initialized", channels=self.channels)
 
     # -- Callback dispatch --
 
@@ -485,7 +485,7 @@ class OmniChannelHandler:
 
 if __name__ == "__main__":
     """
-    All three agent types use the same OmniChannelHandler.
+    All three agent types use the same AgentFrameworkBridge.
     The factory returns the appropriate AgentProxy.
     """
 
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     #     )
     #     return StrandsAgentProxy(agent)
     #
-    # bridge = OmniChannelHandler(
+    # bridge = AgentFrameworkBridge(
     #     tac=tac,
     #     create_agent=create_agent,
     #     public_domain="your-domain.ngrok.io",
@@ -536,7 +536,7 @@ if __name__ == "__main__":
     #         session_id=session.conversation_id,
     #     )
     #
-    # bridge = OmniChannelHandler(
+    # bridge = AgentFrameworkBridge(
     #     tac=tac,
     #     create_agent=create_agent,
     #     public_domain="your-domain.ngrok.io",
@@ -565,7 +565,7 @@ if __name__ == "__main__":
     #         session_id=session.conversation_id,
     #     )
     #
-    # bridge = OmniChannelHandler( 
+    # bridge = AgentFrameworkBridge( 
     #     tac=tac,
     #     create_agent=create_agent,
     #     public_domain="your-domain.ngrok.io",

@@ -1,5 +1,5 @@
 """
-MultiChannel Bridge for Agent Framework + TAC
+Agent Framework Bridge for TAC
 
 Bridge logic (agent lifecycle, session management, tool factories) for Microsoft
 Agent Framework.  HTTP/WebSocket routing is delegated to ``TACServer`` from the
@@ -55,7 +55,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class MultiChannelBridge:
+class AgentFrameworkBridge:
     """
     Bridge for Twilio channels (Voice and SMS) with Agent Framework agents.
 
@@ -127,7 +127,7 @@ class MultiChannelBridge:
         # Register a single unified callback that dispatches by channel
         self.tac.on_message_ready(self._handle_message)
 
-        logger.info("MultiChannelBridge initialized (Agent Framework)")
+        logger.info("AgentFrameworkBridge initialized")
 
     # -------------------------------------------------------------------------
     # Unified message callback

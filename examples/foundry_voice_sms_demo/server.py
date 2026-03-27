@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from tac import TAC, TACConfig
 from tac.server import TACServer
 
-from tac_azure import ConversationSession, MultiChannelBridge, format_memory_context
+from tac_azure import ConversationSession, AgentFrameworkBridge, format_memory_context
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool, fetch_knowledge_base_info
 
 load_dotenv()
@@ -113,7 +113,7 @@ def create_agent(session: ConversationSession):
 # The returned string is what gets passed to agent.run().
 #
 # To disable memory fetching entirely (saves latency), set
-# auto_retrieve_memory=False on MultiChannelBridge instead.
+# auto_retrieve_memory=False on AgentFrameworkBridge instead.
 # memory_response will then always be None.
 
 
@@ -138,7 +138,7 @@ async def startup():
 # Bridge + Server
 # ---------------------------------------------------------------------------
 
-bridge = MultiChannelBridge(
+bridge = AgentFrameworkBridge(
     tac=tac,
     create_agent=create_agent,
     auto_retrieve_memory=True,

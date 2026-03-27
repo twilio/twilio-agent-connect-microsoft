@@ -22,7 +22,7 @@ Both partner SDKs export the same three class names with the same shape. The onl
 │                                                                │
 │  ┌──────────────────────────┐  ┌───────────────────────────┐   │
 │  │ Interface 1:             │  │ Interface 2:              │   │
-│  │ OmniChannelHandler       │  │ RuntimeServer             │   │
+│  │ AgentFrameworkBridge       │  │ RuntimeServer             │   │
 │  │ (TAC + agent framework,  │  │ (Cloud runtime + TAC      │   │
 │  │  deployment-agnostic)    │  │  routes)                  │   │
 │  └──────────────────────────┘  └───────────────────────────┘   │
@@ -33,14 +33,14 @@ Both partner SDKs export the same three class names with the same shape. The onl
 
 ## The Three Interfaces
 
-### Interface 1: `OmniChannelHandler`
+### Interface 1: `AgentFrameworkBridge`
 
 TAC + agent framework bridge. Creates channels, wires callbacks, exposes routes. A pure request-processing object with no lifecycle of its own — agnostic to where it runs. Mount it on `TACServer`, `RuntimeServer`, or a custom ASGI app.
 
 **Common shape (both SDKs):**
 
 ```python
-class OmniChannelHandler:
+class AgentFrameworkBridge:
     def __init__(
         self,
         tac: TAC,
@@ -95,19 +95,19 @@ on_message: Callable[..., str] | None = None     # custom message augmentation h
 
 The `create_agent` factory takes `ConversationSession` in both SDKs, standardizing the current inconsistency (Strands currently takes `(conversation_id, profile_id)`). `ConversationSession` gives the factory access to `channel`, `profile`, `metadata` — not just IDs.
 
-**Factory return type.** The factory returns a different type per SDK: `Agent` (MS Agent Framework) vs `AgentProxy` (Strands). `OmniChannelHandler` is not generic over this type — each SDK's concrete `OmniChannelHandler` class hardcodes the expected return type in its type annotations and internal methods (`_stream_response`, `_get_or_create_voice_agent`, etc.). The factory's return value is opaque to the common interface; it's only consumed by SDK-internal code that knows the concrete type. Type checkers validate within each SDK's module boundary. No shared `AgentProtocol` is needed because the two frameworks have fundamentally different agent APIs (`agent.run(stream=True)` vs `agent.stream_async()`) — a common protocol would be either too broad to be useful or too narrow to capture the differences.
+**Factory return type.** The factory returns a different type per SDK: `Agent` (MS Agent Framework) vs `AgentProxy` (Strands). `AgentFrameworkBridge` is not generic over this type — each SDK's concrete `AgentFrameworkBridge` class hardcodes the expected return type in its type annotations and internal methods (`_stream_response`, `_get_or_create_voice_agent`, etc.). The factory's return value is opaque to the common interface; it's only consumed by SDK-internal code that knows the concrete type. Type checkers validate within each SDK's module boundary. No shared `AgentProtocol` is needed because the two frameworks have fundamentally different agent APIs (`agent.run(stream=True)` vs `agent.stream_async()`) — a common protocol would be either too broad to be useful or too narrow to capture the differences.
 
 ---
 
 ### Interface 2: `RuntimeServer`
 
-Mounts an `OmniChannelHandler`'s TAC routes onto a cloud runtime app.
+Mounts an `AgentFrameworkBridge`'s TAC routes onto a cloud runtime app.
 
 **Common shape (both SDKs):**
 
 ```python
 class RuntimeServer:
-    def __init__(self, omnichannel: OmniChannelHandler, ...): ...
+    def __init__(self, omnichannel: AgentFrameworkBridge, ...): ...
 
     app: StarletteApp  # the underlying ASGI app
 
@@ -127,7 +127,7 @@ class RuntimeServer:
 
     def __init__(
         self,
-        omnichannel: OmniChannelHandler,
+        omnichannel: AgentFrameworkBridge,
         foundry_agent: FoundryCBAgent,
     ): ...
 ```
@@ -145,7 +145,7 @@ class RuntimeServer:
 
     def __init__(
         self,
-        omnichannel: OmniChannelHandler,
+        omnichannel: AgentFrameworkBridge,
         **agentcore_kwargs,
     ): ...
 ```
@@ -158,7 +158,7 @@ class RuntimeServer:
 
 ### Interface 3: `OmniChannelServer`
 
-Creates both `OmniChannelHandler` and `RuntimeServer` internally. Single constructor, single `.start()`.
+Creates both `AgentFrameworkBridge` and `RuntimeServer` internally. Single constructor, single `.start()`.
 
 **ms-agent-framework-twilio-agent-connect-python:**
 
@@ -176,7 +176,7 @@ class OmniChannelServer:
         session_store: AgentSessionStore | None = None,
         on_message: Callable[..., str] | None = None,
     ):
-        self.omnichannel = OmniChannelHandler(
+        self.omnichannel = AgentFrameworkBridge(
             tac=tac, create_agent=create_agent, channels=channels,
             config=config, auto_retrieve_memory=auto_retrieve_memory,
             session_store=session_store, on_message=on_message,
@@ -207,7 +207,7 @@ class OmniChannelServer:
         auto_retrieve_memory: bool = True,
         **agentcore_kwargs,
     ):
-        self.omnichannel = OmniChannelHandler(
+        self.omnichannel = AgentFrameworkBridge(
             tac=tac, create_agent=create_agent, channels=channels,
             config=config, auto_retrieve_memory=auto_retrieve_memory,
         )
@@ -229,16 +229,16 @@ class OmniChannelServer:
 
 ### Interface 1 only — TACServer (deploy anywhere)
 
-`OmniChannelHandler` is a pure request-processing object — it has no `start()` or `stop()` methods. Lifecycle is always owned by a server: `TACServer`, `RuntimeServer`, or a custom ASGI app. To run the handler standalone, wrap it in a `TACServer`:
+`AgentFrameworkBridge` is a pure request-processing object — it has no `start()` or `stop()` methods. Lifecycle is always owned by a server: `TACServer`, `RuntimeServer`, or a custom ASGI app. To run the handler standalone, wrap it in a `TACServer`:
 
 ```python
 # MS Agent Framework                           # Strands
 from tac_ms_agent_framework import (            from tac_strands import (
-    OmniChannelHandler,                             OmniChannelHandler,
+    AgentFrameworkBridge,                             AgentFrameworkBridge,
 )                                               )
 from tac.server import TACServer                from tac.server import TACServer
 
-handler = OmniChannelHandler(                   handler = OmniChannelHandler(
+handler = AgentFrameworkBridge(                   handler = AgentFrameworkBridge(
     tac=tac,                                        tac=tac,
     create_agent=create_agent,                      create_agent=create_agent,
 )                                               )
@@ -256,11 +256,11 @@ server.start()                                  server.start()
 ```python
 # MS Agent Framework + Foundry                 # Strands + AgentCore
 from tac_ms_agent_framework import (            from tac_strands import (
-    OmniChannelHandler,                             OmniChannelHandler,
+    AgentFrameworkBridge,                             AgentFrameworkBridge,
     RuntimeServer,                                  RuntimeServer,
 )                                               )
 
-handler = OmniChannelHandler(                   handler = OmniChannelHandler(
+handler = AgentFrameworkBridge(                   handler = AgentFrameworkBridge(
     tac=tac,                                        tac=tac,
     create_agent=create_agent,                      create_agent=create_agent,
 )                                               )
@@ -291,7 +291,7 @@ server.start()
 
 ```python
 # Either SDK
-handler = OmniChannelHandler(tac=tac, create_agent=factory)
+handler = AgentFrameworkBridge(tac=tac, create_agent=factory)
 
 # Create TACRoutes from the handler's channels (server-layer concern)
 routes = TACRoutes(
@@ -415,10 +415,10 @@ async def handle_sms_webhook(self, request: Request) -> JSONResponse:
     ...
 ```
 
-The `validate_webhooks` parameter flows through `OmniChannelHandler` and `OmniChannelServer` constructors:
+The `validate_webhooks` parameter flows through `AgentFrameworkBridge` and `OmniChannelServer` constructors:
 
 ```python
-class OmniChannelHandler:
+class AgentFrameworkBridge:
     def __init__(
         self,
         tac: TAC,
@@ -541,7 +541,7 @@ Each partner SDK bridges a specific agent framework with TAC. It owns all agent-
 tac_ms_agent_framework/                    tac_strands/
 ├── __init__.py                        ├── __init__.py
 ├── handler.py                         ├── handler.py
-│   └── OmniChannelHandler             │   └── OmniChannelHandler
+│   └── AgentFrameworkBridge             │   └── AgentFrameworkBridge
 ├── runtime_server.py                  ├── runtime_server.py
 │   └── RuntimeServer                  │   └── RuntimeServer
 ├── server.py                          ├── server.py
@@ -564,7 +564,7 @@ tac_ms_agent_framework/                    tac_strands/
 
 ### What each file contains and why it's in the SDK
 
-#### `handler.py` — `OmniChannelHandler` (Interface 1)
+#### `handler.py` — `AgentFrameworkBridge` (Interface 1)
 
 The bulk of each SDK. Contains all framework-specific agent logic.
 
@@ -592,7 +592,7 @@ Creates `TACRoutes` from the handler's channels and mounts them on the cloud run
 
 #### `server.py` — `OmniChannelServer` (Interface 3)
 
-Pure composition — creates `OmniChannelHandler` + `RuntimeServer`. No logic of its own.
+Pure composition — creates `AgentFrameworkBridge` + `RuntimeServer`. No logic of its own.
 
 #### `types.py` (MS Agent Framework only)
 
@@ -620,7 +620,7 @@ Strands doesn't have a native remote-agent abstraction equivalent to Agent Frame
 | **Use case** | Simple deployments, full control over agent, direct tool access | Multi-agent architectures, shared agent services, team separation |
 | **Azure parallel** | `client.as_agent()` with Responses API or Chat Completions provider | `client.as_agent()` with Foundry Agent Service provider |
 
-Both topologies use the same `OmniChannelHandler` — the handler calls `agent.stream_async()` or `agent.run_async()` on the `AgentProxy` without knowing which topology is in use. The `create_agent` factory returns the appropriate proxy type based on deployment configuration.
+Both topologies use the same `AgentFrameworkBridge` — the handler calls `agent.stream_async()` or `agent.run_async()` on the `AgentProxy` without knowing which topology is in use. The `create_agent` factory returns the appropriate proxy type based on deployment configuration.
 
 #### `utils.py` (MS Agent Framework only)
 
@@ -635,7 +635,7 @@ Covered in the next section.
 **`tac_ms_agent_framework`:**
 ```python
 # Core interfaces (same names as Strands)
-OmniChannelHandler, RuntimeServer, OmniChannelServer
+AgentFrameworkBridge, RuntimeServer, OmniChannelServer
 
 # MS Agent Framework-specific
 AgentSessionStore, InMemoryAgentSessionStore, format_memory_context
@@ -649,7 +649,7 @@ tools.fetch_knowledge_base_info, tools.KnowledgeBaseInfo
 **`tac_strands`:**
 ```python
 # Core interfaces (same names as MS Agent Framework)
-OmniChannelHandler, RuntimeServer, OmniChannelServer
+AgentFrameworkBridge, RuntimeServer, OmniChannelServer
 
 # Strands-specific
 AgentProxy, LocalAgentProxy, RemoteAgentProxy
@@ -1226,7 +1226,7 @@ Errors in agent callbacks must never crash the server or leave a channel in a br
 | Layer | Error behavior |
 |---|---|
 | `TACRoutes` (TAC) | Route handlers catch all exceptions, log them, and return appropriate HTTP responses (500 for unexpected errors, 200 for webhooks that must not be retried). WebSocket handlers catch exceptions and close the connection cleanly. |
-| `OmniChannelHandler._handle_message()` (SDK) | Wraps the channel-specific handler (`_handle_voice_message` / `_handle_sms`) in a try/except. On error: logs the exception, sends a user-facing error message via the channel (e.g., "Sorry, something went wrong"), and ensures cleanup runs. |
+| `AgentFrameworkBridge._handle_message()` (SDK) | Wraps the channel-specific handler (`_handle_voice_message` / `_handle_sms`) in a try/except. On error: logs the exception, sends a user-facing error message via the channel (e.g., "Sorry, something went wrong"), and ensures cleanup runs. |
 | `_stream_response()` (SDK, voice) | If the agent throws mid-stream, the async generator catches the exception, logs it, and yields a spoken error message ("I'm having trouble, please try again"). The voice channel receives a clean end-of-stream. |
 | `_handle_sms()` (SDK, SMS) | Runs in a try/except/finally. On error: sends a generic error SMS. In the finally block: always persists session state (MS Agent Framework) or runs cleanup (Strands). The finally block must not send a response if one was already sent — check a `responded` flag. |
 | `create_agent()` factory | If the factory throws (e.g., missing credentials, model unavailable), the error propagates to `_handle_message()`, which applies the general policy above. For voice, this means the first utterance gets an error response; subsequent utterances retry agent creation. |
@@ -1244,11 +1244,11 @@ Errors in agent callbacks must never crash the server or leave a channel in a br
 
 ### The problem
 
-Some agent setup requires async work before the first request arrives — e.g., fetching knowledge base metadata (`fetch_knowledge_base_info()`), pre-warming model connections, or validating credentials. The current Azure SDK's `OmniChannelServer` accepts an `on_startup` async callback for this. The new architecture needs to handle this without adding lifecycle methods to `OmniChannelHandler` (which is a pure request processor).
+Some agent setup requires async work before the first request arrives — e.g., fetching knowledge base metadata (`fetch_knowledge_base_info()`), pre-warming model connections, or validating credentials. The current Azure SDK's `OmniChannelServer` accepts an `on_startup` async callback for this. The new architecture needs to handle this without adding lifecycle methods to `AgentFrameworkBridge` (which is a pure request processor).
 
 ### Where startup hooks live in each interface level
 
-`OmniChannelHandler` does **not** accept a startup hook. It has no lifecycle — it processes requests, nothing more. Async initialization belongs to the layer that owns the server lifecycle:
+`AgentFrameworkBridge` does **not** accept a startup hook. It has no lifecycle — it processes requests, nothing more. Async initialization belongs to the layer that owns the server lifecycle:
 
 | Interface level | How to run async initialization |
 |---|---|
@@ -1300,7 +1300,7 @@ server.start()
 
 ```python
 # Interface 1 + TACServer: use FastAPI lifespan directly
-handler = OmniChannelHandler(tac=tac, create_agent=create_agent)
+handler = AgentFrameworkBridge(tac=tac, create_agent=create_agent)
 server = TACServer(tac=tac, voice_channel=handler.voice_channel, ...)
 
 @asynccontextmanager
@@ -1316,7 +1316,7 @@ server.start()
 
 ```python
 # Interface 1 + custom FastAPI: developer owns the app entirely
-handler = OmniChannelHandler(tac=tac, create_agent=create_agent)
+handler = AgentFrameworkBridge(tac=tac, create_agent=create_agent)
 
 @asynccontextmanager
 async def lifespan(app):
@@ -1330,7 +1330,7 @@ app.post("/twiml")(routes.handle_twiml)
 # ... mount other routes
 ```
 
-### Why not put startup hooks on `OmniChannelHandler`
+### Why not put startup hooks on `AgentFrameworkBridge`
 
 Adding lifecycle to the handler would mean it needs to know about its hosting context (is it FastAPI? Starlette? AgentCore?). It would also create ambiguity about when `on_startup` runs — before channel creation? After? The clean separation is: **handler = request processing**, **server = lifecycle**. The current Azure SDK's `OmniChannelServer.on_startup` pattern is correct in spirit — it just needs to be on the server layer, not the handler layer.
 
@@ -1344,10 +1344,10 @@ Adding lifecycle to the handler would mean it needs to know about its hosting co
 
 | Removed | Replaced by |
 |---|---|
-| `OmniChannelServer` (current) | New `OmniChannelServer` composing `OmniChannelHandler` + `RuntimeServer` |
-| `OmniChannelHandler` (current) | New `OmniChannelHandler` that creates channels internally |
+| `OmniChannelServer` (current) | New `OmniChannelServer` composing `AgentFrameworkBridge` + `RuntimeServer` |
+| `AgentFrameworkBridge` (current) | New `AgentFrameworkBridge` that creates channels internally |
 | All route creation code | TAC's `TACRoutes` |
-| Channel creation boilerplate | Internal to `OmniChannelHandler.__init__` |
+| Channel creation boilerplate | Internal to `AgentFrameworkBridge.__init__` |
 | URL construction from `public_domain` | TAC's `TACRoutes` via `TACServerConfig` |
 | Custom webhook validation logic | TAC's `TACRoutes.validate_webhooks` + `validate_twilio_webhook()` |
 | `on_startup` callback on `OmniChannelServer` | Moved to new `OmniChannelServer.on_startup` (same behavior, cleaner layering) |
@@ -1366,8 +1366,8 @@ Adding lifecycle to the handler would mean it needs to know about its hosting co
 
 | Removed | Replaced by |
 |---|---|
-| `OmniChannelServer` (559 lines) | New `OmniChannelServer` composing `OmniChannelHandler` + `RuntimeServer` |
-| `OmniChannelHandler` (current) | New `OmniChannelHandler` — no duplicate streaming/agent/cleanup |
+| `OmniChannelServer` (559 lines) | New `OmniChannelServer` composing `AgentFrameworkBridge` + `RuntimeServer` |
+| `AgentFrameworkBridge` (current) | New `AgentFrameworkBridge` — no duplicate streaming/agent/cleanup |
 | `ThreadSafeSessionManager(stream_generator=...)` | Incompatible with TAC HEAD — callback pattern instead |
 | SMS webhook fabrication | TAC's `TACRoutes` + `SMSChannel` |
 | `fastapi`, `uvicorn`, `websockets` as direct deps | Come via TAC |
@@ -1377,7 +1377,7 @@ Adding lifecycle to the handler would mean it needs to know about its hosting co
 
 | Issue | Resolution |
 |---|---|
-| `handle_message_ready` callback had wrong parameter order | Callback wired correctly in `OmniChannelHandler.__init__` with proper signature |
+| `handle_message_ready` callback had wrong parameter order | Callback wired correctly in `AgentFrameworkBridge.__init__` with proper signature |
 | `finally` block in SMS handler always sent error message (even on success) | New `_handle_sms` uses `responded` flag to prevent double-response |
 | Hardcoded `+17205273223` phone number fallback | Removed — phone number comes from `TACConfig` exclusively |
 
@@ -1442,7 +1442,7 @@ class RuntimeServer:
 ```
 
 This ensures:
-- `from tac_ms_agent_framework import OmniChannelHandler` works without Foundry installed.
+- `from tac_ms_agent_framework import AgentFrameworkBridge` works without Foundry installed.
 - `from tac_ms_agent_framework import RuntimeServer` works (the class is importable).
 - `RuntimeServer(...)` fails with a clear message if the extra is missing.
 
@@ -1452,7 +1452,7 @@ The same pattern applies to `tac_strands` with `bedrock-agentcore`.
 
 ## Interface Comparison Table
 
-| | `OmniChannelHandler` | `RuntimeServer` | `OmniChannelServer` |
+| | `AgentFrameworkBridge` | `RuntimeServer` | `OmniChannelServer` |
 |---|---|---|---|
 | What it is | TAC + agent fw bridge | Cloud runtime + TAC routes | Both combined |
 | Owns channels | Yes (creates internally) | No (uses handler's) | Yes (via handler) |
@@ -1472,7 +1472,7 @@ The same pattern applies to `tac_strands` with `bedrock-agentcore`.
 
 ### Guarantees
 
-`OmniChannelHandler` is designed for concurrent use across multiple conversations. TAC's channels are already concurrent — `VoiceChannel` handles multiple simultaneous WebSocket connections, and `SMSChannel` processes webhooks concurrently via async handlers.
+`AgentFrameworkBridge` is designed for concurrent use across multiple conversations. TAC's channels are already concurrent — `VoiceChannel` handles multiple simultaneous WebSocket connections, and `SMSChannel` processes webhooks concurrently via async handlers.
 
 ### Per-conversation isolation
 
@@ -1517,7 +1517,7 @@ Tracing integration depends on the deployment layer:
 | `RuntimeServer` + Foundry | `FoundryCBAgent` provides OpenTelemetry auto-instrumentation, spans for `/responses`, `/liveness`, OAuth token refresh. TAC route handlers inherit the active trace context. |
 | `RuntimeServer` + AgentCore | `BedrockAgentCoreApp` provides request context propagation and task tracking. TAC route handlers inherit the request context. |
 
-`OmniChannelHandler` does not create its own spans or metrics — it delegates to whatever tracing is configured on the ASGI app. This avoids double-instrumentation and keeps the handler deployment-agnostic.
+`AgentFrameworkBridge` does not create its own spans or metrics — it delegates to whatever tracing is configured on the ASGI app. This avoids double-instrumentation and keeps the handler deployment-agnostic.
 
 ### Future considerations
 
@@ -1534,7 +1534,7 @@ Tracing integration depends on the deployment layer:
 |---|---|---|---|
 | **TAC unit tests** | Channels, routes, tools, session management, memory fallback | `twilio-agent-connect-python/tests/` | Mocked Twilio APIs, mocked Memory/Maestro clients |
 | **SDK unit tests** | Handler logic, streaming bridge, SMS execution, agent caching, tool conversion, session persistence | Each SDK's `tests/` directory | Mocked TAC objects, mocked agent frameworks |
-| **Integration tests** | Full route → handler → agent → response flow | Each SDK's `tests/integration/` | Real `TACRoutes` + `OmniChannelHandler` with mock agents, real ASGI test client |
+| **Integration tests** | Full route → handler → agent → response flow | Each SDK's `tests/integration/` | Real `TACRoutes` + `AgentFrameworkBridge` with mock agents, real ASGI test client |
 
 ### Contract tests between TAC and SDKs
 
@@ -1546,22 +1546,22 @@ The `TACRoutes` class and `BaseChannel` callbacks form the contract surface betw
 ### SDK unit test patterns
 
 ```python
-# Test that OmniChannelHandler wires callbacks correctly
+# Test that AgentFrameworkBridge wires callbacks correctly
 def test_handler_wires_callbacks():
     mock_tac = Mock(spec=TAC)
-    handler = OmniChannelHandler(tac=mock_tac, create_agent=mock_factory)
+    handler = AgentFrameworkBridge(tac=mock_tac, create_agent=mock_factory)
     mock_tac.on_message_ready.assert_called_once()
     mock_tac.on_conversation_ended.assert_called_once()
 
 # Test that _stream_response yields agent chunks
 async def test_stream_response_yields_chunks():
-    handler = OmniChannelHandler(tac=mock_tac, create_agent=mock_factory)
+    handler = AgentFrameworkBridge(tac=mock_tac, create_agent=mock_factory)
     chunks = [chunk async for chunk in handler._stream_response("hello", session)]
     assert chunks == ["Hi", " there"]
 
 # Test that RuntimeServer mounts all expected routes
 def test_runtime_server_mounts_routes():
-    handler = OmniChannelHandler(tac=mock_tac, create_agent=mock_factory)
+    handler = AgentFrameworkBridge(tac=mock_tac, create_agent=mock_factory)
     server = RuntimeServer(omnichannel=handler, **mock_kwargs)
     route_paths = [r.path for r in server.app.routes]
     assert "/twiml" in route_paths

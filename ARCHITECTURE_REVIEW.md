@@ -62,7 +62,7 @@ Three layers — customer code on top, shared TAC foundation on the bottom. MS A
 └──────────────────────┬──────────────────────────┘
                        │ delegates to
 ┌──────────────────────▼──────────────────────────┐
-│  OmniChannelHandler (core logic)                │
+│  AgentFrameworkBridge (core logic)                │
 │  • Calls create_agent(ConversationSession)      │
 │    per call/message                             │
 │  • Calls agent.run(session=AgentSession)        │
@@ -86,7 +86,7 @@ Three layers — customer code on top, shared TAC foundation on the bottom. MS A
                            handler, passed to create_agent)
 ```
 
-Customer code can use OmniChannelServer directly, or use OmniChannelHandler with their own FastAPI app for full control over routing and middleware.
+Customer code can use OmniChannelServer directly, or use AgentFrameworkBridge with their own FastAPI app for full control over routing and middleware.
 
 This SDK is a thin orchestration layer. Tool logic and webhook validation live in TAC — not reimplemented here.
 

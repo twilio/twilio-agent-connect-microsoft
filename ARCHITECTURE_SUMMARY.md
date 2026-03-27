@@ -24,7 +24,7 @@ Every partner SDK exports three classes with the same names and the same shape.
 │                                                                     │
 │  Cloud runtime path: OmniChannelServer              PARTNER SDK     │
 │  ┌─────────────────────────────┐ ┌─────────────────────────────┐   │
-│  │ OmniChannelHandler          │ │ RuntimeServer               │   │
+│  │ AgentFrameworkBridge          │ │ RuntimeServer               │   │
 │  │                             │ │                             │   │
 │  │ Takes a create_agent        │ │ Integrates TACRoutes into   │   │
 │  │ factory. When TAC channels  │ │ a cloud runtime app         │   │
@@ -35,9 +35,9 @@ Every partner SDK exports three classes with the same names and the same shape.
 │                 │                                │                   │
 │─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ── OR ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─│
 │                 │                                │                   │
-│  Self-hosted path: OmniChannelHandler + TACServer                   │
+│  Self-hosted path: AgentFrameworkBridge + TACServer                   │
 │  ┌─────────────────────────────┐ ┌─────────────────────────────┐   │
-│  │ OmniChannelHandler          │ │ TACServer           (TAC)   │   │
+│  │ AgentFrameworkBridge          │ │ TACServer           (TAC)   │   │
 │  │                             │ │                             │   │
 │  │ (same as above)             │ │ Integrates TACRoutes into   │   │
 │  │                             │ │ a plain FastAPI app for     │   │
@@ -78,7 +78,7 @@ OmniChannelServer
 │
 │   On construction, creates two things:
 │
-├── 1. OmniChannelHandler (PARTNER SDK)
+├── 1. AgentFrameworkBridge (PARTNER SDK)
 │       Creates TAC channels and wires the SDK's framework-specific agent
 │       logic to them (e.g., MS Agent Framework streaming, Strands streaming).
 │       No HTTP. No server. Just "when a message arrives, run the agent."
@@ -111,20 +111,20 @@ OmniChannelServer
 
 ```
 # No OmniChannelServer — developer wires it manually
-handler = OmniChannelHandler(tac=tac, create_agent=factory)
+handler = AgentFrameworkBridge(tac=tac, create_agent=factory)
 server = TACServer(tac=tac, voice_channel=handler.voice_channel,
                    sms_channel=handler.sms_channel)
 server.start()   # TACServer creates TACRoutes internally, mounts on FastAPI
 ```
 
-**Key point:** `TACRoutes` and `OmniChannelHandler` never call each other. They're both plugged into TAC's channels — one from the HTTP side, one from the agent side. The channels and TAC's callback system connect them.
+**Key point:** `TACRoutes` and `AgentFrameworkBridge` never call each other. They're both plugged into TAC's channels — one from the HTTP side, one from the agent side. The channels and TAC's callback system connect them.
 
 ### What TAC provides (the building blocks)
 
 | TAC component | What it does | Used by |
 |---|---|---|
-| **VoiceChannel** | Speaks Twilio's voice protocol. Handles incoming calls, manages WebSocket connections, processes ConversationRelay messages (utterances, interrupts), streams audio responses back. Fires TAC callbacks when things happen. | Created by `OmniChannelHandler` |
-| **SMSChannel** | Speaks Twilio's SMS protocol. Processes Maestro webhooks (participant added, message created, conversation closed), sends SMS responses via Twilio API. Fires TAC callbacks when things happen. | Created by `OmniChannelHandler` |
+| **VoiceChannel** | Speaks Twilio's voice protocol. Handles incoming calls, manages WebSocket connections, processes ConversationRelay messages (utterances, interrupts), streams audio responses back. Fires TAC callbacks when things happen. | Created by `AgentFrameworkBridge` |
+| **SMSChannel** | Speaks Twilio's SMS protocol. Processes Maestro webhooks (participant added, message created, conversation closed), sends SMS responses via Twilio API. Fires TAC callbacks when things happen. | Created by `AgentFrameworkBridge` |
 | **TACRoutes** | HTTP adapter layer. Parses incoming HTTP requests (form data, JSON, WebSocket upgrades), validates Twilio webhook signatures, and calls the appropriate channel method. Framework-agnostic — just async functions that take a Starlette `Request` and return a `Response`. | Created by `RuntimeServer` or `TACServer` |
 | **TACServer** | A ready-made FastAPI app. Creates `TACRoutes` from channels, mounts them on FastAPI, runs uvicorn. The self-hosted deployment option — alternative to `RuntimeServer`. | Used directly by developers who don't need a cloud runtime |
 | **TAC core** | Callback system (`on_message_ready`, `on_conversation_ended`, `on_interrupt`), memory retrieval, profile lookup, config, models. The glue between channels and whatever agent logic is wired up. | Used by everything |
@@ -133,7 +133,7 @@ server.start()   # TACServer creates TACRoutes internally, mounts on FastAPI
 
 | Interface | What it does | Who uses it |
 |---|---|---|
-| **OmniChannelHandler** | Creates channels, wires SDK-specific agent logic to TAC callbacks. No HTTP, no server. | Developers who want full control over hosting |
+| **AgentFrameworkBridge** | Creates channels, wires SDK-specific agent logic to TAC callbacks. No HTTP, no server. | Developers who want full control over hosting |
 | **RuntimeServer** | Creates `TACRoutes` from handler's channels, mounts on a cloud runtime | Developers deploying to Foundry / AgentCore |
 | **OmniChannelServer** | Creates both of the above. Single `start()` call. | Developers who want the simplest path |
 
@@ -161,13 +161,13 @@ Today, partner SDKs duplicate the left column. After: they only implement the ri
 
 ```python
 # MS Agent Framework
-from tac_ms_agent_framework import OmniChannelHandler, RuntimeServer, OmniChannelServer
+from tac_ms_agent_framework import AgentFrameworkBridge, RuntimeServer, OmniChannelServer
 
 # Strands
-from tac_strands import OmniChannelHandler, RuntimeServer, OmniChannelServer
+from tac_strands import AgentFrameworkBridge, RuntimeServer, OmniChannelServer
 
 # Future partner (e.g., OpenAI)
-from tac_openai import OmniChannelHandler, RuntimeServer, OmniChannelServer
+from tac_openai import AgentFrameworkBridge, RuntimeServer, OmniChannelServer
 ```
 
 Same class names. Same constructor parameters (with framework-specific extras). Same `create_agent` factory signature. A developer who learns one SDK can use any of them.
@@ -210,7 +210,7 @@ The handler has no opinion about where it runs. Developers build the handler onc
 
 ```python
 # Step 1: Build the handler (same regardless of deployment)
-handler = OmniChannelHandler(tac=tac, create_agent=my_agent_factory)
+handler = AgentFrameworkBridge(tac=tac, create_agent=my_agent_factory)
 
 # Step 2: Pick a deployment target — each creates TACRoutes from handler's channels internally
 server = RuntimeServer(omnichannel=handler, foundry_agent=...)   # Azure Foundry
