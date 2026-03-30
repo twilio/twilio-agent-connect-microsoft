@@ -9,6 +9,7 @@ Demonstrates the full feature set of AgentFrameworkConnector:
 - on_message hook (prepend customer phone number)
 - FileAgentSessionStore (file-based session persistence)
 - on_conversation_ended hook (clean up session files)
+- on_error hook (custom error responses)
 """
 
 from __future__ import annotations
@@ -138,13 +139,25 @@ session_store = FileAgentSessionStore("/tmp/owl_sessions")
 
 
 def on_message(user_message, context, memory_response):
-    """Prepend the customer's phone number to every SMS for context."""
+    """Prepend the customer's phone number for context."""
     prefix = f"[Customer: {context.from_number}]\n"
     return prefix + format_memory_context(memory_response, user_message)
 
 
+def on_error(error, context):
+    """Return a channel-appropriate error message."""
+    logger.error("Agent error", extra={"conversation_id": context.conversation_id}, exc_info=error)
+    if context.channel == "voice":
+        return "I'm sorry, I'm having trouble right now. Please try again."
+    return "Sorry, something went wrong. Please try again or call us for help."
+
+
 def handle_conversation_ended(context: ConversationSession) -> None:
-    """Clean up session files when a conversation closes."""
+    """Clean up session files when a conversation closes.
+
+    Voice agent/session cleanup is handled automatically by the connector.
+    This callback handles application-level cleanup (session files on disk).
+    """
     session_store.delete(context.conversation_id)
     logger.info("Session file cleaned up", extra={"conversation_id": context.conversation_id})
 
@@ -156,6 +169,7 @@ connector = AgentFrameworkConnector(
     create_agent=create_agent,
     auto_retrieve_memory=True,
     on_message=on_message,
+    on_error=on_error,
     session_store=session_store,
 )
 

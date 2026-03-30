@@ -60,8 +60,8 @@ class AgentFrameworkConnector:
     Bridge for Twilio channels (Voice and SMS) with Agent Framework agents.
 
     Both voice and SMS flows are fully managed internally.  The developer
-    supplies a ``create_agent`` factory and, optionally, an ``on_message``
-    hook for SMS message augmentation.  HTTP/WebSocket routing is handled
+    supplies a ``create_agent`` factory and, optionally, hooks for message
+    augmentation and error handling.  HTTP/WebSocket routing is handled
     by ``TACServer`` — pass ``voice_channel`` and/or ``sms_channel`` to it
     to control which channels are active.
 
@@ -71,12 +71,19 @@ class AgentFrameworkConnector:
     each utterance for persistence/auditing.  For SMS, the session is loaded
     from and saved to the ``AgentSessionStore`` on every message.
 
+    Lifecycle callbacks (``on_conversation_ended``, ``on_interrupt``) are
+    wired automatically to handle voice agent cleanup and logging.
+
     Args:
         tac: TAC instance.
         create_agent: ``(session: ConversationSession) -> Agent``.
-        on_message: Optional hook called before ``agent.run()`` for SMS.
+        on_message: Optional hook called before ``agent.run()`` for both
+            voice and SMS.
             Signature: ``(user_message, context, memory_response) -> str``.
             When *None*, defaults to ``format_memory_context(memory, msg)``.
+        on_error: Optional hook to customize error responses.
+            Signature: ``(error, context) -> str``.
+            When *None*, returns a default apology message.
         auto_retrieve_memory: If *True*, TAC channels auto-retrieve
             memory before invoking callbacks.  Defaults to *False*.
         session_store: Persistence layer for ``AgentSession`` objects.
@@ -98,12 +105,16 @@ class AgentFrameworkConnector:
             ]
             | None
         ) = None,
+        on_error: (
+            Callable[[Exception, ConversationSession], str] | None
+        ) = None,
         auto_retrieve_memory: bool = False,
         session_store: AgentSessionStore | None = None,
     ):
         self.tac = tac
         self.create_agent = create_agent
         self.on_message = on_message
+        self.on_error = on_error
         self.session_store: AgentSessionStore = (
             session_store if session_store is not None else InMemoryAgentSessionStore()
         )
@@ -124,8 +135,10 @@ class AgentFrameworkConnector:
             auto_retrieve_memory=auto_retrieve_memory,
         )
 
-        # Register a single unified callback that dispatches by channel
+        # -- TAC callbacks ----------------------------------------------------
         self.tac.on_message_ready(self._handle_message)
+        self.tac.on_conversation_ended(self._handle_conversation_ended)
+        self.tac.on_interrupt(self._handle_interrupt)
 
         logger.info("AgentFrameworkConnector initialized")
 
@@ -156,6 +169,68 @@ class AgentFrameworkConnector:
             )
 
     # -------------------------------------------------------------------------
+    # Lifecycle callbacks
+    # -------------------------------------------------------------------------
+
+    async def _handle_conversation_ended(
+        self,
+        context: ConversationSession,
+    ) -> None:
+        """Clean up voice resources when a conversation ends."""
+        if context.channel == "voice":
+            self._cleanup_voice_agent(context.conversation_id)
+
+    async def _handle_interrupt(
+        self,
+        context: ConversationSession,
+        interrupt_data: Any,
+    ) -> None:
+        """Handle voice interrupt.
+
+        Stream cancellation is handled automatically by the
+        ``ThreadSafeSessionManager``.  This hook provides logging
+        and a place for subclasses to add custom behavior.
+        """
+        logger.info(
+            "Voice interrupted",
+            conversation_id=context.conversation_id,
+        )
+
+    # -------------------------------------------------------------------------
+    # Message building and error handling
+    # -------------------------------------------------------------------------
+
+    def _build_message(
+        self,
+        user_message: str,
+        context: ConversationSession,
+        memory_response: TACMemoryResponse | None,
+    ) -> str:
+        """Build the message to send to the agent.
+
+        When ``on_message`` is set, delegates entirely to the hook.
+        Otherwise, prepends memory context to the user message.
+        Applied to both voice and SMS.
+        """
+        if self.on_message is not None:
+            return self.on_message(user_message, context, memory_response)
+        return format_memory_context(memory_response, user_message)
+
+    def _get_error_response(
+        self, error: Exception, context: ConversationSession
+    ) -> str:
+        """Get error response message.
+
+        Uses ``on_error`` hook if set, otherwise returns a default message.
+        """
+        if self.on_error is not None:
+            try:
+                return self.on_error(error, context)
+            except Exception:
+                logger.error("on_error hook failed", exc_info=True)
+        return "Sorry, something went wrong. Please try again."
+
+    # -------------------------------------------------------------------------
     # Internal voice handler (called via _handle_message)
     # -------------------------------------------------------------------------
 
@@ -171,7 +246,7 @@ class AgentFrameworkConnector:
         """
         await self.voice_channel.send_response(
             context.conversation_id,
-            self._stream_response(user_message, context.conversation_id),
+            self._stream_response(user_message, context, memory_response),
         )
 
     # -------------------------------------------------------------------------
@@ -195,12 +270,7 @@ class AgentFrameworkConnector:
         if not context or context.channel != "sms":
             return
 
-        # Apply on_message hook (or default to format_memory_context)
-        if self.on_message is not None:
-            augmented_message = self.on_message(user_message, context, memory_response)
-        else:
-            augmented_message = format_memory_context(memory_response, user_message)
-
+        message = self._build_message(user_message, context, memory_response)
         agent = self.create_agent(context)
 
         # Restore session from store (preserves Foundry thread_id,
@@ -210,11 +280,11 @@ class AgentFrameworkConnector:
             af_session = AgentSession(session_id=context.conversation_id)
 
         try:
-            result = await agent.run(augmented_message, session=af_session)
+            result = await agent.run(message, session=af_session)
             await self.sms_channel.send_response(
                 context.conversation_id, result.text, role="assistant"
             )
-        except Exception:
+        except Exception as e:
             logger.error(
                 "Error processing SMS message",
                 conversation_id=context.conversation_id,
@@ -223,7 +293,7 @@ class AgentFrameworkConnector:
             )
             await self.sms_channel.send_response(
                 context.conversation_id,
-                "Sorry, something went wrong. Please try again.",
+                self._get_error_response(e, context),
                 role="assistant",
             )
         finally:
@@ -236,7 +306,10 @@ class AgentFrameworkConnector:
     # -------------------------------------------------------------------------
 
     async def _stream_response(
-        self, prompt: str, session_id: str
+        self,
+        user_message: str,
+        context: ConversationSession,
+        memory_response: TACMemoryResponse | None,
     ) -> AsyncGenerator[str, None]:
         """Stream generator that yields Agent Framework streaming responses.
 
@@ -247,27 +320,26 @@ class AgentFrameworkConnector:
         The same AgentSession is passed on every utterance so conversation
         history accumulates within the call.
 
-        Args:
-            prompt: The user's message to send to the agent
-            session_id: The conversation_id from TAC (used as agent session_id)
-
         Yields:
             Text chunks from the agent streaming response (plain strings)
         """
-        prompt_preview = prompt[:100] + "..." if len(prompt) > 100 else prompt
+        conv_id = context.conversation_id
+        message = self._build_message(user_message, context, memory_response)
+
+        prompt_preview = message[:100] + "..." if len(message) > 100 else message
         logger.info(
             f"USER MESSAGE | {prompt_preview}",
-            conversation_id=session_id,
+            conversation_id=conv_id,
             channel="voice",
         )
 
-        agent = self._get_or_create_voice_agent(session_id)
-        af_session = self._get_or_create_voice_session(session_id)
+        agent = self._get_or_create_voice_agent(conv_id, context)
+        af_session = self._get_or_create_voice_session(conv_id)
 
         full_response: list[str] = []
 
         try:
-            async for chunk in agent.run(prompt, stream=True, session=af_session):
+            async for chunk in agent.run(message, stream=True, session=af_session):
                 if hasattr(chunk, "text") and chunk.text:
                     full_response.append(chunk.text)
                     yield chunk.text
@@ -278,42 +350,33 @@ class AgentFrameworkConnector:
             )
             logger.info(
                 f"AI RESPONSE | {response_preview}",
-                conversation_id=session_id,
+                conversation_id=conv_id,
                 channel="voice",
             )
 
             # Persist session in the background (non-blocking) for
             # auditing and Foundry thread_id durability.
-            self._background_save_session(session_id, af_session)
+            self._background_save_session(conv_id, af_session)
         except GeneratorExit:
-            logger.info("Stream interrupted, cleaning up agent", session_id=session_id)
-            self._cleanup_voice_agent(session_id)
+            logger.info("Stream interrupted", conversation_id=conv_id)
             raise
         except Exception as e:
             logger.error(
                 "Error during streaming",
-                session_id=session_id,
+                conversation_id=conv_id,
                 exc_info=True,
                 error=str(e),
             )
-            self._cleanup_voice_agent(session_id)
-            raise
+            self._cleanup_voice_agent(conv_id)
+            yield self._get_error_response(e, context)
 
-    def _get_or_create_voice_agent(self, conversation_id: str) -> Agent:
+    def _get_or_create_voice_agent(
+        self, conversation_id: str, context: ConversationSession
+    ) -> Agent:
         """Get existing voice agent or create new one for conversation."""
         if conversation_id not in self._voice_agents:
             logger.info("Creating new voice agent", conversation_id=conversation_id)
-            assert self.voice_channel is not None
-            session = self.voice_channel._conversations[conversation_id]
-            if session.profile_id is None:
-                logger.error(
-                    "Cannot create agent: profile_id is None",
-                    conversation_id=conversation_id,
-                )
-                raise RuntimeError(
-                    "Cannot create agent: profile_id is not set for this conversation."
-                )
-            self._voice_agents[conversation_id] = self.create_agent(session)
+            self._voice_agents[conversation_id] = self.create_agent(context)
         return self._voice_agents[conversation_id]
 
     def _get_or_create_voice_session(self, conversation_id: str) -> AgentSession:
