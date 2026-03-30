@@ -40,18 +40,23 @@ See [`examples/`](examples/) for complete working examples:
 ## Quick Example
 
 ```python
+import os
+
 from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
+from dotenv import load_dotenv
 from tac import TAC, TACConfig
 from tac.server import TACFastAPIServer
 from tac_azure import ConversationSession, AgentFrameworkConnector
+
+load_dotenv()
 
 tac = TAC(config=TACConfig.from_env())
 
 credential = DefaultAzureCredential()
 client = AzureOpenAIResponsesClient(
     credential=credential,
-    project_endpoint="https://your-project.openai.azure.com/",
+    project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
     deployment_name="gpt-4o",
 )
 
