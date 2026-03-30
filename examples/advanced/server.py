@@ -1,25 +1,40 @@
-"""Owl Internet Voice + SMS Agent — Azure OpenAI Responses API.
+"""Owl Internet Voice + SMS Agent — advanced example.
 
-Uses AzureOpenAIResponsesClient (Chat Completions). Simpler setup than Foundry —
-no managed threads, no hosted tools. Good starting point for Azure OpenAI users.
+Demonstrates the full feature set of AgentFrameworkConnector:
+
+- Channel-aware system prompts (voice vs SMS)
+- Custom tools (outage lookup)
+- Knowledge base tool
+- Memory recall tool
+- on_message hook (prepend customer phone number)
+- FileAgentSessionStore (file-based session persistence)
+- on_conversation_ended hook (clean up session files)
 """
+
+from __future__ import annotations
 
 # Fix SSL certificate verification on macOS (must be before other imports)
 import truststore
 truststore.inject_into_ssl()
 
+import json
+import logging
 import os
+from pathlib import Path
 
+from agent_framework import AgentSession
 from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from tac import TAC, TACConfig
 from tac.server import TACServer
 
-from tac_azure import ConversationSession, AgentFrameworkConnector
+from tac_azure import ConversationSession, AgentFrameworkConnector, format_memory_context
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Azure AI client
@@ -45,7 +60,7 @@ Keep responses concise and formatted for text messaging.
 Use short paragraphs. Bullet points are OK."""
 
 # ---------------------------------------------------------------------------
-# Tools
+# Custom tools
 # ---------------------------------------------------------------------------
 
 
@@ -55,7 +70,42 @@ def look_up_outage_tool(zip_code: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# TAC + knowledge base
+# Custom AgentSessionStore — file-based persistence
+# ---------------------------------------------------------------------------
+
+
+class FileAgentSessionStore:
+    """Persist sessions as JSON files on the local filesystem.
+
+    Each session is written to ``{storage_dir}/{session_id}.json``
+    using Agent Framework's built-in ``AgentSession.to_dict()`` /
+    ``from_dict()`` serialisation.
+    """
+
+    def __init__(self, storage_dir: str | Path = "/tmp/tac_sessions") -> None:
+        self._storage_dir = Path(storage_dir)
+        self._storage_dir.mkdir(parents=True, exist_ok=True)
+
+    def _path(self, session_id: str) -> Path:
+        return self._storage_dir / f"{session_id}.json"
+
+    async def load(self, session_id: str) -> AgentSession | None:
+        path = self._path(session_id)
+        if not path.exists():
+            return None
+        data = json.loads(path.read_text())
+        return AgentSession.from_dict(data)
+
+    async def save(self, session_id: str, session: AgentSession) -> None:
+        path = self._path(session_id)
+        path.write_text(json.dumps(session.to_dict()))
+
+    def delete(self, session_id: str) -> None:
+        self._path(session_id).unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# TAC setup
 # ---------------------------------------------------------------------------
 
 tac = TAC(config=TACConfig.from_env())
@@ -71,11 +121,7 @@ def create_agent(session: ConversationSession):
 
     tools = [create_memory_recall_tool(tac, session), look_up_outage_tool]
     if knowledge_base_id:
-        tools.append(create_knowledge_tool(
-            tac, knowledge_base_id=knowledge_base_id,
-            description="Search for information about Twilio's Sierra initiative, including Memora "
-            "(conversation memory service) and Maestro (orchestration service).",
-        ))
+        tools.append(create_knowledge_tool(tac, knowledge_base_id=knowledge_base_id))
 
     return client.as_agent(
         name="OwlAgent",
@@ -85,19 +131,38 @@ def create_agent(session: ConversationSession):
 
 
 # ---------------------------------------------------------------------------
-# Bridge + Server
+# Connector + Server
 # ---------------------------------------------------------------------------
 
-bridge = AgentFrameworkConnector(
+session_store = FileAgentSessionStore("/tmp/owl_sessions")
+
+
+def on_message(user_message, context, memory_response):
+    """Prepend the customer's phone number to every SMS for context."""
+    prefix = f"[Customer: {context.from_number}]\n"
+    return prefix + format_memory_context(memory_response, user_message)
+
+
+def handle_conversation_ended(context: ConversationSession) -> None:
+    """Clean up session files when a conversation closes."""
+    session_store.delete(context.conversation_id)
+    logger.info("Session file cleaned up", extra={"conversation_id": context.conversation_id})
+
+
+tac.on_conversation_ended(handle_conversation_ended)
+
+connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     auto_retrieve_memory=True,
+    on_message=on_message,
+    session_store=session_store,
 )
 
 server = TACServer(
     tac=tac,
-    voice_channel=bridge.voice_channel,
-    sms_channel=bridge.sms_channel,
+    voice_channel=connector.voice_channel,
+    sms_channel=connector.sms_channel,
 )
 
 if __name__ == "__main__":

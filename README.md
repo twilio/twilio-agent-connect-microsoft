@@ -57,34 +57,27 @@ See the **[examples directory](examples/)** for complete working examples.
 
 ### Quick Start
 
-**[Foundry Voice + SMS Demo](examples/foundry_voice_sms_demo/)** - **Recommended starting point**
-- Multi-channel server (Voice + SMS) using Azure AI Foundry Agent Service
-- Dynamic knowledge base tool creation
-- Memory tool for customer context recall
-- Channel-specific system prompts
-- Flex escalation for human handoff
+**[Basic](examples/basic/)** — minimal working example
+- Voice + SMS using Azure OpenAI Responses API
+- Single system prompt, no custom tools
+- `AgentFrameworkConnector` + `TACServer` in ~30 lines
 
 ```bash
-# Run the demo
-uv run python examples/foundry_voice_sms_demo/server.py
+uv run python examples/basic/server.py
 ```
 
-### Additional Examples
+### Advanced
 
-**[Responses Voice + SMS Demo](examples/responses_voice_sms_demo/)**
-- Uses Azure OpenAI Responses API (Chat Completions)
-- Simpler setup without Foundry dependencies
-- Same omnichannel architecture
+**[Advanced](examples/advanced/)** — full feature set
+- Channel-aware system prompts (voice vs SMS)
+- Custom tools, knowledge base tool, memory recall tool
+- `on_message` hook for message augmentation
+- `FileAgentSessionStore` for session persistence
+- `on_conversation_ended` lifecycle hook
 
-**[Custom FastAPI Demo](examples/responses_custom_fastapi_demo/)**
-- Uses `AgentFrameworkConnector` + `TACServer` with custom routes via `server.app`
-- Full control over additional routes and middleware
-- Custom landing page example
-
-**[File-Based SMS Sessions](examples/sms_file_sessions/)**
-- Custom `AgentSessionStore` implementation using JSON files
-- SMS-only setup with session persistence across restarts
-- Demonstrates `on_conversation_ended` lifecycle hook
+```bash
+uv run python examples/advanced/server.py
+```
 
 ## Configuration
 
