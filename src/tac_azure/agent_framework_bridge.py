@@ -2,13 +2,13 @@
 Agent Framework Bridge for TAC
 
 Bridge logic (agent lifecycle, session management, tool factories) for Microsoft
-Agent Framework.  HTTP/WebSocket routing is delegated to ``TACServer`` from the
+Agent Framework.  HTTP/WebSocket routing is delegated to ``TACFastAPIServer`` from the
 ``tac`` package.
 
 Key design:
 - ``create_agent`` factory returns an Agent Framework ``Agent``
 - Voice and SMS channel instances are exposed as ``voice_channel`` / ``sms_channel``
-  — pass whichever you need to ``TACServer`` to wire up routing
+  — pass whichever you need to ``TACFastAPIServer`` to wire up routing
 
 Conversation history:
 - The bridge passes an ``AgentSession`` to every ``agent.run()`` call so
@@ -41,8 +41,8 @@ from typing import TYPE_CHECKING, Any
 
 from agent_framework import Agent, AgentSession
 from tac.session import ThreadSafeSessionManager
-from tac.channels.sms import SMSChannel
-from tac.channels.voice import VoiceChannel
+from tac.channels.sms import SMSChannel, SMSChannelConfig
+from tac.channels.voice import VoiceChannel, VoiceChannelConfig
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 
@@ -62,7 +62,7 @@ class AgentFrameworkConnector:
     Both voice and SMS flows are fully managed internally.  The developer
     supplies a ``create_agent`` factory and, optionally, hooks for message
     augmentation and error handling.  HTTP/WebSocket routing is handled
-    by ``TACServer`` — pass ``voice_channel`` and/or ``sms_channel`` to it
+    by ``TACFastAPIServer`` — pass ``voice_channel`` and/or ``sms_channel`` to it
     to control which channels are active.
 
     Conversation history is managed via Agent Framework's ``AgentSession``.
@@ -122,17 +122,21 @@ class AgentFrameworkConnector:
         # -- Voice channel ----------------------------------------------------
         self._voice_agents: dict[str, Agent] = {}
         self._voice_sessions: dict[str, AgentSession] = {}
-        self.tac_session_manager = ThreadSafeSessionManager()
+        self._session_manager = ThreadSafeSessionManager()
         self.voice_channel = VoiceChannel(
             tac=self.tac,
-            session_manager=self.tac_session_manager,
-            auto_retrieve_memory=auto_retrieve_memory,
+            config=VoiceChannelConfig(
+                session_manager=self._session_manager,
+                auto_retrieve_memory=auto_retrieve_memory,
+            ),
         )
 
         # -- SMS channel ------------------------------------------------------
         self.sms_channel = SMSChannel(
             tac=self.tac,
-            auto_retrieve_memory=auto_retrieve_memory,
+            config=SMSChannelConfig(
+                auto_retrieve_memory=auto_retrieve_memory,
+            ),
         )
 
         # -- TAC callbacks ----------------------------------------------------

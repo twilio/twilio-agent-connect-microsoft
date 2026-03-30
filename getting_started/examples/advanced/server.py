@@ -28,7 +28,7 @@ from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from tac import TAC, TACConfig
-from tac.server import TACServer
+from tac.server import TACFastAPIServer
 
 from tac_azure import ConversationSession, AgentFrameworkConnector, format_memory_context
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
@@ -173,7 +173,7 @@ connector = AgentFrameworkConnector(
     session_store=session_store,
 )
 
-server = TACServer(
+server = TACFastAPIServer(
     tac=tac,
     voice_channel=connector.voice_channel,
     sms_channel=connector.sms_channel,

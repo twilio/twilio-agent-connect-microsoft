@@ -16,7 +16,7 @@ It makes it easy to manage calls, send and receive messages, and leverage Azure 
 - **Multi-Provider Support:** Works with Azure AI Foundry Agent Service, Azure OpenAI Responses API, or any custom LLM implementation.
 - **Real-Time Intelligence:** Agents can access, update, and reason over customer memory, knowledge, and context in real time.
 - **Rapid Innovation:** Unlocks new use cases—AI-powered contact centers, automated workflows, and personalized experiences—without custom backend plumbing.
-- **Developer Velocity:** `AgentFrameworkConnector` owns agent lifecycle and session management; `TACServer` (from the `tac` package) handles HTTP/WebSocket routing.
+- **Developer Velocity:** `AgentFrameworkConnector` owns agent lifecycle and session management; `TACFastAPIServer` (from the `tac` package) handles HTTP/WebSocket routing.
 - **Future-Proof:** Designed to evolve with both Azure and Twilio, supporting new channels, features, and AI capabilities as they launch.
 
 ## Installation
@@ -51,32 +51,32 @@ To install this package, you need:
 - GitHub authentication configured (SSH keys or personal access token)
 - Access to the `twilio-internal` GitHub organization
 
-## Examples
+## Getting Started
 
-See the **[examples directory](examples/)** for complete working examples.
+See **[`getting_started/`](getting_started/)** for setup instructions and working examples.
 
 ### Quick Start
 
-**[Basic](examples/basic/)** — minimal working example
+**[Basic](getting_started/examples/basic/)** — minimal working example
 - Voice + SMS using Azure OpenAI Responses API
 - Single system prompt, no custom tools
-- `AgentFrameworkConnector` + `TACServer` in ~30 lines
+- `AgentFrameworkConnector` + `TACFastAPIServer` in ~30 lines
 
 ```bash
-uv run python examples/basic/server.py
+uv run python getting_started/examples/basic/server.py
 ```
 
 ### Advanced
 
-**[Advanced](examples/advanced/)** — full feature set
+**[Advanced](getting_started/examples/advanced/)** — full feature set
 - Channel-aware system prompts (voice vs SMS)
 - Custom tools, knowledge base tool, memory recall tool
-- `on_message` hook for message augmentation
+- `on_message` and `on_error` hooks
 - `FileAgentSessionStore` for session persistence
 - `on_conversation_ended` lifecycle hook
 
 ```bash
-uv run python examples/advanced/server.py
+uv run python getting_started/examples/advanced/server.py
 ```
 
 ## Configuration
@@ -97,8 +97,8 @@ See individual examples for complete environment variable requirements.
 
 ### Core Components
 
-- **`AgentFrameworkConnector`** — Bridge handling agent lifecycle, session management, and streaming responses for voice and SMS channels. Exposes `voice_channel` and `sms_channel` for `TACServer` to wire up routing.
-- **`TACServer`** (from `tac` package) — HTTP/WebSocket server with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
+- **`AgentFrameworkConnector`** — Bridge handling agent lifecycle, session management, and streaming responses for voice and SMS channels. Exposes `voice_channel` and `sms_channel` for `TACFastAPIServer` to wire up routing.
+- **`TACFastAPIServer`** (from `tac` package) — HTTP/WebSocket server with pre-wired routes for TwiML, WebSocket, SMS webhooks, and health checks.
 - **`AgentSessionStore`** — Protocol enabling pluggable session persistence backends.
 
 ### Built-in Tools
@@ -127,7 +127,7 @@ from tac_azure import (
     ConversationSession,
     format_memory_context,
 )
-from tac.server import TACServer
+from tac.server import TACFastAPIServer
 from agent_framework import Agent  # Agent type from MS Agent Framework
 from tac_azure.tools import (
     create_memory_recall_tool,
@@ -144,13 +144,14 @@ from tac_azure.tools import (
 
 ### `AgentFrameworkConnector`
 
-Bridge for voice and SMS channels with Agent Framework agents. Owns agent lifecycle, session management, and streaming. Delegates HTTP/WebSocket routing to `TACServer`. Both channel instances are always created — pass whichever you need to `TACServer`.
+Bridge for voice and SMS channels with Agent Framework agents. Owns agent lifecycle, session management, and streaming. Delegates HTTP/WebSocket routing to `TACFastAPIServer`. Both channel instances are always created — pass whichever you need to `TACFastAPIServer`.
 
 ```python
-bridge = AgentFrameworkConnector(
+connector = AgentFrameworkConnector(
     tac=tac,                          # TAC instance
     create_agent=create_agent,        # (ConversationSession) -> Agent
-    on_message=None,                  # SMS hook: (msg, context, memory) -> str
+    on_message=None,                  # Hook: (msg, context, memory) -> str (voice + SMS)
+    on_error=None,                    # Hook: (error, context) -> str
     auto_retrieve_memory=False,       # Auto-retrieve memory on message arrival
     session_store=None,               # AgentSessionStore impl (default: InMemoryAgentSessionStore)
 )
@@ -160,23 +161,22 @@ bridge = AgentFrameworkConnector(
 
 | Property | Description |
 |---|---|
-| `voice_channel` | The `VoiceChannel` instance. Pass to `TACServer` to enable voice. |
-| `sms_channel` | The `SMSChannel` instance. Pass to `TACServer` to enable SMS. |
+| `voice_channel` | The `VoiceChannel` instance. Pass to `TACFastAPIServer` to enable voice. |
+| `sms_channel` | The `SMSChannel` instance. Pass to `TACFastAPIServer` to enable SMS. |
 
 ---
 
-### `TACServer`
+### `TACFastAPIServer`
 
 HTTP/WebSocket server from the `tac` package. Handles TwiML, WebSocket, SMS webhooks, and health check routing.
 
 ```python
-from tac.server import TACServer
+from tac.server import TACFastAPIServer
 
-server = TACServer(
-    tac=tac,                          # TAC instance
-    voice_channel=bridge.voice_channel,  # From AgentFrameworkConnector
-    sms_channel=bridge.sms_channel,      # From AgentFrameworkConnector
-    on_startup=None,                  # Async callback invoked once at startup
+server = TACFastAPIServer(
+    tac=tac,                                 # TAC instance
+    voice_channel=connector.voice_channel,   # From AgentFrameworkConnector
+    sms_channel=connector.sms_channel,       # From AgentFrameworkConnector
 )
 ```
 
@@ -185,12 +185,6 @@ server = TACServer(
 | Method | Description |
 |---|---|
 | `start()` | Start the server (blocking). |
-
-**Properties:**
-
-| Property | Description |
-|---|---|
-| `app` | The underlying FastAPI application. Use to add custom routes. |
 
 ---
 
