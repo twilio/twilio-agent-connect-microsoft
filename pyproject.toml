@@ -11,6 +11,7 @@ dependencies = [
     "python-dotenv",
     "tac[server] @ git+ssh://git@github.com/twilio-internal/twilio-agent-connect-python.git@a7cb210",
     "truststore>=0.10.4",
+    "websockets>=13.0",
 ]
 
 [build-system]
