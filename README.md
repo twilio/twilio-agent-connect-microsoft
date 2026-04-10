@@ -49,23 +49,21 @@ TAC Azure requires TAC environment variables. See [TAC Configuration](https://gi
 ### Required Environment Variables
 
 ```bash
-# Azure AI (required)
-AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
-
-# Twilio Configuration
-TWILIO_TAC_AUTH_TOKEN=your_auth_token
-TWILIO_TAC_API_KEY=your_api_key          # Starts with SK
-TWILIO_TAC_API_TOKEN=your_api_token      # Secret for API key
-TWILIO_TAC_PHONE_NUMBER=+1234567890
+# Twilio Agent Connect
 TWILIO_TAC_CONVERSATION_CONFIGURATION_ID=conv_configuration_xxx
+TWILIO_TAC_AUTH_TOKEN=your_auth_token
+TWILIO_TAC_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_TAC_API_TOKEN=your_api_key_secret
+TWILIO_TAC_PHONE_NUMBER=+1234567890
 
-# Server Configuration (for Voice)
+# Server (required for Voice)
 TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 
-# Optional
-AZURE_AI_MODEL_DEPLOYMENT_NAME=gpt-4o
-TWILIO_TAC_KNOWLEDGE_BASE_ID=kb_xxx
+# Azure AI (required for Agent Framework examples)
+AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
 ```
+
+See [`.env.example`](.env.example) for the full list of environment variables including optional features.
 
 ## Quick Start
 

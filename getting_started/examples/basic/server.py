@@ -77,7 +77,7 @@ connector = AgentFrameworkConnector(
 server = TACFastAPIServer(
     tac=tac,
     voice_channel=connector.voice_channel,
-    sms_channel=connector.sms_channel,
+    messaging_channels=[connector.sms_channel],
 )
 
 if __name__ == "__main__":
