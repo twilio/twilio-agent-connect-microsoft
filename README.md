@@ -1,19 +1,13 @@
 # TAC Azure - Azure Integrations for Twilio Agent Connect
 
-Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio-internal/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
+The `azure-twilio-agent-connect-python` package is a Twilio developed package that provides two connectors for integrating Twilio channels with Azure AI services:
 
-## Features
+- **AgentFrameworkConnector** — bridges Twilio voice and messaging channels to [Microsoft Agent Framework SDK](https://github.com/microsoft/agent-framework). Agent Framework is provider-agnostic, so this connector supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](http://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison).
+- **VoiceLiveConnector** — bridges Twilio voice to [Azure AI Foundry Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live)'s WebSocket API for low-latency streaming inference.
 
-- **AgentFrameworkConnector** - Microsoft Agent Framework integration
-  - Agent lifecycle management (voice + SMS)
-  - Pluggable session persistence via `AgentSessionStore` protocol
-  - Memory context injection and `on_message` / `on_error` hooks
-- **VoiceLiveConnector** - Azure AI Foundry Voice Live integration
-  - Streams text to and from Voice Live over WebSocket
-  - Server-side conversation state (no local session management)
-  - Tool execution with async handlers
-- Multi-channel support (SMS + Voice)
-- Built-in TAC tools (memory recall, knowledge search, Flex escalation, messaging, interstitial filler)
+The package also includes a getting-started deployment guide, deployment scripts and helpers (e.g. Dockerfile), native TAC tools, and [`AgentSessionStore`](#agentsessionstore) interfaces implementations for in memory and CosmosDB.
+
+Built on top of the core [Twilio Agent Connect (TAC)](https://github.com/twilio-innovation/twilio-agent-connect-python) Python SDK.
 
 ## Installation
 
@@ -31,7 +25,7 @@ uv pip install .
 
 ## Configuration
 
-TAC Azure requires TAC environment variables. See [TAC Configuration](https://github.com/twilio-internal/twilio-agent-connect-python#configuration) for details.
+TAC Azure requires TAC environment variables. See [TAC Configuration](https://github.com/twilio-innovation/twilio-agent-connect-python#configuration) for details.
 
 ### Required Environment Variables
 
@@ -62,13 +56,22 @@ Full examples available in [`getting_started/examples/`](getting_started/example
 - **`advanced/`** - Full feature set (channel-aware prompts, tools, hooks, file-based session persistence)
 - **`voice_live/`** - Azure AI Foundry Voice Live with tool calling
 
+## AgentSessionStore
+
+The `AgentSessionStore` protocol defines how Agent Framework sessions are persisted between requests, enabling conversation continuity across SMS messages and horizontal scaling for voice.
+
+- **`InMemoryAgentSessionStore`** — default, suitable for single-instance deployments
+- **CosmosDB** — for horizontally scaled production deployments (coming soon)
+
+Implement the protocol to use any backing store (Redis, DynamoDB, Postgres, etc.).
+
 ## Development
 
 ### Setup
 
 ```bash
 # Clone repository
-git clone https://github.com/twilio-internal/azure-twilio-agent-connect-python.git
+git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python.git
 cd azure-twilio-agent-connect-python
 
 # Install dependencies
@@ -78,8 +81,8 @@ uv sync
 ## Dependencies
 
 TAC Azure depends on:
-- **tac** - Core Twilio Agent Connect framework (installed from GitHub)
-  - Requires `tac[server]` extra for TAC Server support
+- **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio-innovation/twilio-agent-connect-python) framework (installed from GitHub)
+  - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
 - **agent-framework** - Microsoft Agent Framework
 - **agent-framework-azure-ai** - Azure AI backend for Agent Framework
 - **azure-identity** - Azure credential management
