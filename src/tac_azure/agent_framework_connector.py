@@ -47,7 +47,7 @@ from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 
 from .stores.in_memory import InMemoryAgentSessionStore
-from .types import AgentSessionStore
+from .agent_framework_types import AgentSessionStore
 from .utils import format_memory_context
 
 if TYPE_CHECKING:

@@ -27,8 +27,8 @@ def __getattr__(name: str) -> object:
 
     # Agent Framework connector — requires tac-azure[agent-framework] extra
     if name in ("AgentFrameworkConnector", "AgentSessionStore", "InMemoryAgentSessionStore"):
-        from .agent_framework_bridge import AgentFrameworkConnector
-        from .types import AgentSessionStore
+        from .agent_framework_connector import AgentFrameworkConnector
+        from .agent_framework_types import AgentSessionStore
         from .stores.in_memory import InMemoryAgentSessionStore
 
         return {

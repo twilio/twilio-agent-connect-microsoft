@@ -75,7 +75,7 @@ from tac_azure import (
     AgentFrameworkConnector, ConversationSession,
     FileAgentSessionStore,
 )
-from tac_azure.tools import create_memory_recall_tool
+from tac_azure.agent_framework_tools import create_memory_recall_tool
 ```
 
 ## Examples

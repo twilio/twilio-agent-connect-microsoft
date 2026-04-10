@@ -8,6 +8,7 @@ connector expects.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from tac.core.logging import get_logger
@@ -22,6 +23,57 @@ if TYPE_CHECKING:
     from tac.models.session import ConversationSession
 
 _logger = get_logger(__name__)
+
+
+# ------------------------------------------------------------------
+# Knowledge base info helper
+# ------------------------------------------------------------------
+
+@dataclass
+class KnowledgeBaseInfo:
+    """Metadata fetched from a knowledge base."""
+
+    name: str
+    description: str
+
+
+async def fetch_knowledge_base_info(
+    tac: TAC,
+    knowledge_base_id: str,
+) -> KnowledgeBaseInfo:
+    """Fetch name and description from a knowledge base.
+
+    Useful when you want the LLM tool name/description to match the
+    knowledge base configuration without hardcoding them.
+
+    Args:
+        tac: TAC instance.
+        knowledge_base_id: The knowledge base ID
+            (format: ``know_knowledgebase_*``).
+
+    Returns:
+        :class:`KnowledgeBaseInfo` with ``name`` and ``description``.
+
+    Raises:
+        ValueError: If ``tac.knowledge_client`` is not initialised.
+
+    Example::
+
+        info = await fetch_knowledge_base_info(tac, kb_id)
+        tool = create_knowledge_tool(tac, kb_id, description=info.description, name=info.name)
+    """
+    if tac.knowledge_client is None:
+        raise ValueError(
+            "TAC knowledge_client is not initialised. "
+            "Ensure twilio_memory_config is provided in TACConfig "
+            "(knowledge client shares the same authentication)."
+        )
+
+    kb = await tac.knowledge_client.get_knowledge_base(knowledge_base_id)
+    return KnowledgeBaseInfo(
+        name=f"search_{kb.display_name.lower().replace(' ', '_').replace('-', '_')}",
+        description=kb.description,
+    )
 
 
 # ------------------------------------------------------------------

@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any
 from tac.tools.base import TACTool
 
 from . import _tool_factories
-from .tools.knowledge import KnowledgeBaseInfo, fetch_knowledge_base_info
+from ._tool_factories import KnowledgeBaseInfo, fetch_knowledge_base_info
 
 if TYPE_CHECKING:
     from tac import TAC

@@ -19,19 +19,20 @@ Usage::
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, AsyncGenerator
+
+from tac.core.logging import get_logger
 
 from . import _tool_factories
-
-# Re-exports (Agent Framework only)
-from .tools.interstitials import interstitial_filler
-from .tools.knowledge import KnowledgeBaseInfo, fetch_knowledge_base_info
+from ._tool_factories import KnowledgeBaseInfo, fetch_knowledge_base_info
 
 if TYPE_CHECKING:
     from tac import TAC
     from tac.context.memory import MemoryClient
     from tac.core.config import TACConfig
     from tac.models.session import ConversationSession
+
+_logger = get_logger(__name__)
 
 __all__ = [
     "create_memory_recall_tool",
@@ -43,6 +44,10 @@ __all__ = [
     "fetch_knowledge_base_info",
 ]
 
+
+# ------------------------------------------------------------------
+# Tool factories (return plain callables for Agent Framework)
+# ------------------------------------------------------------------
 
 def create_memory_recall_tool(
     tac: TAC,
@@ -97,3 +102,25 @@ def create_messaging_tool(
     return _tool_factories.create_messaging_tool(
         memory_client, config,
     ).implementation
+
+
+# ------------------------------------------------------------------
+# Interstitial filler (Agent Framework only)
+# ------------------------------------------------------------------
+
+async def interstitial_filler(filler_words: str) -> AsyncGenerator[dict[str, Any], None]:
+    """Provide a short, conversational filler sentence to fill dead air latency.
+
+    Use this tool to speak brief filler words while waiting for other tool
+    results to keep the conversation flowing naturally.
+
+    Args:
+        filler_words: The creative, context-aware filler sentence to speak
+            while waiting for tool results.
+    """
+    _logger.info(f"Invoked tool: interstitial_filler with {filler_words}")
+    yield {
+        "tool": "interstitial_filler",
+        "output": filler_words,
+        "last": True,
+    }
