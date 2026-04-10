@@ -33,7 +33,7 @@ credential = DefaultAzureCredential()
 client = AzureOpenAIResponsesClient(
     credential=credential,
     project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    deployment_name="gpt-4o",
+    deployment_name=os.environ.get("AZURE_AI_DEPLOYMENT_NAME", "gpt-4o"),
 )
 
 
