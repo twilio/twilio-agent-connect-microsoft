@@ -7,7 +7,7 @@ Demonstrates the full feature set of AgentFrameworkConnector:
 - Knowledge base tool
 - Memory recall tool
 - on_message hook (prepend customer phone number)
-- FileAgentSessionStore (file-based session persistence)
+- Session persistence (FileAgentSessionStore, with CosmosDB option)
 - on_conversation_ended hook (clean up session files)
 - on_error hook (custom error responses)
 """
@@ -31,7 +31,7 @@ from tac_azure import (
     TACConfig,
     TACFastAPIServer,
     AgentFrameworkConnector,
-    CosmosDBAgentSessionStore,
+    FileAgentSessionStore,
     ConversationSession,
     VoiceChannelConfig,
     SMSChannelConfig,
@@ -110,10 +110,14 @@ def create_agent(session: ConversationSession):
 # Connector + Server
 # ---------------------------------------------------------------------------
 
-session_store = CosmosDBAgentSessionStore(
-    endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
-    credential=os.environ["AZURE_COSMOS_KEY"],
-)
+session_store = FileAgentSessionStore()
+
+# To use CosmosDB instead (for horizontal scaling), uncomment below:
+# from tac_azure import CosmosDBAgentSessionStore
+# session_store = CosmosDBAgentSessionStore(
+#     endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
+#     credential=os.environ["AZURE_COSMOS_KEY"],
+# )
 
 
 def on_message(user_message, context, memory_response):
