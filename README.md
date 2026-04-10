@@ -49,21 +49,27 @@ TAC Azure requires TAC environment variables. See [TAC Configuration](https://gi
 ### Required Environment Variables
 
 ```bash
-# Twilio Agent Connect
-TWILIO_TAC_CONVERSATION_CONFIGURATION_ID=conv_configuration_xxx
+# Twilio Agent Connect (required for all examples)
+TWILIO_TAC_CONVERSATION_CONFIGURATION_ID=conv_configuration_xxxxxxxxxxxxxxxxxx
 TWILIO_TAC_AUTH_TOKEN=your_auth_token
 TWILIO_TAC_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_TAC_API_TOKEN=your_api_key_secret
 TWILIO_TAC_PHONE_NUMBER=+1234567890
 
-# Server (required for Voice)
+# Server (required for voice)
 TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 
-# Azure AI (required for Agent Framework examples)
+# Azure AI (Agent Framework examples)
 AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
+# AZURE_AI_DEPLOYMENT_NAME=gpt-4o
+
+# Azure AI (Voice Live examples)
+# AZURE_VOICE_LIVE_ENDPOINT=your-resource.services.ai.azure.com
+# AZURE_VOICE_LIVE_API_KEY=your_voice_live_api_key
+# AZURE_VOICE_LIVE_MODEL=gpt-realtime
 ```
 
-See [`getting_started/examples/.env.example`](getting_started/examples/.env.example) for the full list including optional features. Copy it to `getting_started/examples/.env` and fill in your values — all examples load from that shared file.
+See [`getting_started/examples/.env.example`](getting_started/examples/.env.example) for the full list including optional features (Cosmos DB, knowledge base, conversation intelligence). Copy it to `getting_started/examples/.env` and fill in your values — all examples load from that shared file.
 
 ## Quick Start
 
