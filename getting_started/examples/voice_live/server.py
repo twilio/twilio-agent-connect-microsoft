@@ -16,10 +16,14 @@ truststore.inject_into_ssl()
 import os
 
 from dotenv import load_dotenv
-from tac import TAC, TACConfig
-from tac.server import TACFastAPIServer
 
-from tac_azure import VoiceLiveConnector, VoiceLiveConfig
+from tac_azure import (
+    TAC,
+    TACConfig,
+    TACFastAPIServer,
+    VoiceLiveConnector,
+    VoiceLiveConfig,
+)
 
 load_dotenv()
 

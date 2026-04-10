@@ -67,6 +67,19 @@ AZURE_AI_MODEL_DEPLOYMENT_NAME=gpt-4o
 TWILIO_TAC_KNOWLEDGE_BASE_ID=kb_xxx
 ```
 
+## Quick Start
+
+Everything imports from `tac_azure` — no need to import from the underlying `tac` package:
+
+```python
+from tac_azure import (
+    TAC, TACConfig, TACFastAPIServer,
+    AgentFrameworkConnector, ConversationSession,
+    FileAgentSessionStore,
+)
+from tac_azure.tools import create_memory_recall_tool
+```
+
 ## Examples
 
 Full examples available in [`getting_started/examples/`](getting_started/examples/):

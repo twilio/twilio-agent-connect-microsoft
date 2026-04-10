@@ -18,19 +18,22 @@ from __future__ import annotations
 import truststore
 truststore.inject_into_ssl()
 
-import json
 import logging
 import os
-from pathlib import Path
 
-from agent_framework import AgentSession
 from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
-from tac import TAC, TACConfig
-from tac.server import TACFastAPIServer
 
-from tac_azure import ConversationSession, AgentFrameworkConnector, format_memory_context
+from tac_azure import (
+    TAC,
+    TACConfig,
+    TACFastAPIServer,
+    AgentFrameworkConnector,
+    FileAgentSessionStore,
+    ConversationSession,
+    format_memory_context,
+)
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
 
 load_dotenv()
@@ -68,41 +71,6 @@ Use short paragraphs. Bullet points are OK."""
 def look_up_outage_tool(zip_code: str) -> str:
     """Check if there is a recent internet outage in a specific zip code."""
     return f"No reported outages in {zip_code}. Service is operating normally."
-
-
-# ---------------------------------------------------------------------------
-# Custom AgentSessionStore — file-based persistence
-# ---------------------------------------------------------------------------
-
-
-class FileAgentSessionStore:
-    """Persist sessions as JSON files on the local filesystem.
-
-    Each session is written to ``{storage_dir}/{session_id}.json``
-    using Agent Framework's built-in ``AgentSession.to_dict()`` /
-    ``from_dict()`` serialisation.
-    """
-
-    def __init__(self, storage_dir: str | Path = "/tmp/tac_sessions") -> None:
-        self._storage_dir = Path(storage_dir)
-        self._storage_dir.mkdir(parents=True, exist_ok=True)
-
-    def _path(self, session_id: str) -> Path:
-        return self._storage_dir / f"{session_id}.json"
-
-    async def load(self, session_id: str) -> AgentSession | None:
-        path = self._path(session_id)
-        if not path.exists():
-            return None
-        data = json.loads(path.read_text())
-        return AgentSession.from_dict(data)
-
-    async def save(self, session_id: str, session: AgentSession) -> None:
-        path = self._path(session_id)
-        path.write_text(json.dumps(session.to_dict()))
-
-    def delete(self, session_id: str) -> None:
-        self._path(session_id).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------

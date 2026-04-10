@@ -13,10 +13,14 @@ import os
 from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
-from tac import TAC, TACConfig
-from tac.server import TACFastAPIServer
 
-from tac_azure import ConversationSession, AgentFrameworkConnector
+from tac_azure import (
+    TAC,
+    TACConfig,
+    TACFastAPIServer,
+    AgentFrameworkConnector,
+    ConversationSession,
+)
 
 load_dotenv()
 
