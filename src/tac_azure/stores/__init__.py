@@ -1,8 +1,9 @@
 """AgentSessionStore implementations for TAC Azure."""
 
-from tac_azure.types import AgentSessionStore, InMemoryAgentSessionStore
+from tac_azure.types import AgentSessionStore
 
 from .file import FileAgentSessionStore
+from .in_memory import InMemoryAgentSessionStore
 
 __all__ = [
     "AgentSessionStore",

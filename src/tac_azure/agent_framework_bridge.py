@@ -46,7 +46,8 @@ from tac.channels.voice import VoiceChannel, VoiceChannelConfig
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 
-from .types import InMemoryAgentSessionStore, AgentSessionStore
+from .stores.in_memory import InMemoryAgentSessionStore
+from .types import AgentSessionStore
 from .utils import format_memory_context
 
 if TYPE_CHECKING:
