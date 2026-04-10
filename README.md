@@ -63,7 +63,7 @@ TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
 ```
 
-See [`.env.example`](.env.example) for the full list of environment variables including optional features.
+See [`getting_started/examples/.env.example`](getting_started/examples/.env.example) for the full list including optional features. Copy it to `getting_started/examples/.env` and fill in your values — all examples load from that shared file.
 
 ## Quick Start
 

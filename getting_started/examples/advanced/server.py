@@ -20,6 +20,7 @@ truststore.inject_into_ssl()
 
 import logging
 import os
+from pathlib import Path
 
 from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
@@ -36,7 +37,7 @@ from tac_azure import (
 )
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 logger = logging.getLogger(__name__)
 

@@ -13,6 +13,7 @@ import os
 from agent_framework.azure import AzureOpenAIResponsesClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
+from pathlib import Path
 
 from tac_azure import (
     TAC,
@@ -22,7 +23,7 @@ from tac_azure import (
     ConversationSession,
 )
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # ---------------------------------------------------------------------------
 # Azure AI client

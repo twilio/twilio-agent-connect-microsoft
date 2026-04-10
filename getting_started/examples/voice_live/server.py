@@ -14,6 +14,7 @@ import truststore
 truststore.inject_into_ssl()
 
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -25,7 +26,7 @@ from tac_azure import (
     VoiceLiveConfig,
 )
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 # ---------------------------------------------------------------------------
