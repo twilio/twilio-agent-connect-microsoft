@@ -31,7 +31,7 @@ from tac_azure import (
     TACConfig,
     TACFastAPIServer,
     AgentFrameworkConnector,
-    FileAgentSessionStore,
+    CosmosDBAgentSessionStore,
     ConversationSession,
     format_memory_context,
 )
@@ -91,12 +91,16 @@ def create_agent(session: ConversationSession):
 
     tools = [create_memory_recall_tool(tac, session), look_up_outage_tool]
     if knowledge_base_id:
-        tools.append(create_knowledge_tool(tac, knowledge_base_id=knowledge_base_id))
+        tools.append(create_knowledge_tool(
+            tac,
+            knowledge_base_id=knowledge_base_id,
+            description="Search the knowledge base for relevant information.",
+        ))
 
     return client.as_agent(
         name="OwlAgent",
         instructions=prompt,
-        tools=tools,
+        tools=[t for t in tools if t is not None],
     )
 
 
@@ -104,7 +108,10 @@ def create_agent(session: ConversationSession):
 # Connector + Server
 # ---------------------------------------------------------------------------
 
-session_store = FileAgentSessionStore("/tmp/owl_sessions")
+session_store = CosmosDBAgentSessionStore(
+    endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
+    credential=os.environ["AZURE_COSMOS_KEY"],
+)
 
 
 def on_message(user_message, context, memory_response):
@@ -121,14 +128,14 @@ def on_error(error, context):
     return "Sorry, something went wrong. Please try again or call us for help."
 
 
-def handle_conversation_ended(context: ConversationSession) -> None:
-    """Clean up session files when a conversation closes.
+async def handle_conversation_ended(context: ConversationSession) -> None:
+    """Clean up sessions when a conversation closes.
 
     Voice agent/session cleanup is handled automatically by the connector.
-    This callback handles application-level cleanup (session files on disk).
+    This callback handles application-level cleanup, e.g. if you want to delete the session from the session store.
     """
-    session_store.delete(context.conversation_id)
-    logger.info("Session file cleaned up", extra={"conversation_id": context.conversation_id})
+    await session_store.delete(context.conversation_id)
+    logger.info("Session cleaned up", extra={"conversation_id": context.conversation_id})
 
 
 tac.on_conversation_ended(handle_conversation_ended)
@@ -136,7 +143,7 @@ tac.on_conversation_ended(handle_conversation_ended)
 connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
-    auto_retrieve_memory=True,
+    auto_retrieve_memory=False,
     on_message=on_message,
     on_error=on_error,
     session_store=session_store,

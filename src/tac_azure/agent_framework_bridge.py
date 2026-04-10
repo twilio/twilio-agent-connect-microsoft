@@ -275,7 +275,6 @@ class AgentFrameworkConnector:
             return
 
         message = self._build_message(user_message, context, memory_response)
-        agent = self.create_agent(context)
 
         # Restore session from store (preserves Foundry thread_id,
         # message history, etc.) or create a fresh one.
@@ -284,6 +283,7 @@ class AgentFrameworkConnector:
             af_session = AgentSession(session_id=context.conversation_id)
 
         try:
+            agent = self.create_agent(context)
             result = await agent.run(message, session=af_session)
             await self.sms_channel.send_response(
                 context.conversation_id, result.text, role="assistant"
