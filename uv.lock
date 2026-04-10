@@ -683,6 +683,19 @@ wheels = [
 ]
 
 [[package]]
+name = "azure-cosmos"
+version = "4.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c8/a3/0474e622bf9676e3206d61269461ed16a05958363c254ea3b15af16219b2/azure_cosmos-4.15.0.tar.gz", hash = "sha256:be1cf49837c197d9da880ec47fe020a24d679075b89e0e1e2aca8d376b3a5a24", size = 2100744, upload-time = "2026-02-23T16:01:52.293Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/5f/b6e3d3ae16fa121fdc17e62447800d378b7e716cd6103c3650977a6c4618/azure_cosmos-4.15.0-py3-none-any.whl", hash = "sha256:83c1da7386bcd0df9a15c52116cc35012225d8a72d4f1379938b83ea5eb19fff", size = 424870, upload-time = "2026-02-23T16:01:54.514Z" },
+]
+
+[[package]]
 name = "azure-functions"
 version = "1.25.0b4"
 source = { registry = "https://pypi.org/simple" }
@@ -3470,9 +3483,14 @@ agent-framework = [
     { name = "agent-framework-azure-ai" },
     { name = "azure-identity" },
 ]
+cosmos = [
+    { name = "azure-cosmos" },
+    { name = "azure-identity" },
+]
 dev = [
     { name = "agent-framework" },
     { name = "agent-framework-azure-ai" },
+    { name = "azure-cosmos" },
     { name = "azure-identity" },
     { name = "mypy" },
     { name = "ruff" },
@@ -3492,7 +3510,10 @@ requires-dist = [
     { name = "agent-framework", marker = "extra == 'dev'" },
     { name = "agent-framework-azure-ai", marker = "extra == 'agent-framework'" },
     { name = "agent-framework-azure-ai", marker = "extra == 'dev'" },
+    { name = "azure-cosmos", marker = "extra == 'cosmos'", specifier = ">=4.7.0" },
+    { name = "azure-cosmos", marker = "extra == 'dev'", specifier = ">=4.7.0" },
     { name = "azure-identity", marker = "extra == 'agent-framework'" },
+    { name = "azure-identity", marker = "extra == 'cosmos'" },
     { name = "azure-identity", marker = "extra == 'dev'" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0,<2" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -3505,7 +3526,7 @@ requires-dist = [
     { name = "websockets", marker = "extra == 'dev'", specifier = ">=13.0" },
     { name = "websockets", marker = "extra == 'voice-live'", specifier = ">=13.0" },
 ]
-provides-extras = ["server", "agent-framework", "voice-live", "dev"]
+provides-extras = ["server", "agent-framework", "voice-live", "cosmos", "dev"]
 
 [[package]]
 name = "tenacity"

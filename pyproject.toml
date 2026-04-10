@@ -46,11 +46,18 @@ voice-live = [
     "websockets>=13.0",
 ]
 
+# CosmosDB session store
+cosmos = [
+    "azure-cosmos>=4.7.0",
+    "azure-identity",
+]
+
 # Development dependencies (includes all runtime features)
 dev = [
     "agent-framework",
     "agent-framework-azure-ai",
     "azure-identity",
+    "azure-cosmos>=4.7.0",
     "websockets>=13.0",
     # Server dependencies (via TAC core)
     "twilio-agent-connect[server] @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@436ff9b",
@@ -112,4 +119,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "websockets.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "azure.cosmos.*"
 ignore_missing_imports = true

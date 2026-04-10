@@ -79,10 +79,13 @@ Full examples available in [`getting_started/examples/`](getting_started/example
 
 The `AgentSessionStore` protocol defines how Agent Framework sessions are persisted between requests, enabling conversation continuity across SMS messages and horizontal scaling for voice.
 
-- **`InMemoryAgentSessionStore`** — default, suitable for single-instance deployments
-- **CosmosDB** — for horizontally scaled production deployments (coming soon)
+Three implementations are included:
 
-Implement the protocol to use any backing store (Redis, DynamoDB, Postgres, etc.).
+- **`InMemoryAgentSessionStore`** — default, suitable for single-instance deployments
+- **`FileAgentSessionStore`** — persists sessions as JSON files on disk (single-instance, local dev)
+- **`CosmosDBAgentSessionStore`** — persists sessions in Azure Cosmos DB for NoSQL (horizontally scaled production). Requires the `cosmos` extra: `pip install tac-azure[cosmos]`
+
+Implement the protocol to use any other backing store (Redis, DynamoDB, Postgres, etc.).
 
 ## Development
 
@@ -108,6 +111,7 @@ TAC Azure depends on:
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
 - **agent-framework** (optional) - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **websockets** (optional) - For Voice Live connector
+- **azure-cosmos** (optional) - For CosmosDB session store
 
 ## Contributing
 

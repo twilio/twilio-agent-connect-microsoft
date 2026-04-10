@@ -20,6 +20,16 @@ def __getattr__(name: str) -> object:
             "InMemoryAgentSessionStore": InMemoryAgentSessionStore,
         }[name]
 
+    if name == "FileAgentSessionStore":
+        from .stores.file import FileAgentSessionStore
+
+        return FileAgentSessionStore
+
+    if name == "CosmosDBAgentSessionStore":
+        from .stores.cosmos import CosmosDBAgentSessionStore
+
+        return CosmosDBAgentSessionStore
+
     if name in ("VoiceLiveConnector", "VoiceLiveConfig", "VoiceLiveError"):
         from .voice_live_connector import VoiceLiveConnector
         from .voice_live_types import VoiceLiveConfig, VoiceLiveError
@@ -37,6 +47,8 @@ __all__ = [
     "ConversationSession",
     "AgentSessionStore",
     "InMemoryAgentSessionStore",
+    "FileAgentSessionStore",
+    "CosmosDBAgentSessionStore",
     "AgentFrameworkConnector",
     "VoiceLiveConnector",
     "VoiceLiveConfig",
