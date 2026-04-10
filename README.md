@@ -23,16 +23,23 @@ Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/tw
 
 ## Installation
 
+### With Agent Framework
+
 ```bash
-pip install tac-azure
+pip install tac-azure[agent-framework,server]
+```
+
+### With Voice Live
+
+```bash
+pip install tac-azure[voice-live,server]
 ```
 
 ### Development
 
 ```bash
-# Install with all dependencies for local development
-pip install uv
-uv sync
+# Install with development tools (includes all connectors)
+pip install tac-azure[dev]
 ```
 
 ## Configuration
@@ -87,7 +94,7 @@ git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python
 cd azure-twilio-agent-connect-python
 
 # Install dependencies
-uv sync
+uv sync --all-extras
 ```
 
 ### Getting Started
@@ -99,9 +106,8 @@ See [`getting_started/README.md`](getting_started/README.md) for the full setup 
 TAC Azure depends on:
 - **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio-innovation/twilio-agent-connect-python) framework (installed from GitHub)
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
-- **agent-framework** - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
-- **agent-framework-azure-ai** - Azure AI backend for Agent Framework
-- **azure-identity** - Azure credential management
+- **agent-framework** (optional) - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
+- **websockets** (optional) - For Voice Live connector
 
 ## Contributing
 
