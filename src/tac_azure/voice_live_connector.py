@@ -57,8 +57,9 @@ class VoiceLiveConnector:
             When *None*, defaults to ``format_memory_context(memory, msg)``.
         on_error: Optional hook to customize error responses.
             Signature: ``(error, context) -> str``.
-        auto_retrieve_memory: If *True*, TAC voice channel auto-retrieves
-            memory before invoking callbacks.
+        voice_config: Optional Voice channel configuration
+            (``VoiceChannelConfig`` or dict).  Controls auto memory
+            retrieval, session manager, etc.
     """
 
     def __init__(
@@ -75,7 +76,7 @@ class VoiceLiveConnector:
         on_error: (
             Callable[[Exception, ConversationSession], str] | None
         ) = None,
-        auto_retrieve_memory: bool = False,
+        voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
     ):
         self.tac = tac
         self.config = config
@@ -87,13 +88,21 @@ class VoiceLiveConnector:
 
         # -- Voice channel ----------------------------------------------------
         self._session_manager = ThreadSafeSessionManager()
-        self.voice_channel = VoiceChannel(
-            tac=self.tac,
-            config=VoiceChannelConfig(
-                session_manager=self._session_manager,
-                auto_retrieve_memory=auto_retrieve_memory,
-            ),
-        )
+
+        if isinstance(voice_config, dict):
+            voice_config = VoiceChannelConfig(
+                session_manager=self._session_manager, **voice_config
+            )
+        elif voice_config is not None:
+            voice_config = voice_config.model_copy(
+                update={"session_manager": self._session_manager}
+            )
+        else:
+            voice_config = VoiceChannelConfig(
+                session_manager=self._session_manager
+            )
+
+        self.voice_channel = VoiceChannel(tac=self.tac, config=voice_config)
 
         # -- TAC callbacks ----------------------------------------------------
         self.tac.on_message_ready(self._handle_message)

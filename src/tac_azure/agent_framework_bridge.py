@@ -84,8 +84,12 @@ class AgentFrameworkConnector:
         on_error: Optional hook to customize error responses.
             Signature: ``(error, context) -> str``.
             When *None*, returns a default apology message.
-        auto_retrieve_memory: If *True*, TAC channels auto-retrieve
-            memory before invoking callbacks.  Defaults to *False*.
+        voice_config: Optional Voice channel configuration
+            (``VoiceChannelConfig`` or dict).  Controls auto memory
+            retrieval, session manager, etc.
+        sms_config: Optional SMS channel configuration
+            (``SMSChannelConfig`` or dict).  Controls auto memory
+            retrieval, deduplication capacity, etc.
         session_store: Persistence layer for ``AgentSession`` objects.
             Used for SMS session continuity across messages and for
             background persistence of voice sessions (auditing, Foundry
@@ -108,7 +112,8 @@ class AgentFrameworkConnector:
         on_error: (
             Callable[[Exception, ConversationSession], str] | None
         ) = None,
-        auto_retrieve_memory: bool = False,
+        voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
+        sms_config: SMSChannelConfig | dict[str, Any] | None = None,
         session_store: AgentSessionStore | None = None,
     ):
         self.tac = tac
@@ -123,21 +128,25 @@ class AgentFrameworkConnector:
         self._voice_agents: dict[str, Agent] = {}
         self._voice_sessions: dict[str, AgentSession] = {}
         self._session_manager = ThreadSafeSessionManager()
-        self.voice_channel = VoiceChannel(
-            tac=self.tac,
-            config=VoiceChannelConfig(
-                session_manager=self._session_manager,
-                auto_retrieve_memory=auto_retrieve_memory,
-            ),
-        )
+
+        # Merge session_manager into voice config
+        if isinstance(voice_config, dict):
+            voice_config = VoiceChannelConfig(
+                session_manager=self._session_manager, **voice_config
+            )
+        elif voice_config is not None:
+            voice_config = voice_config.model_copy(
+                update={"session_manager": self._session_manager}
+            )
+        else:
+            voice_config = VoiceChannelConfig(
+                session_manager=self._session_manager
+            )
+
+        self.voice_channel = VoiceChannel(tac=self.tac, config=voice_config)
 
         # -- SMS channel ------------------------------------------------------
-        self.sms_channel = SMSChannel(
-            tac=self.tac,
-            config=SMSChannelConfig(
-                auto_retrieve_memory=auto_retrieve_memory,
-            ),
-        )
+        self.sms_channel = SMSChannel(tac=self.tac, config=sms_config)
 
         # -- TAC callbacks ----------------------------------------------------
         self.tac.on_message_ready(self._handle_message)

@@ -115,7 +115,7 @@ session_store = CosmosDBAgentSessionStore(
 
 
 def on_message(user_message, context, memory_response):
-    """Prepend the customer's phone number for context."""
+    """Customize the user message with context before sending it to the agent."""
     prefix = f"[Customer: {context.author_info.address if context.author_info else 'unknown'}]\n"
     return prefix + format_memory_context(memory_response, user_message)
 
@@ -143,9 +143,10 @@ tac.on_conversation_ended(handle_conversation_ended)
 connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
-    auto_retrieve_memory=False,
     on_message=on_message,
     on_error=on_error,
+    voice_config={"auto_retrieve_memory": True},
+    sms_config={"auto_retrieve_memory": False},
     session_store=session_store,
 )
 
