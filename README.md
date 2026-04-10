@@ -1,28 +1,25 @@
 # TAC Azure - Azure Integrations for Twilio Agent Connect
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio-innovation/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
 
-The `azure-twilio-agent-connect-python` package provides two connectors for integrating Twilio channels with Azure AI services:
-
-- **AgentFrameworkConnector** — bridges Twilio voice and messaging channels to [Microsoft Agent Framework SDK](https://github.com/microsoft/agent-framework). Agent Framework is provider-agnostic, so this connector supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](http://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison).
-- **VoiceLiveConnector** — bridges Twilio voice to [Azure AI Foundry Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live)'s WebSocket API for low-latency streaming inference.
-
-The package also includes a getting-started deployment guide, deployment scripts and helpers (e.g. Dockerfile), native TAC tools, and [`AgentSessionStore`](#agentsessionstore) interface implementations for in-memory and CosmosDB.
-
 ## Features
 
-- **AgentFrameworkConnector** - Microsoft Agent Framework integration
+- **AgentFrameworkConnector** - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) integration
   - Agent lifecycle management (voice + SMS)
+  - Supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](http://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison)
   - Pluggable session persistence via `AgentSessionStore` protocol
   - Memory context injection and `on_message` / `on_error` hooks
-- **VoiceLiveConnector** - Azure AI Foundry Voice Live integration
-  - Streams text to and from Voice Live over WebSocket
+- **VoiceLiveConnector** - [Azure AI Foundry Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) integration
+  - Low-latency streaming inference over WebSocket
   - Server-side conversation state (no local session management)
   - Tool execution with async handlers
 - Multi-channel support (SMS + Voice)
 - Built-in TAC tools (memory recall, knowledge search, Flex escalation, messaging, interstitial filler)
+- Getting-started deployment guide with Dockerfile and deployment helpers
+- [`AgentSessionStore`](#agentsessionstore) implementations for in-memory and CosmosDB
 
 ## Installation
 
@@ -105,3 +102,7 @@ TAC Azure depends on:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
