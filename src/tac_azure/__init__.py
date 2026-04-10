@@ -8,6 +8,8 @@ import from a single namespace::
 
 # Re-export all public symbols from core TAC (TAC, TACConfig, get_logger, TwiMLOptions, etc.)
 from tac import *  # noqa: F401,F403
+from tac.channels.sms import SMSChannelConfig
+from tac.channels.voice import VoiceChannelConfig
 from tac.models.session import ConversationSession
 
 from .utils import format_memory_context
@@ -67,6 +69,8 @@ __all__ = [
     "TACFastAPIServer",
     "TwiMLOptions",
     "ConversationSession",
+    "VoiceChannelConfig",
+    "SMSChannelConfig",
     "get_logger",
     # Connectors
     "AgentFrameworkConnector",

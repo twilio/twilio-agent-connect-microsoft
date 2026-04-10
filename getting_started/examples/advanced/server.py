@@ -33,6 +33,8 @@ from tac_azure import (
     AgentFrameworkConnector,
     CosmosDBAgentSessionStore,
     ConversationSession,
+    VoiceChannelConfig,
+    SMSChannelConfig,
     format_memory_context,
 )
 from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
@@ -145,8 +147,8 @@ connector = AgentFrameworkConnector(
     create_agent=create_agent,
     on_message=on_message,
     on_error=on_error,
-    voice_config={"auto_retrieve_memory": True},
-    sms_config={"auto_retrieve_memory": False},
+    voice_config=VoiceChannelConfig(auto_retrieve_memory=True),
+    sms_config=SMSChannelConfig(auto_retrieve_memory=False),
     session_store=session_store,
 )
 
