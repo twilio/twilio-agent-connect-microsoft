@@ -1,0 +1,81 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv
+env/
+venv/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Environment variables
+.env
+.env.local
+.env.example
+
+# Build artifacts
+build/
+dist/
+*.tar.gz
+*.zip
+
+# Documentation
+*.md
+!README.md
+
+# Logs
+*.log
+logs/
+
+# Makefile
+Makefile
+Makefile.local
+
+# Deployment
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# CI/CD
+.github/
+
+# Temporary files
+tmp/
+temp/
+/tmp/
+*.tmp
+
+# Keep only what we need
+!server.py
+!wheels/
+!requirements.txt
