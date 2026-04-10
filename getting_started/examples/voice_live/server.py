@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from tac.tools.base import function_tool
 
 from tac_azure import (
     TAC,
@@ -25,41 +26,22 @@ from tac_azure import (
     VoiceLiveConnector,
     VoiceLiveConfig,
 )
+from tac_azure.voice_live_tools import prepare_tools
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 # ---------------------------------------------------------------------------
-# Tool definitions (OpenAI function format)
+# Custom tools — use @function_tool to create TACTool instances
 # ---------------------------------------------------------------------------
 
-TOOLS = [
-    {
-        "type": "function",
-        "function": {
-            "name": "look_up_outage",
-            "description": "Check if there is a recent internet outage in a specific zip code.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "zip_code": {
-                        "type": "string",
-                        "description": "The zip code to check for outages.",
-                    }
-                },
-                "required": ["zip_code"],
-            },
-        },
-    }
-]
+@function_tool()
+def look_up_outage(zip_code: str) -> str:
+    """Check if there is a recent internet outage in a specific zip code.
 
-
-# ---------------------------------------------------------------------------
-# Tool executors
-# ---------------------------------------------------------------------------
-
-async def look_up_outage(zip_code: str) -> str:
-    """Check for internet outages in a zip code."""
+    Args:
+        zip_code: The zip code to check for outages.
+    """
     return f"No reported outages in {zip_code}. Service is operating normally."
 
 
@@ -69,14 +51,17 @@ async def look_up_outage(zip_code: str) -> str:
 
 tac = TAC(config=TACConfig.from_env())
 
+# Convert TACTools to Voice Live format (definitions + executors)
+definitions, executors = prepare_tools([look_up_outage])
+
 config = VoiceLiveConfig(
     endpoint=os.environ["AZURE_VOICE_LIVE_ENDPOINT"],
     model=os.environ.get("AZURE_VOICE_LIVE_MODEL", "gpt-4o"),
     api_key=os.environ.get("AZURE_VOICE_LIVE_API_KEY"),
     instructions="""You are Owl Internet's customer service assistant.
 Keep responses clear and concise.""",
-    tools=TOOLS,
-    tool_executors={"look_up_outage": look_up_outage},
+    tools=definitions,
+    tool_executors=executors,
 )
 
 

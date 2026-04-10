@@ -12,8 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from tac.tools.base import function_tool
-from tac.tools.knowledge import search_knowledge
+from .._tool_factories import create_knowledge_tool as _create
 
 if TYPE_CHECKING:
     from tac import TAC
@@ -103,19 +102,4 @@ def create_knowledge_tool(
         )
         tools.append(tool)
     """
-    if not knowledge_base_id:
-        raise ValueError("knowledge_base_id is required")
-    if tac.knowledge_client is None:
-        raise ValueError(
-            "TAC knowledge_client is not initialised. "
-            "Ensure twilio_memory_config is provided in TACConfig "
-            "(knowledge client shares the same authentication)."
-        )
-
-    tac_tool = function_tool(name=name, description=description)(search_knowledge)
-    tac_tool.configure_injection(
-        knowledge_client=tac.knowledge_client,
-        knowledge_base_id=knowledge_base_id,
-        top_k=top_k,
-    )
-    return tac_tool.implementation
+    return _create(tac, knowledge_base_id, description, name, top_k).implementation

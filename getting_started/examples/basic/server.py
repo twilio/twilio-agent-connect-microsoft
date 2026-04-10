@@ -18,6 +18,7 @@ from pathlib import Path
 from tac_azure import (
     TAC,
     TACConfig,
+    SMSChannelConfig,
     TACFastAPIServer,
     AgentFrameworkConnector,
     ConversationSession,
@@ -73,6 +74,8 @@ def create_agent(session: ConversationSession):
 connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
+    # Auto retrieve Twilio memory and inject into user message passed to AI agent for SMS
+    sms_config=SMSChannelConfig(auto_retrieve_memory=True)
 )
 
 server = TACFastAPIServer(

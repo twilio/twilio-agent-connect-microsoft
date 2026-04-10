@@ -438,12 +438,10 @@ class AgentFrameworkConnector:
                 "Cleaning up voice agent and session",
                 conversation_id=conversation_id,
             )
-            del agent
-        if af_session:
-            # Final persist to session store before discarding.
-            self._background_save_session(conversation_id, af_session)
-            del af_session
-        if not agent:
+        else:
             logger.warning(
                 "No voice agent found to cleanup", conversation_id=conversation_id
             )
+        if af_session:
+            # Final persist to session store before discarding.
+            self._background_save_session(conversation_id, af_session)

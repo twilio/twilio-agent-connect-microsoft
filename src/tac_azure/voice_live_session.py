@@ -89,7 +89,7 @@ class VoiceLiveSession:
 
         tool_defs = tools if tools is not None else self._config.tools
         if tool_defs:
-            session_cfg["tools"] = tool_defs
+            session_cfg["tools"] = [self._normalize_tool(t) for t in tool_defs]
 
         if self._config.temperature is not None:
             session_cfg["temperature"] = self._config.temperature
@@ -291,6 +291,25 @@ class VoiceLiveSession:
             raise VoiceLiveError("WebSocket not connected")
         raw = await self._ws.recv()
         return json.loads(raw)
+
+    @staticmethod
+    def _normalize_tool(tool: dict[str, Any]) -> dict[str, Any]:
+        """Normalize a tool definition to the Realtime API format.
+
+        The Realtime API expects ``name``, ``description``, and
+        ``parameters`` at the top level, but the Chat Completions format
+        nests them under a ``function`` key.  This method accepts either
+        format and returns the flat Realtime format.
+        """
+        if "function" in tool and "name" not in tool:
+            func = tool["function"]
+            return {
+                "type": tool.get("type", "function"),
+                "name": func["name"],
+                "description": func.get("description", ""),
+                "parameters": func.get("parameters", {}),
+            }
+        return tool
 
     async def _get_auth_headers(self) -> dict[str, str]:
         """Build authentication headers for the WebSocket connection."""

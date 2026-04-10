@@ -8,10 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from tac.core.logging import get_logger
-from tac.tools.memory import create_memory_tool as _tac_create_memory_tool
-
-_logger = get_logger(__name__)
+from .._tool_factories import create_memory_recall_tool as _create
 
 if TYPE_CHECKING:
     from tac import TAC
@@ -43,13 +40,5 @@ def create_memory_recall_tool(
         Async function ``recall_profile_memory(query: str) -> dict``, or
         ``None`` if prerequisites are not met.
     """
-    if tac.conversation_memory_client is None:
-        _logger.debug("Skipping memory tool: conversation_memory_client not initialised")
-        return None
-
-    if not session.profile_id:
-        _logger.debug("Skipping memory tool: session has no profile_id")
-        return None
-
-    tac_tool = _tac_create_memory_tool(tac.conversation_memory_client, session)
-    return tac_tool.implementation
+    tac_tool = _create(tac, session)
+    return tac_tool.implementation if tac_tool else None
