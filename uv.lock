@@ -3268,31 +3268,17 @@ wheels = [
 ]
 
 [[package]]
-name = "tac"
-version = "0.0.2"
-source = { git = "ssh://git@github.com/twilio-internal/twilio-agent-connect-python.git?rev=5b61bdf#5b61bdf3b7280045f5b79f9f7e7e2b7a2e80cdeb" }
-dependencies = [
-    { name = "httpx" },
-    { name = "pydantic" },
-    { name = "python-dotenv" },
-    { name = "requests" },
-    { name = "twilio" },
-]
-
-[[package]]
-name = "tac-agent-framework-poc"
+name = "tac-azure"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "agent-framework" },
     { name = "agent-framework-azure-ai" },
     { name = "azure-identity" },
-    { name = "fastapi" },
     { name = "pydantic" },
     { name = "python-dotenv" },
-    { name = "tac" },
     { name = "truststore" },
-    { name = "uvicorn" },
+    { name = "twilio-agent-connect", extra = ["server"] },
     { name = "websockets" },
 ]
 
@@ -3301,13 +3287,11 @@ requires-dist = [
     { name = "agent-framework" },
     { name = "agent-framework-azure-ai" },
     { name = "azure-identity" },
-    { name = "fastapi", specifier = ">=0.115.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "python-dotenv" },
-    { name = "tac", git = "ssh://git@github.com/twilio-internal/twilio-agent-connect-python.git?rev=5b61bdf" },
     { name = "truststore", specifier = ">=0.10.4" },
-    { name = "uvicorn", specifier = ">=0.35.0" },
-    { name = "websockets", specifier = ">=15.0" },
+    { name = "twilio-agent-connect", extras = ["server"], git = "ssh://git@github.com/twilio-innovation/twilio-agent-connect-python.git?rev=436ff9b" },
+    { name = "websockets", specifier = ">=13.0" },
 ]
 
 [[package]]
@@ -3353,6 +3337,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1c/a1/44cd8604eb69b1c5e7c0f07f0e4305b1884a3b75e23eb8d89350fe7bb982/twilio-9.10.2.tar.gz", hash = "sha256:f17d778870a7419a7278d5747b0e80a1c89e6f5ab14acf5456a004f8f2016bfa", size = 1618748, upload-time = "2026-02-18T04:40:44.279Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6c/ac/e1937f70544075f896bfcd6b23fa7c15cad945e4598bcfa7017b7c120ad8/twilio-9.10.2-py2.py3-none-any.whl", hash = "sha256:8722bb59bacf31fab5725d6f5d3fac2224265c669d38f653f53179165533da43", size = 2256481, upload-time = "2026-02-18T04:40:42.226Z" },
+]
+
+[[package]]
+name = "twilio-agent-connect"
+version = "0.0.2"
+source = { git = "ssh://git@github.com/twilio-innovation/twilio-agent-connect-python.git?rev=436ff9b#436ff9b4a9ff09d4fa3b824728f28349173d2b2d" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "twilio" },
+]
+
+[package.optional-dependencies]
+server = [
+    { name = "fastapi" },
+    { name = "python-multipart" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [[package]]

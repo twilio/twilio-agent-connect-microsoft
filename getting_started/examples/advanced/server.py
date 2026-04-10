@@ -140,7 +140,7 @@ session_store = FileAgentSessionStore("/tmp/owl_sessions")
 
 def on_message(user_message, context, memory_response):
     """Prepend the customer's phone number for context."""
-    prefix = f"[Customer: {context.from_number}]\n"
+    prefix = f"[Customer: {context.author_info.address if context.author_info else 'unknown'}]\n"
     return prefix + format_memory_context(memory_response, user_message)
 
 

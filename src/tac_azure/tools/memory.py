@@ -19,7 +19,7 @@ def create_memory_recall_tool(
     tac: TAC,
     session: ConversationSession,
 ) -> Any:
-    """Create a memory recall tool backed by TAC's Memora client.
+    """Create a memory recall tool backed by TAC's Conversation Memory client.
 
     Returns a plain async function suitable for Agent Framework's tools list.
     Delegates to TAC's ``create_memory_tool`` and extracts the
@@ -27,20 +27,20 @@ def create_memory_recall_tool(
     name, docstring, and parameter types.
 
     Args:
-        tac: TAC instance (must have ``memora_client`` initialised).
+        tac: TAC instance (must have ``conversation_memory_client`` initialised).
         session: Conversation session with ``profile_id`` and ``conversation_id``.
 
     Returns:
         Async function: ``recall_profile_memory(query: str) -> dict``
 
     Raises:
-        ValueError: If ``tac.memora_client`` is not initialised.
+        ValueError: If ``tac.conversation_memory_client`` is not initialised.
     """
-    if tac.memora_client is None:
+    if tac.conversation_memory_client is None:
         raise ValueError(
-            "TAC memora_client is not initialised. "
+            "TAC conversation_memory_client is not initialised. "
             "Ensure twilio_memory_config is provided in TACConfig."
         )
 
-    tac_tool = _tac_create_memory_tool(tac.memora_client, session)
+    tac_tool = _tac_create_memory_tool(tac.conversation_memory_client, session)
     return tac_tool.implementation
