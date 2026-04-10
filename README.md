@@ -24,15 +24,15 @@ Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/tw
 ## Installation
 
 ```bash
-# Install uv (if not already installed)
+pip install tac-azure
+```
+
+### Development
+
+```bash
+# Install with all dependencies for local development
 pip install uv
-
-# Create and activate a virtual environment
-uv venv
-source .venv/bin/activate
-
-# Install project dependencies
-uv pip install .
+uv sync
 ```
 
 ## Configuration
@@ -89,6 +89,10 @@ cd azure-twilio-agent-connect-python
 # Install dependencies
 uv sync
 ```
+
+### Getting Started
+
+See [`getting_started/README.md`](getting_started/README.md) for the full setup and deployment guide.
 
 ## Dependencies
 
