@@ -1,13 +1,28 @@
 # TAC Azure - Azure Integrations for Twilio Agent Connect
 
-The `azure-twilio-agent-connect-python` package is a Twilio developed package that provides two connectors for integrating Twilio channels with Azure AI services:
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+
+Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio-innovation/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
+
+The `azure-twilio-agent-connect-python` package provides two connectors for integrating Twilio channels with Azure AI services:
 
 - **AgentFrameworkConnector** — bridges Twilio voice and messaging channels to [Microsoft Agent Framework SDK](https://github.com/microsoft/agent-framework). Agent Framework is provider-agnostic, so this connector supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](http://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison).
 - **VoiceLiveConnector** — bridges Twilio voice to [Azure AI Foundry Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live)'s WebSocket API for low-latency streaming inference.
 
-The package also includes a getting-started deployment guide, deployment scripts and helpers (e.g. Dockerfile), native TAC tools, and [`AgentSessionStore`](#agentsessionstore) interfaces implementations for in memory and CosmosDB.
+The package also includes a getting-started deployment guide, deployment scripts and helpers (e.g. Dockerfile), native TAC tools, and [`AgentSessionStore`](#agentsessionstore) interface implementations for in-memory and CosmosDB.
 
-Built on top of the core [Twilio Agent Connect (TAC)](https://github.com/twilio-innovation/twilio-agent-connect-python) Python SDK.
+## Features
+
+- **AgentFrameworkConnector** - Microsoft Agent Framework integration
+  - Agent lifecycle management (voice + SMS)
+  - Pluggable session persistence via `AgentSessionStore` protocol
+  - Memory context injection and `on_message` / `on_error` hooks
+- **VoiceLiveConnector** - Azure AI Foundry Voice Live integration
+  - Streams text to and from Voice Live over WebSocket
+  - Server-side conversation state (no local session management)
+  - Tool execution with async handlers
+- Multi-channel support (SMS + Voice)
+- Built-in TAC tools (memory recall, knowledge search, Flex escalation, messaging, interstitial filler)
 
 ## Installation
 
@@ -34,11 +49,11 @@ TAC Azure requires TAC environment variables. See [TAC Configuration](https://gi
 AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
 
 # Twilio Configuration
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_API_KEY=your_api_key
-TWILIO_API_TOKEN=your_api_token
-TWILIO_PHONE_NUMBER=+1234567890
-TWILIO_CONVERSATION_SERVICE_SID=conv_configuration_xxx
+TWILIO_TAC_AUTH_TOKEN=your_auth_token
+TWILIO_TAC_API_KEY=your_api_key          # Starts with SK
+TWILIO_TAC_API_TOKEN=your_api_token      # Secret for API key
+TWILIO_TAC_PHONE_NUMBER=+1234567890
+TWILIO_TAC_CONVERSATION_CONFIGURATION_ID=conv_configuration_xxx
 
 # Server Configuration (for Voice)
 TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
@@ -83,6 +98,10 @@ uv sync
 TAC Azure depends on:
 - **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio-innovation/twilio-agent-connect-python) framework (installed from GitHub)
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
-- **agent-framework** - Microsoft Agent Framework
+- **agent-framework** - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **agent-framework-azure-ai** - Azure AI backend for Agent Framework
 - **azure-identity** - Azure credential management
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
