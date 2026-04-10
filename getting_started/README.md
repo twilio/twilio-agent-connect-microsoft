@@ -16,6 +16,14 @@ pip install tac-azure[agent-framework,server]
 pip install tac-azure[voice-live,server]
 ```
 
+### Development (from source)
+
+```bash
+git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python.git
+cd azure-twilio-agent-connect-python
+uv sync --all-extras
+```
+
 ## Environment Setup
 
 Copy the example `.env` file and fill in your values:
@@ -71,23 +79,20 @@ See [`examples/`](examples/) for complete working examples:
 
 Each example is a standalone FastAPI server. From the repo root:
 
+**With uv:**
+
 ```bash
-# Agent Framework — basic
-uvicorn getting_started.examples.agent_framework.basic:server.app --host 0.0.0.0 --port 8000
-
-# Agent Framework — advanced
-uvicorn getting_started.examples.agent_framework.advanced:server.app --host 0.0.0.0 --port 8000
-
-# Voice Live
-uvicorn getting_started.examples.voice_live.basic:server.app --host 0.0.0.0 --port 8000
+uv run getting_started/examples/agent_framework/basic.py
+uv run getting_started/examples/agent_framework/advanced.py
+uv run getting_started/examples/voice_live/basic.py
 ```
 
-Or run directly with Python:
+**With pip/python:**
 
 ```bash
-python -m getting_started.examples.agent_framework.basic
-python -m getting_started.examples.agent_framework.advanced
-python -m getting_started.examples.voice_live.basic
+python getting_started/examples/agent_framework/basic.py
+python getting_started/examples/agent_framework/advanced.py
+python getting_started/examples/voice_live/basic.py
 ```
 
 For voice calls, you need a publicly accessible URL. Use [ngrok](https://ngrok.com/) to expose your local server:

@@ -38,8 +38,9 @@ pip install tac-azure[voice-live,server]
 ### Development
 
 ```bash
-# Install with development tools (includes all connectors)
-pip install tac-azure[dev]
+git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python.git
+cd azure-twilio-agent-connect-python
+uv sync --all-extras
 ```
 
 ## Configuration
