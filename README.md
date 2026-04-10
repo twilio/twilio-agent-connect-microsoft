@@ -82,9 +82,9 @@ from tac_azure.agent_framework_tools import create_memory_recall_tool
 
 Full examples available in [`getting_started/examples/`](getting_started/examples/):
 
-- **`basic/`** - Minimal Agent Framework setup (~30 lines)
-- **`advanced/`** - Full feature set (channel-aware prompts, tools, hooks, file-based session persistence)
-- **`voice_live/`** - Azure AI Foundry Voice Live with tool calling
+- **`agent_framework/basic.py`** - Minimal Agent Framework setup (~30 lines)
+- **`agent_framework/advanced.py`** - Full feature set (channel-aware prompts, tools, hooks, session persistence)
+- **`voice_live/basic.py`** - Azure AI Foundry Voice Live with tool calling
 
 ## AgentSessionStore
 

@@ -34,8 +34,9 @@ TWILIO_TAC_KNOWLEDGE_BASE_ID=kb_xxx
 
 See [`examples/`](examples/) for complete working examples:
 
-- **[`basic/`](examples/basic/)** — Minimal setup (~30 lines)
-- **[`advanced/`](examples/advanced/)** — Full feature set (channel-aware prompts, tools, hooks, session persistence)
+- **[`agent_framework/basic.py`](examples/agent_framework/basic.py)** — Minimal Agent Framework setup (~30 lines)
+- **[`agent_framework/advanced.py`](examples/agent_framework/advanced.py)** — Full feature set (channel-aware prompts, tools, hooks, session persistence)
+- **[`voice_live/basic.py`](examples/voice_live/basic.py)** — Voice Live with custom tools
 
 ## Quick Example
 
