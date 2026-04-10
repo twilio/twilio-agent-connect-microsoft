@@ -37,7 +37,7 @@ from tac_azure import (
     SMSChannelConfig,
     format_memory_context,
 )
-from tac_azure.tools import create_knowledge_tool, create_memory_recall_tool
+from tac_azure.agent_framework_tools import create_knowledge_tool, create_memory_recall_tool
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
