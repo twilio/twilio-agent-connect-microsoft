@@ -2,6 +2,10 @@
 
 Quick start guide for using TAC Azure with Microsoft Agent Framework or Azure AI Foundry Voice Live.
 
+## Prerequisites
+
+Before running any examples, you need to create and configure the required Twilio services (Conversation Configuration, phone number, etc.). Follow the [TAC Quickstart guide](https://www.twilio.com/docs/platform/tac/quickstart) to set these up.
+
 ## Installation
 
 ### With Agent Framework

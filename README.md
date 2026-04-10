@@ -43,6 +43,10 @@ cd azure-twilio-agent-connect-python
 uv sync --all-extras
 ```
 
+## Prerequisites
+
+Before running any examples, you need to create and configure the required Twilio services (Conversation Configuration, phone number, etc.). Follow the [TAC Quickstart guide](https://www.twilio.com/docs/platform/tac/quickstart) to set these up.
+
 ## Configuration
 
 TAC Azure requires TAC environment variables. See [TAC Configuration](https://github.com/twilio-innovation/twilio-agent-connect-python#configuration) for details.
