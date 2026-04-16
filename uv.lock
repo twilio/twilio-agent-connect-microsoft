@@ -3520,9 +3520,9 @@ requires-dist = [
     { name = "python-dotenv" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0,<1" },
     { name = "truststore", specifier = ">=0.10.4" },
-    { name = "twilio-agent-connect", git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=436ff9b" },
-    { name = "twilio-agent-connect", extras = ["server"], marker = "extra == 'dev'", git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=436ff9b" },
-    { name = "twilio-agent-connect", extras = ["server"], marker = "extra == 'server'", git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=436ff9b" },
+    { name = "twilio-agent-connect", git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=ccef428" },
+    { name = "twilio-agent-connect", extras = ["server"], marker = "extra == 'dev'", git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=ccef428" },
+    { name = "twilio-agent-connect", extras = ["server"], marker = "extra == 'server'", git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=ccef428" },
     { name = "websockets", marker = "extra == 'dev'", specifier = ">=13.0" },
     { name = "websockets", marker = "extra == 'voice-live'", specifier = ">=13.0" },
 ]
@@ -3630,7 +3630,7 @@ wheels = [
 [[package]]
 name = "twilio-agent-connect"
 version = "0.0.2"
-source = { git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=436ff9b#436ff9b4a9ff09d4fa3b824728f28349173d2b2d" }
+source = { git = "https://github.com/twilio-innovation/twilio-agent-connect-python.git?rev=ccef428#ccef428740ae445dd1e25dfa80d1f9c2f82abbf9" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },

@@ -151,8 +151,8 @@ connector = AgentFrameworkConnector(
     create_agent=create_agent,
     on_message=on_message,
     on_error=on_error,
-    voice_config=VoiceChannelConfig(auto_retrieve_memory=True),
-    sms_config=SMSChannelConfig(auto_retrieve_memory=False),
+    voice_config=VoiceChannelConfig(auto_retrieve_memory=False), # Disabling auto memeory for best latency. Agent can use memory tool when needed.
+    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
     session_store=session_store,
 )
 

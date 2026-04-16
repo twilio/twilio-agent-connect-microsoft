@@ -11,7 +11,6 @@ truststore.inject_into_ssl()
 import os
 
 from agent_framework.azure import AzureOpenAIResponsesClient
-from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -30,11 +29,10 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 # Azure AI client
 # ---------------------------------------------------------------------------
 
-credential = DefaultAzureCredential()
 client = AzureOpenAIResponsesClient(
-    credential=credential,
-    project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    deployment_name=os.environ.get("AZURE_AI_DEPLOYMENT_NAME", "gpt-4o"),
+    endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    api_key=os.environ["AZURE_AI_API_KEY"],
+    deployment_name=os.environ.get("AZURE_AI_DEPLOYMENT_NAME"),
 )
 
 
