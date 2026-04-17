@@ -11,14 +11,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from typing import Annotated
+
+from tac.context.memory import MemoryClient
 from tac.core.logging import get_logger
-from tac.tools.base import TACTool, function_tool
+from tac.tools.base import InjectedToolArg, TACTool, function_tool
 from tac.tools.knowledge import search_knowledge
-from tac.tools.memory import create_memory_tool as _tac_create_memory_tool
 
 if TYPE_CHECKING:
     from tac import TAC
-    from tac.context.memory import MemoryClient
     from tac.core.config import TACConfig
     from tac.models.session import ConversationSession
 
@@ -80,6 +81,32 @@ async def fetch_knowledge_base_info(
 # Memory
 # ------------------------------------------------------------------
 
+async def _retrieve_profile_memory(
+    query: str,
+    conversation_memory_client: Annotated[MemoryClient, InjectedToolArg],
+    profile_id: Annotated[str, InjectedToolArg],
+    conversation_id: Annotated[str | None, InjectedToolArg] = None,
+) -> dict[str, Any]:
+    """Search and retrieve relevant memories for the current profile.
+
+    Performs semantic search across the user's conversation history, observations,
+    and stored traits to find contextually relevant information.
+
+    Args:
+        query: What to search for in the user's memory (e.g., "preferences about food",
+               "previous complaints", "contact information")
+
+    Returns:
+        Dictionary containing relevant memories, traits, and metadata
+    """
+    memory_response = await conversation_memory_client.retrieve_memory(
+        profile_id=profile_id,
+        conversation_id=conversation_id,
+        query=query,
+    )
+    return memory_response.model_dump(by_alias=True, exclude_none=True)
+
+
 def create_memory_recall_tool(
     tac: TAC,
     session: ConversationSession,
@@ -98,7 +125,12 @@ def create_memory_recall_tool(
         _logger.debug("Skipping memory tool: session has no profile_id")
         return None
 
-    return _tac_create_memory_tool(tac.conversation_memory_client, session)
+    tool = function_tool()(_retrieve_profile_memory)
+    return tool.configure_injection(
+        conversation_memory_client=tac.conversation_memory_client,
+        profile_id=session.profile_id,
+        conversation_id=session.conversation_id,
+    )
 
 
 # ------------------------------------------------------------------

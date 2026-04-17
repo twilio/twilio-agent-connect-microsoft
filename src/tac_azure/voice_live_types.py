@@ -28,10 +28,15 @@ class VoiceLiveConfig:
             (mutually exclusive with *api_key*).
         api_version: Voice Live API version.
         instructions: System instructions for the model.
-        tools: Tool definitions in OpenAI function-tool format.
+        tools: Tool list — accepts ``TACTool`` instances (from
+            ``@function_tool`` or ``create_*_tool`` factories) and/or raw
+            OpenAI function-tool dicts.  ``TACTool`` entries are
+            automatically converted to dict definitions and their
+            executors are registered in *tool_executors*.
         tool_executors: Map of tool name to async callable that executes
-            the tool.  The callable receives keyword arguments matching the
-            tool's parameters and must return a string result.
+            the tool.  Auto-populated from any ``TACTool`` objects in
+            *tools*; you only need to set this manually when using raw
+            dict tool definitions.
         modalities: Session modalities.  Defaults to ``["text"]``.
         temperature: Sampling temperature (0.6 – 1.2).
         max_response_output_tokens: Max output tokens per response.
@@ -46,13 +51,26 @@ class VoiceLiveConfig:
 
     # Session configuration
     instructions: str = ""
-    tools: list[dict[str, Any]] = field(default_factory=list)
-    tool_executors: dict[str, Callable[..., Awaitable[str]]] = field(
+    tools: list[Any] = field(default_factory=list)
+    tool_executors: dict[str, Callable[..., Awaitable[Any]]] = field(
         default_factory=dict
     )
     modalities: list[str] = field(default_factory=lambda: ["text"])
     temperature: float | None = None
     max_response_output_tokens: int | str | None = None
+
+    def __post_init__(self) -> None:
+        """Resolve any TACTool objects in *tools* to dict definitions."""
+        from tac.tools.base import TACTool
+
+        resolved: list[dict[str, Any]] = []
+        for tool in self.tools:
+            if isinstance(tool, TACTool):
+                resolved.append(tool.to_openai_format())
+                self.tool_executors[tool.name] = tool.implementation
+            else:
+                resolved.append(tool)
+        self.tools = resolved
 
     @property
     def ws_url(self) -> str:

@@ -22,6 +22,7 @@ from tac_azure import (
     AgentFrameworkConnector,
     ConversationSession,
 )
+from tac_azure.agent_framework_tools import create_knowledge_tool
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -41,6 +42,7 @@ client = AzureOpenAIResponsesClient(
 # ---------------------------------------------------------------------------
 
 tac = TAC(config=TACConfig.from_env())
+knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
 
 
 # ---------------------------------------------------------------------------
@@ -59,9 +61,18 @@ def create_agent(session: ConversationSession):
     ``session`` carries Twilio conversation context: channel type,
     conversation ID, caller/customer profile, and metadata.
     """
+    tools = []
+    if knowledge_base_id:
+        tools.append(create_knowledge_tool(
+            tac,
+            knowledge_base_id=knowledge_base_id,
+            description="Search the knowledge base for relevant information.",
+        ))
+
     return client.as_agent(
         name="OwlAgent",
         instructions=SYSTEM_PROMPT,
+        tools=tools,
     )
 
 

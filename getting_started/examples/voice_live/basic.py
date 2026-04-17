@@ -26,7 +26,6 @@ from tac_azure import (
     VoiceLiveConnector,
     VoiceLiveConfig,
 )
-from tac_azure.voice_live_tools import prepare_tools
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -51,17 +50,13 @@ def look_up_outage(zip_code: str) -> str:
 
 tac = TAC(config=TACConfig.from_env())
 
-# Convert TACTools to Voice Live format (definitions + executors)
-definitions, executors = prepare_tools([look_up_outage])
-
 config = VoiceLiveConfig(
     endpoint=os.environ["AZURE_VOICE_LIVE_ENDPOINT"],
     model=os.environ.get("AZURE_VOICE_LIVE_MODEL", "gpt-4o"),
     api_key=os.environ.get("AZURE_VOICE_LIVE_API_KEY"),
     instructions="""You are Owl Internet's customer service assistant.
 Keep responses clear and concise.""",
-    tools=definitions,
-    tool_executors=executors,
+    tools=[look_up_outage],
 )
 
 
