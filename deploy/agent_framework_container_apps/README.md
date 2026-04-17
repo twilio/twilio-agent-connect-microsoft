@@ -72,13 +72,11 @@ graph TB
 
 ---
 
-## Deployment
+## Prerequisites
 
-### Prerequisites
-
-**Required:**
+- [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/install-azd) (`azd`)
 - Azure CLI (`az`) installed and logged in
-- Docker installed
+- Docker installed and running
 - Python 3.10+ with `pip`
 - Azure subscription with:
   - Azure OpenAI deployment (GPT-4o recommended)
@@ -93,7 +91,87 @@ graph TB
 - Auth Token & API Keys: Twilio Console > Account > API Keys & Tokens
 - Conversation Configuration ID: Twilio Console > Conversation Orchestrator > Configuration
 
-### Step 0: Build and Push Docker Image
+---
+
+## Deployment
+
+### Step 1: Configure Environment
+
+```bash
+cd deploy/agent_framework_container_apps
+cp .env.template .env
+```
+
+Edit `.env` and fill in your Twilio and Azure credentials.
+
+### Step 2: Deploy
+
+```bash
+azd env new my-tac-agent
+azd up
+```
+
+This automatically:
+1. Imports your `.env` values
+2. Builds Python wheels for private dependencies
+3. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
+4. Builds and pushes the Docker image to ACR
+5. Configures the Container App with the image and FQDN
+
+### Step 3: Configure Twilio Webhooks
+
+After deployment completes, the app URL is printed. Use it to configure Twilio:
+
+**Voice (Phone Numbers):**
+1. Go to Twilio Console > Phone Numbers > Active Numbers
+2. Select your phone number
+3. Set **Voice URL:** `https://<FQDN>/twiml` (POST)
+
+**SMS (Conversation Orchestrator):**
+1. Go to Twilio Console > Conversation Orchestrator
+2. Select your Conversation Configuration
+3. Set **Webhook URL:** `https://<FQDN>/webhook` (POST)
+
+### Step 4: Test
+
+Make a phone call or send an SMS to your Twilio phone number.
+
+**View logs:**
+
+```bash
+az containerapp logs show \
+  --name <environmentName>-app \
+  --resource-group rg-<environmentName> \
+  --type console \
+  --follow
+```
+
+---
+
+## Redeploying After Code Changes
+
+Re-run `azd up` — it will rebuild the Docker image, push it to ACR, and update
+the Container App. Infrastructure deployments are idempotent, so unchanged
+resources are not re-created.
+
+```bash
+azd up
+```
+
+---
+
+## Teardown
+
+```bash
+azd down --purge
+```
+
+---
+
+<details>
+<summary><strong>Manual Deployment (without azd)</strong></summary>
+
+### Step 0: Build Docker Image
 
 **1. Build wheels:**
 
@@ -135,7 +213,7 @@ az deployment group create \
     twilioTacApiToken=YOUR_API_TOKEN \
     twilioTacPhoneNumber=YOUR_PHONE_NUMBER \
     twilioTacConversationConfigurationId=YOUR_CONFIGURATION_ID \
-    azureAiProjectEndpoint=YOUR_AZURE_AI_ENDPOINT
+    azureOpenAiEndpoint=YOUR_AZURE_OPENAI_ENDPOINT
 ```
 
 **3. Get the ACR login server from the output:**
@@ -178,7 +256,7 @@ az deployment group create \
     twilioTacApiToken=YOUR_API_TOKEN \
     twilioTacPhoneNumber=YOUR_PHONE_NUMBER \
     twilioTacConversationConfigurationId=YOUR_CONFIGURATION_ID \
-    azureAiProjectEndpoint=YOUR_AZURE_AI_ENDPOINT
+    azureOpenAiEndpoint=YOUR_AZURE_OPENAI_ENDPOINT
 ```
 
 ### Step 4: Get Container App URL
@@ -191,26 +269,10 @@ Container Apps provides built-in HTTPS with a valid TLS certificate — no ngrok
 
 ### Step 5: Configure Twilio Webhooks
 
-**Voice (Phone Numbers):**
-1. Go to Twilio Console > Phone Numbers > Active Numbers
-2. Select your phone number
-3. Set **Voice URL:** `https://<FQDN>/twiml` (POST)
-
-**SMS (Conversation Orchestrator):**
-1. Go to Twilio Console > Conversation Orchestrator
-2. Select your Conversation Configuration
-3. Set **Webhook URL:** `https://<FQDN>/webhook` (POST)
+See [Step 3](#step-3-configure-twilio-webhooks) above.
 
 ### Step 6: Test Your Deployment
 
-Make a phone call or send an SMS message to your Twilio phone number to test the deployment.
+See [Step 4](#step-4-test) above.
 
-**View logs:**
-
-```bash
-az containerapp logs show \
-  --name tacagent-app \
-  --resource-group tac-agent-framework-rg \
-  --type console \
-  --follow
-```
+</details>

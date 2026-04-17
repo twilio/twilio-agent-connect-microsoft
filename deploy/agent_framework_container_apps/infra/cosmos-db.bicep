@@ -14,7 +14,7 @@ param containerName string = 'sessions'
 // Cosmos DB Account — NoSQL API, Serverless
 // ---------------------------------------------------------------------------
 
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
   name: accountName
   location: location
   kind: 'GlobalDocumentDB'
@@ -41,7 +41,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
 // Database + Container
 // ---------------------------------------------------------------------------
 
-resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
+resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-11-15' = {
   parent: cosmosAccount
   name: databaseName
   properties: {
@@ -51,7 +51,7 @@ resource database 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15
   }
 }
 
-resource sqlContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/sqlContainers@2024-05-15' = {
+resource sqlContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-11-15' = {
   parent: database
   name: containerName
   properties: {

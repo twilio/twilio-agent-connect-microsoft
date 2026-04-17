@@ -1,0 +1,86 @@
+name: tac-voice-live
+
+metadata:
+  template: tac-voice-live@1.0
+
+infra:
+  provider: bicep
+  path: infra
+
+hooks:
+  preprovision:
+    posix:
+      shell: sh
+      run: |
+        # Import .env file into azd environment if it exists
+        if [ -f .env ]; then
+          echo "==> Importing .env into azd environment..."
+          while IFS='=' read -r key value; do
+            # Skip comments and blank lines
+            case "$key" in \#*|"") continue ;; esac
+            # Strip surrounding quotes from value
+            value=$(echo "$value" | sed 's/^["'"'"']//;s/["'"'"']$//')
+            if [ -n "$value" ]; then
+              azd env set "$key" "$value"
+            fi
+          done < .env
+        fi
+
+        echo "==> Building wheels for private dependencies..."
+        ./build-wheels.sh
+      interactive: false
+      continueOnError: false
+
+  postprovision:
+    posix:
+      shell: sh
+      run: |
+        echo "==> Building and pushing Docker image to ACR..."
+
+        # azd populates Bicep outputs as env values (lowercase keys)
+        ACR_LOGIN_SERVER=$(azd env get-value acrLoginServer 2>/dev/null || echo "")
+        if [ -z "$ACR_LOGIN_SERVER" ]; then
+          echo "ERROR: Could not determine ACR login server from azd environment."
+          exit 1
+        fi
+
+        az acr login --name "${ACR_LOGIN_SERVER%%.*}"
+
+        # Build from deploy/ context (one directory up) — must target amd64 for Azure
+        docker build --platform linux/amd64 -t tac-voice-live:latest -f Dockerfile ..
+
+        docker tag tac-voice-live:latest "$ACR_LOGIN_SERVER/tac-voice-live:latest"
+        docker push "$ACR_LOGIN_SERVER/tac-voice-live:latest"
+
+        # Get the FQDN from azd env (populated from Bicep outputs)
+        FQDN=$(azd env get-value containerAppFqdn 2>/dev/null || echo "")
+
+        echo ""
+        echo "==> Re-deploying with real image and FQDN..."
+        echo ""
+
+        # Resolve parameters from azd env (main.parameters.json uses azd-only ${} placeholders)
+        az deployment group create \
+          --resource-group "$AZURE_RESOURCE_GROUP" \
+          --template-file infra/main.bicep \
+          --parameters \
+            environmentName="$(azd env get-value AZURE_ENV_NAME)" \
+            location="$(azd env get-value AZURE_LOCATION)" \
+            twilioTacAuthToken="$(azd env get-value TWILIO_TAC_AUTH_TOKEN)" \
+            twilioTacApiKey="$(azd env get-value TWILIO_TAC_API_KEY)" \
+            twilioTacApiToken="$(azd env get-value TWILIO_TAC_API_TOKEN)" \
+            twilioTacPhoneNumber="$(azd env get-value TWILIO_TAC_PHONE_NUMBER)" \
+            twilioTacConversationConfigurationId="$(azd env get-value TWILIO_TAC_CONVERSATION_CONFIGURATION_ID)" \
+            azureVoiceLiveEndpoint="$(azd env get-value AZURE_VOICE_LIVE_ENDPOINT)" \
+            azureVoiceLiveApiKey="$(azd env get-value AZURE_VOICE_LIVE_API_KEY)" \
+            containerImageName="$ACR_LOGIN_SERVER/tac-voice-live:latest" \
+            twilioTacVoicePublicDomain="$FQDN"
+
+        echo ""
+        echo "==> Deployment complete!"
+        echo "    App URL: https://$FQDN"
+        echo ""
+        echo "Next step: Configure Twilio voice webhook:"
+        echo "    Voice: https://$FQDN/twiml"
+      interactive: true
+      continueOnError: false

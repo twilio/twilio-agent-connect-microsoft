@@ -45,11 +45,11 @@ param twilioTacVoicePublicDomain string
 // Azure AI config
 // ---------------------------------------------------------------------------
 
-@description('Azure AI project endpoint URL.')
-param azureAiProjectEndpoint string
+@description('Azure OpenAI endpoint URL (e.g. https://<resource>.openai.azure.com/).')
+param azureOpenAiEndpoint string
 
 @description('Azure OpenAI deployment name.')
-param azureAiDeploymentName string = 'gpt-4o'
+param azureOpenAiDeploymentName string
 
 // ---------------------------------------------------------------------------
 // Cosmos DB config
@@ -87,7 +87,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 // Container Apps Environment
 // ---------------------------------------------------------------------------
 
-resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
   name: '${environmentName}-env'
   location: location
   properties: {
@@ -113,7 +113,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
 // Container App
 // ---------------------------------------------------------------------------
 
-resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: '${environmentName}-app'
   location: location
   identity: {
@@ -126,9 +126,8 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: 8000
         transport: 'auto'
-        stickySessions: {
-          affinity: 'sticky'
-        }
+        // Note: stickySessions must be enabled post-deploy via Azure Portal or CLI:
+        //   az containerapp ingress sticky-sessions set -n <app> -g <rg> --affinity sticky
       }
       registries: [
         {
@@ -196,14 +195,14 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'TWILIO_TAC_LOG_LEVEL'
               value: twilioTacLogLevel
             }
-            // Azure AI
+            // Azure OpenAI
             {
-              name: 'AZURE_AI_PROJECT_ENDPOINT'
-              value: azureAiProjectEndpoint
+              name: 'AZURE_OPENAI_ENDPOINT'
+              value: azureOpenAiEndpoint
             }
             {
-              name: 'AZURE_AI_DEPLOYMENT_NAME'
-              value: azureAiDeploymentName
+              name: 'AZURE_OPENAI_DEPLOYMENT_NAME'
+              value: azureOpenAiDeploymentName
             }
             // Cosmos DB (auth via Managed Identity)
             {

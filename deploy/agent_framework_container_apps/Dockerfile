@@ -40,6 +40,11 @@ COPY agent_framework_container_apps/server.py ./
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
+# Run as non-root user
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 # Expose port
 EXPOSE 8000
 

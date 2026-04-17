@@ -39,11 +39,17 @@ param twilioTacVoicePublicDomain string = ''
 // Azure AI config
 // ---------------------------------------------------------------------------
 
-@description('Azure AI project endpoint URL.')
-param azureAiProjectEndpoint string
+@description('Azure OpenAI endpoint URL (e.g. https://<resource>.openai.azure.com/).')
+param azureOpenAiEndpoint string
 
 @description('Azure OpenAI deployment name.')
-param azureAiDeploymentName string = 'gpt-4o'
+param azureOpenAiDeploymentName string
+
+@description('Name of the existing Azure AI / Cognitive Services account (for RBAC).')
+param azureOpenAiAccountName string
+
+@description('Resource group of the existing Azure AI account (defaults to current RG).')
+param azureOpenAiAccountResourceGroup string = resourceGroup().name
 
 // ---------------------------------------------------------------------------
 // Optional config
@@ -84,7 +90,7 @@ module cosmos 'cosmos-db.bicep' = {
 // ===========================================================================
 
 // Use a placeholder image for the first deploy (before pushing to ACR)
-var imageName = !empty(containerImageName) ? containerImageName : '${registry.outputs.loginServer}/tac-agent-framework:latest'
+var imageName = !empty(containerImageName) ? containerImageName : 'mcr.microsoft.com/k8se/quickstart:latest'
 
 module app 'container-app.bicep' = {
   name: 'container-app'
@@ -102,8 +108,8 @@ module app 'container-app.bicep' = {
     twilioTacConversationConfigurationId: twilioTacConversationConfigurationId
     twilioTacVoicePublicDomain: !empty(twilioTacVoicePublicDomain) ? twilioTacVoicePublicDomain : 'placeholder.azurecontainerapps.io'
     // Azure AI
-    azureAiProjectEndpoint: azureAiProjectEndpoint
-    azureAiDeploymentName: azureAiDeploymentName
+    azureOpenAiEndpoint: azureOpenAiEndpoint
+    azureOpenAiDeploymentName: azureOpenAiDeploymentName
     // Cosmos
     cosmosEndpoint: cosmos.outputs.endpoint
     // Optional
@@ -118,18 +124,36 @@ module app 'container-app.bicep' = {
 
 // Cosmos DB Built-in Data Contributor role definition ID
 var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
+var cosmosAccountName = '${environmentName}-cosmos'
 
-resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
-  name: cosmos.outputs.accountName
+resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' existing = {
+  name: cosmosAccountName
 }
 
-resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
+resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-11-15' = {
   parent: cosmosAccount
-  name: guid(cosmosAccount.id, app.outputs.principalId, cosmosDataContributorRoleId)
+  name: guid(cosmosAccountName, environmentName, cosmosDataContributorRoleId)
   properties: {
     roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/${cosmosDataContributorRoleId}'
     principalId: app.outputs.principalId
     scope: cosmosAccount.id
+  }
+}
+
+// ===========================================================================
+// RBAC: Cognitive Services OpenAI User on the Azure AI account
+// ===========================================================================
+
+// Built-in role: Cognitive Services OpenAI User
+var cognitiveServicesOpenAiUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
+
+module aiRoleAssignment 'ai-role-assignment.bicep' = {
+  name: 'ai-role-assignment'
+  scope: resourceGroup(azureOpenAiAccountResourceGroup)
+  params: {
+    accountName: azureOpenAiAccountName
+    principalId: app.outputs.principalId
+    roleDefinitionId: cognitiveServicesOpenAiUserRoleId
   }
 }
 

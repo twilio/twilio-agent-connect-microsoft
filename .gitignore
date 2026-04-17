@@ -22,6 +22,12 @@ venv/
 *.swp
 *.swo
 
+# Azure Developer CLI
+.azure/
+
+# Build artifacts for deploy/ container images
+deploy/*/wheels/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -73,7 +73,7 @@ module registry 'container-registry.bicep' = {
 // ===========================================================================
 
 // Use a placeholder image for the first deploy (before pushing to ACR)
-var imageName = !empty(containerImageName) ? containerImageName : '${registry.outputs.loginServer}/tac-voice-live:latest'
+var imageName = !empty(containerImageName) ? containerImageName : 'mcr.microsoft.com/k8se/quickstart:latest'
 
 module app 'container-app.bicep' = {
   name: 'container-app'

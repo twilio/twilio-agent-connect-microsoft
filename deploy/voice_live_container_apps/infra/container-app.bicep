@@ -81,7 +81,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 // Container Apps Environment
 // ---------------------------------------------------------------------------
 
-resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
+resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
   name: '${environmentName}-env'
   location: location
   properties: {
@@ -107,7 +107,7 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
 // Container App
 // ---------------------------------------------------------------------------
 
-resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
+resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: '${environmentName}-app'
   location: location
   properties: {
@@ -117,9 +117,8 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         external: true
         targetPort: 8000
         transport: 'auto'
-        stickySessions: {
-          affinity: 'sticky'
-        }
+        // Note: stickySessions must be enabled post-deploy via Azure Portal or CLI:
+        //   az containerapp ingress sticky-sessions set -n <app> -g <rg> --affinity sticky
       }
       registries: [
         {

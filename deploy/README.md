@@ -45,7 +45,37 @@ TAC Server runs on Container Apps and creates per-conversation Agent Framework a
 ### Voice Live Connector
 TAC Server runs on Container Apps and streams text to Azure AI Foundry Voice Live over WebSocket. Voice Live manages conversation state server-side. Voice-only — no SMS support.
 
-## Getting Started
+## Quick Deploy with Azure Developer CLI (azd)
+
+Each deployment variant supports [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for one-command provisioning. This automates wheel builds, infrastructure deployment, Docker image build/push, and container app configuration.
+
+**Prerequisites:** `azd` v1.18.0+, Azure CLI (`az`), Docker, Python 3.10+
+
+### Agent Framework
+
+```bash
+cd deploy/agent_framework_container_apps
+cp .env.template .env   # fill in your values
+azd env new my-tac-agent
+azd up
+```
+
+### Voice Live
+
+```bash
+cd deploy/voice_live_container_apps
+cp .env.template .env   # fill in your values
+azd env new my-tac-voice-live
+azd up
+```
+
+### Teardown
+
+```bash
+azd down --purge
+```
+
+## Manual Deployment
 
 1. Choose your connector type
 2. Follow the appropriate deployment guide
