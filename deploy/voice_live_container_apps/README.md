@@ -14,13 +14,13 @@ Complete guide for deploying Twilio Agent Connect (TAC) with Azure AI Foundry Vo
 ## Overview
 
 This deployment runs a voice-only AI agent using:
-- **Twilio** — Voice via ConversationRelay (STT/TTS), plus optional Memory Service / Conversation Orchestrator
+- **Twilio** — Voice via ConversationRelay (STT/TTS), plus optional Conversation Memory / Conversation Orchestrator
 - **Azure AI Foundry Voice Live** — Low-latency LLM inference via WebSocket (pre-existing; not provisioned by this Bicep)
 - **TAC (Twilio Agent Connect)** — Integration middleware
 
 Voice Live manages conversation state server-side. The TAC server acts as a bridge between Twilio's ConversationRelay and Voice Live's WebSocket API, operating in text-only mode (`modalities: ["text"]`) because ConversationRelay handles STT/TTS.
 
-Memory retrieval is **opt-in** — the sample `voice_live/basic.py` does not enable it. Set `VoiceChannelConfig(auto_retrieve_memory=True)` to have TAC pull from the Memory Service (with fallback to Conversation Orchestrator) before each utterance.
+Memory retrieval is **opt-in** — the sample `voice_live/basic.py` does not enable it. Set `VoiceChannelConfig(auto_retrieve_memory=True)` to have TAC pull from the Conversation Memory (with fallback to Conversation Orchestrator) before each utterance.
 
 ---
 
@@ -32,7 +32,7 @@ graph LR
 
     subgraph Twilio["Twilio"]
         CRelay[ConversationRelay]
-        Memory[Memory Service]
+        Memory[Conversation Memory]
     end
 
     subgraph Bicep["Azure — provisioned by Bicep"]

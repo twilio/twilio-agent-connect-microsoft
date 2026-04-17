@@ -14,13 +14,13 @@ Complete guide for deploying Twilio Agent Connect (TAC) with Microsoft Agent Fra
 ## Overview
 
 This deployment runs a voice and SMS AI agent using:
-- **Twilio** — Voice (ConversationRelay) and SMS, plus Conversation Orchestrator and Memory Service
+- **Twilio** — Voice (ConversationRelay) and SMS, plus Conversation Orchestrator and Conversation Memory
 - **Azure OpenAI** — LLM inference (e.g. GPT-4o). Azure AI Foundry is also supported by the connector; the Bicep defaults provision against Azure OpenAI.
 - **Microsoft Agent Framework** — Agent orchestration (Python library running inside the Container App)
 - **Azure Cosmos DB** — `AgentSession` persistence for horizontal scaling (SMS: load/save per message, Voice: background save per utterance)
 - **TAC (Twilio Agent Connect)** — Integration middleware
 
-The system handles incoming calls (via TwiML + ConversationRelay WebSocket) and SMS messages (via Conversation Orchestrator webhook), routes them through a Microsoft Agent Framework agent, and persists `AgentSession` state in Cosmos DB. Memory retrieval uses Twilio's Memory Service with a fallback to Conversation Orchestrator `list_communications`.
+The system handles incoming calls (via TwiML + ConversationRelay WebSocket) and SMS messages (via Conversation Orchestrator webhook), routes them through a Microsoft Agent Framework agent, and persists `AgentSession` state in Cosmos DB. Memory retrieval uses Twilio's Conversation Memory with a fallback to Conversation Orchestrator `list_communications`.
 
 **Note:** The Azure OpenAI (or Azure AI Foundry) account is **not** provisioned by this Bicep — the deployment expects an **existing** account and assigns the container app's managed identity the `Cognitive Services OpenAI User` role on it.
 
@@ -35,7 +35,7 @@ graph LR
     subgraph Twilio["Twilio"]
         CRelay[ConversationRelay]
         ConvOrch[Conversation Orchestrator]
-        Memory[Memory Service]
+        Memory[Conversation Memory]
     end
 
     subgraph Bicep["Azure — provisioned by Bicep"]
@@ -59,7 +59,7 @@ graph LR
 **Flow:**
 - **Voice:** Twilio Phone receives call → `POST /twiml` → response TwiML contains `<ConversationRelay>` → ConversationRelay handles STT/TTS and opens a WebSocket to `/ws` for bidirectional text.
 - **SMS:** Conversation Orchestrator delivers inbound SMS to `POST /webhook` and is used to send outbound replies.
-- **Every turn:** TAC optionally retrieves memory (Memory Service, with fallback to Conversation Orchestrator `list_communications`), then `agent.run()` against Azure OpenAI.
+- **Every turn:** TAC optionally retrieves memory (Conversation Memory, with fallback to Conversation Orchestrator `list_communications`), then `agent.run()` against Azure OpenAI.
 - **`AgentSession`:** loaded from Cosmos on each SMS message, background-saved on each voice utterance.
 
 ---
