@@ -9,7 +9,7 @@ Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/tw
 
 - **AgentFrameworkConnector** - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) integration
   - Agent lifecycle management (voice + SMS)
-  - Supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](http://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison)
+  - Supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](https://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison)
   - Pluggable session persistence via `AgentSessionStore` protocol
   - Memory context injection and `on_message` / `on_error` hooks
 - **VoiceLiveConnector** - [Azure AI Foundry Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) integration
@@ -64,11 +64,15 @@ TWILIO_TAC_PHONE_NUMBER=+1234567890
 # Server (required for voice)
 TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 
-# Azure AI (Agent Framework examples)
-AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
-# AZURE_AI_DEPLOYMENT_NAME=gpt-4o
+# Azure OpenAI — Agent Framework basic example (API key auth)
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_AI_API_KEY=your_azure_openai_api_key
+AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 
-# Azure AI (Voice Live examples)
+# Azure AI Foundry — Agent Framework advanced example (Entra ID auth via `az login`)
+# AZURE_AI_PROJECT_ENDPOINT=https://your-project.services.ai.azure.com/
+
+# Azure AI Voice Live — voice_live example (hostname only, no https:// prefix)
 # AZURE_VOICE_LIVE_ENDPOINT=your-resource.services.ai.azure.com
 # AZURE_VOICE_LIVE_API_KEY=your_voice_live_api_key
 # AZURE_VOICE_LIVE_MODEL=gpt-realtime

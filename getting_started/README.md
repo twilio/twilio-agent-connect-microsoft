@@ -30,13 +30,13 @@ uv sync --all-extras
 
 ## Environment Setup
 
-Copy the example `.env` file and fill in your values:
+Copy the example `.env` file and fill in your values. From the repo root:
 
 ```bash
-cp examples/.env.example examples/.env
+cp getting_started/examples/.env.example getting_started/examples/.env
 ```
 
-All examples load from the shared `examples/.env` file.
+All examples load from the shared `getting_started/examples/.env` file.
 
 ### Required Variables (all examples)
 
@@ -52,11 +52,20 @@ TWILIO_TAC_PHONE_NUMBER=+1234567890
 TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 ```
 
-### Agent Framework Examples
+### Agent Framework — `basic.py` (Azure OpenAI, API key auth)
 
 ```bash
-# Azure AI project endpoint
-AZURE_AI_PROJECT_ENDPOINT=https://your-project.openai.azure.com/
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_AI_API_KEY=your_azure_openai_api_key
+AZURE_AI_DEPLOYMENT_NAME=gpt-4o
+```
+
+### Agent Framework — `advanced.py` (Azure AI Foundry, Entra ID auth)
+
+Uses `DefaultAzureCredential` — run `az login` first.
+
+```bash
+AZURE_AI_PROJECT_ENDPOINT=https://your-project.services.ai.azure.com/
 # AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 ```
 
@@ -69,7 +78,7 @@ AZURE_VOICE_LIVE_API_KEY=your_voice_live_api_key
 # AZURE_VOICE_LIVE_MODEL=gpt-realtime
 ```
 
-See [`examples/.env.example`](examples/.env.example) for the full list including optional features (Cosmos DB, knowledge base, conversation intelligence).
+See [`examples/.env.example`](examples/.env.example) for the full list including optional features (Cosmos DB, knowledge base, conversation intelligence). The link is relative to this `getting_started/README.md` file.
 
 ## Examples
 

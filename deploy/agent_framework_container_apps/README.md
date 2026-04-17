@@ -14,61 +14,73 @@ Complete guide for deploying Twilio Agent Connect (TAC) with Microsoft Agent Fra
 ## Overview
 
 This deployment runs a voice and SMS AI agent using:
-- **Twilio** — Voice/SMS communication platform
-- **Azure OpenAI** — LLM inference (GPT-4o)
-- **Microsoft Agent Framework** — Agent orchestration
-- **Azure Cosmos DB** — Session persistence for horizontal scaling
+- **Twilio** — Voice (ConversationRelay) and SMS, plus Conversation Orchestrator and Memory Service
+- **Azure OpenAI** — LLM inference (e.g. GPT-4o). Azure AI Foundry is also supported by the connector; the Bicep defaults provision against Azure OpenAI.
+- **Microsoft Agent Framework** — Agent orchestration (Python library running inside the Container App)
+- **Azure Cosmos DB** — `AgentSession` persistence for horizontal scaling (SMS: load/save per message, Voice: background save per utterance)
 - **TAC (Twilio Agent Connect)** — Integration middleware
 
-The system handles incoming calls and SMS messages, routes them through an AI agent powered by Azure OpenAI, and manages conversation state using Cosmos DB and Twilio's Memory services.
+The system handles incoming calls (via TwiML + ConversationRelay WebSocket) and SMS messages (via Conversation Orchestrator webhook), routes them through a Microsoft Agent Framework agent, and persists `AgentSession` state in Cosmos DB. Memory retrieval uses Twilio's Memory Service with a fallback to Conversation Orchestrator `list_communications`.
+
+**Note:** The Azure OpenAI (or Azure AI Foundry) account is **not** provisioned by this Bicep — the deployment expects an **existing** account and assigns the container app's managed identity the `Cognitive Services OpenAI User` role on it.
 
 ---
 
 ## Architecture
 
 ```mermaid
-graph TB
-    Customer([Customer<br/>Phone Call / SMS])
+graph LR
+    Customer([Customer])
 
-    subgraph Twilio["Twilio Cloud"]
-        Phone[Phone Number<br/>+1-XXX-XXX-XXXX]
-        Maestro[Conversations<br/>Maestro API]
-        Memory[Memory Service<br/>Profile & Context]
+    subgraph Twilio["Twilio"]
+        CRelay[ConversationRelay]
+        ConvOrch[Conversation Orchestrator]
+        Memory[Memory Service]
     end
 
-    subgraph Azure["Azure Subscription"]
-        CA[Container Apps<br/>TAC Server<br/>0.5 vCPU / 1GB RAM<br/>Port 8000]
-        Cosmos[Cosmos DB<br/>Serverless NoSQL<br/>Session Persistence]
-        AOAI[Azure OpenAI<br/>GPT-4o<br/>Agent Framework]
-        ACR[Container Registry<br/>Docker Images]
-        Logs[Log Analytics<br/>Application Logs]
+    subgraph Bicep["Azure — provisioned by Bicep"]
+        CA[Container App<br/>TAC + Agent Framework]
+        Cosmos[(Cosmos DB<br/>AgentSession)]
     end
 
-    Customer -->|1. Call/SMS| Phone
-    Phone -->|2. Webhook POST| CA
-    CA -->|3. Create Conversation| Maestro
-    CA -->|4. Retrieve Profile| Memory
-    CA -->|5. Load/Save Session| Cosmos
-    CA -->|6. LLM Inference| AOAI
-    CA -->|7. Write Logs| Logs
-    CA -->|8. WebSocket Audio<br/>or SMS Response| Phone
-    Phone -->|9. Response| Customer
+    subgraph Existing["Azure — pre-existing"]
+        AOAI[Azure OpenAI<br/>or AI Foundry]
+    end
+
+    Customer <--> CRelay
+    Customer <--> ConvOrch
+    CRelay <-->|voice text| CA
+    ConvOrch <-->|SMS webhooks + send| CA
+    CA -->|retrieve| Memory
+    CA <--> Cosmos
+    CA -->|agent.run| AOAI
 ```
+
+**Flow:**
+- **Voice:** Twilio Phone receives call → `POST /twiml` → response TwiML contains `<ConversationRelay>` → ConversationRelay handles STT/TTS and opens a WebSocket to `/ws` for bidirectional text.
+- **SMS:** Conversation Orchestrator delivers inbound SMS to `POST /webhook` and is used to send outbound replies.
+- **Every turn:** TAC optionally retrieves memory (Memory Service, with fallback to Conversation Orchestrator `list_communications`), then `agent.run()` against Azure OpenAI.
+- **`AgentSession`:** loaded from Cosmos on each SMS message, background-saved on each voice utterance.
 
 ---
 
 ## Azure Services
 
-### Core Services
+### Provisioned by this Bicep
 
 | Service | Purpose |
 |---------|---------|
 | **Container Apps** | Container runtime with built-in ingress, TLS, and auto-scaling |
-| **Cosmos DB** | Session persistence (serverless NoSQL, pay-per-request) |
-| **Azure OpenAI** | LLM inference — GPT-4o (via Agent Framework) |
+| **Cosmos DB** | `AgentSession` persistence (serverless NoSQL, pay-per-request) |
 | **Container Registry** | Docker image storage (Basic SKU) |
 | **Log Analytics** | Application logs (30-day retention) |
-| **Managed Identity** | Passwordless auth from Container App to Cosmos DB |
+| **Managed Identity (system-assigned)** | Passwordless auth from Container App to Cosmos DB and Azure OpenAI |
+
+### Required pre-existing
+
+| Service | Purpose |
+|---------|---------|
+| **Azure OpenAI** (or Azure AI Foundry) | LLM inference for the Agent Framework agent. Pass the account name and endpoint as Bicep parameters; the deployment assigns the container app's MI the `Cognitive Services OpenAI User` role on it. |
 
 ---
 

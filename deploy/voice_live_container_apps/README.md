@@ -14,57 +14,63 @@ Complete guide for deploying Twilio Agent Connect (TAC) with Azure AI Foundry Vo
 ## Overview
 
 This deployment runs a voice-only AI agent using:
-- **Twilio** — Voice communication platform (Conversation Relay)
-- **Azure AI Foundry Voice Live** — Low-latency LLM inference via WebSocket
+- **Twilio** — Voice via ConversationRelay (STT/TTS), plus optional Memory Service / Conversation Orchestrator
+- **Azure AI Foundry Voice Live** — Low-latency LLM inference via WebSocket (pre-existing; not provisioned by this Bicep)
 - **TAC (Twilio Agent Connect)** — Integration middleware
 
-Voice Live manages conversation state server-side. The TAC server acts as a bridge between Twilio's Conversation Relay and Voice Live's WebSocket API, operating in text-only mode (STT/TTS handled by Conversation Relay).
+Voice Live manages conversation state server-side. The TAC server acts as a bridge between Twilio's ConversationRelay and Voice Live's WebSocket API, operating in text-only mode (`modalities: ["text"]`) because ConversationRelay handles STT/TTS.
+
+Memory retrieval is **opt-in** — the sample `voice_live/basic.py` does not enable it. Set `VoiceChannelConfig(auto_retrieve_memory=True)` to have TAC pull from the Memory Service (with fallback to Conversation Orchestrator) before each utterance.
 
 ---
 
 ## Architecture
 
 ```mermaid
-graph TB
-    Customer([Customer<br/>Phone Call])
+graph LR
+    Customer([Customer])
 
-    subgraph Twilio["Twilio Cloud"]
-        Phone[Phone Number<br/>+1-XXX-XXX-XXXX]
-        CRelay[Conversation Relay<br/>STT / TTS]
-        Memory[Memory Service<br/>Profile & Context]
+    subgraph Twilio["Twilio"]
+        CRelay[ConversationRelay]
+        Memory[Memory Service]
     end
 
-    subgraph Azure["Azure Subscription"]
-        CA[Container Apps<br/>TAC Server<br/>0.5 vCPU / 1GB RAM<br/>Port 8000]
-        VoiceLive[Azure AI Foundry<br/>Voice Live<br/>WebSocket API]
-        ACR[Container Registry<br/>Docker Images]
-        Logs[Log Analytics<br/>Application Logs]
+    subgraph Bicep["Azure — provisioned by Bicep"]
+        CA[Container App<br/>TAC Server]
     end
 
-    Customer -->|1. Phone Call| Phone
-    Phone -->|2. Conversation Relay| CRelay
-    CRelay -->|3. WebSocket<br/>Text in/out| CA
-    CA -->|4. WebSocket<br/>Voice Live API| VoiceLive
-    CA -->|5. Retrieve Profile| Memory
-    CA -->|6. Write Logs| Logs
-    VoiceLive -->|7. LLM Response| CA
-    CA -->|8. Text Response| CRelay
-    CRelay -->|9. TTS Audio| Phone
-    Phone -->|10. Response| Customer
+    subgraph Existing["Azure — pre-existing"]
+        VoiceLive[Azure AI Foundry<br/>Voice Live]
+    end
+
+    Customer <--> CRelay
+    CRelay <-->|voice text| CA
+    CA <-->|WebSocket<br/>text-only| VoiceLive
+    CA -.->|optional| Memory
 ```
+
+**Flow:**
+- Twilio Phone receives call → `POST /twiml` → response TwiML contains `<ConversationRelay>` → ConversationRelay handles STT/TTS and opens a WebSocket to `/ws` for bidirectional text.
+- TAC opens a Voice Live WebSocket (text-only mode) per call; Voice Live manages conversation state server-side.
+- Memory retrieval is **opt-in** (`VoiceChannelConfig(auto_retrieve_memory=True)`); disabled in the sample.
 
 ---
 
 ## Azure Services
 
-### Core Services
+### Provisioned by this Bicep
 
 | Service | Purpose |
 |---------|---------|
 | **Container Apps** | Container runtime with built-in ingress, TLS, and auto-scaling |
-| **Azure AI Foundry** | Voice Live — low-latency LLM inference via WebSocket |
 | **Container Registry** | Docker image storage (Basic SKU) |
 | **Log Analytics** | Application logs (30-day retention) |
+
+### Required pre-existing
+
+| Service | Purpose |
+|---------|---------|
+| **Azure AI Foundry** with Voice Live enabled | Low-latency LLM inference via WebSocket. Pass the endpoint and API key as Bicep parameters. |
 
 ---
 
