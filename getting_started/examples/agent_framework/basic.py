@@ -8,6 +8,7 @@ Azure OpenAI Responses API.  Voice and SMS share a single system prompt.
 import truststore
 truststore.inject_into_ssl()
 
+import asyncio
 import os
 
 from agent_framework.azure import AzureOpenAIResponsesClient
@@ -42,7 +43,18 @@ client = AzureOpenAIResponsesClient(
 # ---------------------------------------------------------------------------
 
 tac = TAC(config=TACConfig.from_env())
-knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
+knowledge_base_id = os.environ.get("TWILIO_KNOWLEDGE_BASE_ID")
+
+# Build the knowledge tool once at startup — it doesn't depend on session state.
+knowledge_tool = (
+    asyncio.run(create_knowledge_tool(
+        tac,
+        knowledge_base_id,
+        description="Search the knowledge base for relevant information.",
+    ))
+    if knowledge_base_id
+    else None
+)
 
 
 # ---------------------------------------------------------------------------
@@ -61,13 +73,7 @@ def create_agent(session: ConversationSession):
     ``session`` carries Twilio conversation context: channel type,
     conversation ID, caller/customer profile, and metadata.
     """
-    tools = []
-    if knowledge_base_id:
-        tools.append(create_knowledge_tool(
-            tac,
-            knowledge_base_id=knowledge_base_id,
-            description="Search the knowledge base for relevant information.",
-        ))
+    tools = [t for t in [knowledge_tool] if t]
 
     return client.as_agent(
         name="OwlAgent",

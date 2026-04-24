@@ -42,14 +42,15 @@ All examples load from the shared `getting_started/examples/.env` file.
 
 ```bash
 # Twilio Agent Connect
-TWILIO_TAC_CONVERSATION_CONFIGURATION_ID=conv_configuration_xxxxxxxxxxxxxxxxxx
-TWILIO_TAC_AUTH_TOKEN=your_auth_token
-TWILIO_TAC_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_TAC_API_TOKEN=your_api_key_secret
-TWILIO_TAC_PHONE_NUMBER=+1234567890
+TWILIO_CONVERSATION_CONFIGURATION_ID=conv_configuration_xxxxxxxxxxxxxxxxxx
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_API_SECRET=your_api_key_secret
+TWILIO_PHONE_NUMBER=+1234567890
 
 # Server (required for voice)
-TWILIO_TAC_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
+TWILIO_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 ```
 
 ### Agent Framework — `basic.py` (Azure OpenAI, API key auth)
@@ -114,7 +115,7 @@ For voice calls, you need a publicly accessible URL. Use [ngrok](https://ngrok.c
 ngrok http 8000
 ```
 
-Set `TWILIO_TAC_VOICE_PUBLIC_DOMAIN` in your `.env` to the ngrok hostname (e.g. `abc123.ngrok.io`).
+Set `TWILIO_VOICE_PUBLIC_DOMAIN` in your `.env` to the ngrok hostname (e.g. `abc123.ngrok.io`).
 
 ## Quick Example
 

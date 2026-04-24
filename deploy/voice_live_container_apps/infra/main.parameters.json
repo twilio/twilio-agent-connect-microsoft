@@ -8,20 +8,23 @@
     "location": {
       "value": "${AZURE_LOCATION}"
     },
-    "twilioTacAuthToken": {
-      "value": "${TWILIO_TAC_AUTH_TOKEN}"
+    "twilioAccountSid": {
+      "value": "${TWILIO_ACCOUNT_SID}"
     },
-    "twilioTacApiKey": {
-      "value": "${TWILIO_TAC_API_KEY}"
+    "twilioAuthToken": {
+      "value": "${TWILIO_AUTH_TOKEN}"
     },
-    "twilioTacApiToken": {
-      "value": "${TWILIO_TAC_API_TOKEN}"
+    "twilioApiKey": {
+      "value": "${TWILIO_API_KEY}"
     },
-    "twilioTacPhoneNumber": {
-      "value": "${TWILIO_TAC_PHONE_NUMBER}"
+    "twilioApiSecret": {
+      "value": "${TWILIO_API_SECRET}"
     },
-    "twilioTacConversationConfigurationId": {
-      "value": "${TWILIO_TAC_CONVERSATION_CONFIGURATION_ID}"
+    "twilioPhoneNumber": {
+      "value": "${TWILIO_PHONE_NUMBER}"
+    },
+    "twilioConversationConfigurationId": {
+      "value": "${TWILIO_CONVERSATION_CONFIGURATION_ID}"
     },
     "azureVoiceLiveEndpoint": {
       "value": "${AZURE_VOICE_LIVE_ENDPOINT}"

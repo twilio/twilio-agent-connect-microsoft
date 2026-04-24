@@ -17,29 +17,32 @@ param acrName string
 // Twilio secrets
 // ---------------------------------------------------------------------------
 
+@description('Twilio Account SID.')
+param twilioAccountSid string
+
 @secure()
 @description('Twilio Auth Token.')
-param twilioTacAuthToken string
+param twilioAuthToken string
 
-@description('Twilio API Key.')
-param twilioTacApiKey string
+@description('Twilio API Key SID.')
+param twilioApiKey string
 
 @secure()
-@description('Twilio API Token (secret).')
-param twilioTacApiToken string
+@description('Twilio API Key Secret.')
+param twilioApiSecret string
 
 // ---------------------------------------------------------------------------
 // Twilio config
 // ---------------------------------------------------------------------------
 
 @description('Twilio phone number (E.164 format).')
-param twilioTacPhoneNumber string
+param twilioPhoneNumber string
 
 @description('Twilio Conversation Configuration ID.')
-param twilioTacConversationConfigurationId string
+param twilioConversationConfigurationId string
 
 @description('Public domain for voice WebSocket (e.g. your-app.azurecontainerapps.io).')
-param twilioTacVoicePublicDomain string
+param twilioVoicePublicDomain string
 
 // ---------------------------------------------------------------------------
 // Azure AI config
@@ -63,10 +66,10 @@ param cosmosEndpoint string
 // ---------------------------------------------------------------------------
 
 @description('TAC Knowledge Base ID (optional).')
-param twilioTacKnowledgeBaseId string = ''
+param twilioKnowledgeBaseId string = ''
 
 @description('TAC log level.')
-param twilioTacLogLevel string = 'INFO'
+param twilioLogLevel string = 'INFO'
 
 // ---------------------------------------------------------------------------
 // Log Analytics Workspace
@@ -138,12 +141,12 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
       ]
       secrets: [
         {
-          name: 'twilio-tac-auth-token'
-          value: twilioTacAuthToken
+          name: 'twilio-auth-token'
+          value: twilioAuthToken
         }
         {
-          name: 'twilio-tac-api-token'
-          value: twilioTacApiToken
+          name: 'twilio-api-secret'
+          value: twilioApiSecret
         }
         {
           name: 'acr-password'
@@ -163,37 +166,37 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
           env: [
             // Twilio secrets
             {
-              name: 'TWILIO_TAC_AUTH_TOKEN'
-              secretRef: 'twilio-tac-auth-token'
+              name: 'TWILIO_AUTH_TOKEN'
+              secretRef: 'twilio-auth-token'
             }
             {
-              name: 'TWILIO_TAC_API_TOKEN'
-              secretRef: 'twilio-tac-api-token'
+              name: 'TWILIO_API_SECRET'
+              secretRef: 'twilio-api-secret'
             }
             // Twilio config
             {
-              name: 'TWILIO_TAC_API_KEY'
-              value: twilioTacApiKey
+              name: 'TWILIO_ACCOUNT_SID'
+              value: twilioAccountSid
             }
             {
-              name: 'TWILIO_TAC_PHONE_NUMBER'
-              value: twilioTacPhoneNumber
+              name: 'TWILIO_API_KEY'
+              value: twilioApiKey
             }
             {
-              name: 'TWILIO_TAC_CONVERSATION_CONFIGURATION_ID'
-              value: twilioTacConversationConfigurationId
+              name: 'TWILIO_PHONE_NUMBER'
+              value: twilioPhoneNumber
             }
             {
-              name: 'TWILIO_TAC_VOICE_PUBLIC_DOMAIN'
-              value: twilioTacVoicePublicDomain
+              name: 'TWILIO_CONVERSATION_CONFIGURATION_ID'
+              value: twilioConversationConfigurationId
             }
             {
-              name: 'TWILIO_TAC_ENVIRONMENT'
-              value: 'prod'
+              name: 'TWILIO_VOICE_PUBLIC_DOMAIN'
+              value: twilioVoicePublicDomain
             }
             {
-              name: 'TWILIO_TAC_LOG_LEVEL'
-              value: twilioTacLogLevel
+              name: 'TWILIO_LOG_LEVEL'
+              value: twilioLogLevel
             }
             // Azure OpenAI
             {
@@ -211,8 +214,8 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
             }
             // Optional
             {
-              name: 'TWILIO_TAC_KNOWLEDGE_BASE_ID'
-              value: twilioTacKnowledgeBaseId
+              name: 'TWILIO_KNOWLEDGE_BASE_ID'
+              value: twilioKnowledgeBaseId
             }
           ]
         }

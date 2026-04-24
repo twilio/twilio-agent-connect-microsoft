@@ -66,17 +66,18 @@ hooks:
           --parameters \
             environmentName="$(azd env get-value AZURE_ENV_NAME)" \
             location="$(azd env get-value AZURE_LOCATION)" \
-            twilioTacAuthToken="$(azd env get-value TWILIO_TAC_AUTH_TOKEN)" \
-            twilioTacApiKey="$(azd env get-value TWILIO_TAC_API_KEY)" \
-            twilioTacApiToken="$(azd env get-value TWILIO_TAC_API_TOKEN)" \
-            twilioTacPhoneNumber="$(azd env get-value TWILIO_TAC_PHONE_NUMBER)" \
-            twilioTacConversationConfigurationId="$(azd env get-value TWILIO_TAC_CONVERSATION_CONFIGURATION_ID)" \
+            twilioAccountSid="$(azd env get-value TWILIO_ACCOUNT_SID)" \
+            twilioAuthToken="$(azd env get-value TWILIO_AUTH_TOKEN)" \
+            twilioApiKey="$(azd env get-value TWILIO_API_KEY)" \
+            twilioApiSecret="$(azd env get-value TWILIO_API_SECRET)" \
+            twilioPhoneNumber="$(azd env get-value TWILIO_PHONE_NUMBER)" \
+            twilioConversationConfigurationId="$(azd env get-value TWILIO_CONVERSATION_CONFIGURATION_ID)" \
             azureOpenAiEndpoint="$(azd env get-value AZURE_OPENAI_ENDPOINT)" \
             azureOpenAiDeploymentName="$(azd env get-value AZURE_OPENAI_DEPLOYMENT_NAME)" \
             azureOpenAiAccountName="$(azd env get-value AZURE_OPENAI_ACCOUNT_NAME)" \
             azureOpenAiAccountResourceGroup="$(azd env get-value AZURE_OPENAI_ACCOUNT_RESOURCE_GROUP 2>/dev/null || echo $AZURE_RESOURCE_GROUP)" \
             containerImageName="$ACR_LOGIN_SERVER/tac-agent-framework:latest" \
-            twilioTacVoicePublicDomain="$FQDN"
+            twilioVoicePublicDomain="$FQDN"
 
         echo ""
         echo "==> Deployment complete!"

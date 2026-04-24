@@ -11,29 +11,32 @@ param containerImageName string = ''
 // Twilio secrets
 // ---------------------------------------------------------------------------
 
+@description('Twilio Account SID.')
+param twilioAccountSid string
+
 @secure()
 @description('Twilio Auth Token.')
-param twilioTacAuthToken string
+param twilioAuthToken string
 
-@description('Twilio API Key.')
-param twilioTacApiKey string
+@description('Twilio API Key SID.')
+param twilioApiKey string
 
 @secure()
-@description('Twilio API Token (secret).')
-param twilioTacApiToken string
+@description('Twilio API Key Secret.')
+param twilioApiSecret string
 
 // ---------------------------------------------------------------------------
 // Twilio config
 // ---------------------------------------------------------------------------
 
 @description('Twilio phone number (E.164 format).')
-param twilioTacPhoneNumber string
+param twilioPhoneNumber string
 
 @description('Twilio Conversation Configuration ID.')
-param twilioTacConversationConfigurationId string
+param twilioConversationConfigurationId string
 
 @description('Public domain for voice WebSocket — set to the Container App FQDN after first deploy.')
-param twilioTacVoicePublicDomain string = ''
+param twilioVoicePublicDomain string = ''
 
 // ---------------------------------------------------------------------------
 // Azure AI config
@@ -56,10 +59,10 @@ param azureOpenAiAccountResourceGroup string = resourceGroup().name
 // ---------------------------------------------------------------------------
 
 @description('TAC Knowledge Base ID (optional).')
-param twilioTacKnowledgeBaseId string = ''
+param twilioKnowledgeBaseId string = ''
 
 @description('TAC log level.')
-param twilioTacLogLevel string = 'INFO'
+param twilioLogLevel string = 'INFO'
 
 // ===========================================================================
 // Module: Container Registry
@@ -101,20 +104,21 @@ module app 'container-app.bicep' = {
     acrLoginServer: registry.outputs.loginServer
     acrName: registry.outputs.name
     // Twilio
-    twilioTacAuthToken: twilioTacAuthToken
-    twilioTacApiKey: twilioTacApiKey
-    twilioTacApiToken: twilioTacApiToken
-    twilioTacPhoneNumber: twilioTacPhoneNumber
-    twilioTacConversationConfigurationId: twilioTacConversationConfigurationId
-    twilioTacVoicePublicDomain: !empty(twilioTacVoicePublicDomain) ? twilioTacVoicePublicDomain : 'placeholder.azurecontainerapps.io'
+    twilioAccountSid: twilioAccountSid
+    twilioAuthToken: twilioAuthToken
+    twilioApiKey: twilioApiKey
+    twilioApiSecret: twilioApiSecret
+    twilioPhoneNumber: twilioPhoneNumber
+    twilioConversationConfigurationId: twilioConversationConfigurationId
+    twilioVoicePublicDomain: !empty(twilioVoicePublicDomain) ? twilioVoicePublicDomain : 'placeholder.azurecontainerapps.io'
     // Azure AI
     azureOpenAiEndpoint: azureOpenAiEndpoint
     azureOpenAiDeploymentName: azureOpenAiDeploymentName
     // Cosmos
     cosmosEndpoint: cosmos.outputs.endpoint
     // Optional
-    twilioTacKnowledgeBaseId: twilioTacKnowledgeBaseId
-    twilioTacLogLevel: twilioTacLogLevel
+    twilioKnowledgeBaseId: twilioKnowledgeBaseId
+    twilioLogLevel: twilioLogLevel
   }
 }
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 import truststore
 truststore.inject_into_ssl()
 
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -37,7 +38,7 @@ from tac_azure import (
     SMSChannelConfig,
     format_memory_context,
 )
-from tac_azure.agent_framework_tools import create_knowledge_tool, create_memory_recall_tool
+from tac_azure.agent_framework_tools import create_knowledge_tool, create_memory_tool
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -81,7 +82,18 @@ def look_up_outage_tool(zip_code: str) -> str:
 # ---------------------------------------------------------------------------
 
 tac = TAC(config=TACConfig.from_env())
-knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
+knowledge_base_id = os.environ.get("TWILIO_KNOWLEDGE_BASE_ID")
+
+# Build the knowledge tool once at startup — it doesn't depend on session state.
+knowledge_tool = (
+    asyncio.run(create_knowledge_tool(
+        tac,
+        knowledge_base_id,
+        description="Search the knowledge base for relevant information.",
+    ))
+    if knowledge_base_id
+    else None
+)
 
 # ---------------------------------------------------------------------------
 # Agent factory — called once per voice call, once per SMS message
@@ -91,13 +103,7 @@ knowledge_base_id = os.environ.get("TWILIO_TAC_KNOWLEDGE_BASE_ID")
 def create_agent(session: ConversationSession):
     prompt = VOICE_SYSTEM_PROMPT if session.channel == "voice" else SMS_SYSTEM_PROMPT
 
-    tools = [create_memory_recall_tool(tac, session), look_up_outage_tool]
-    if knowledge_base_id:
-        tools.append(create_knowledge_tool(
-            tac,
-            knowledge_base_id=knowledge_base_id,
-            description="Search the knowledge base for relevant information.",
-        ))
+    tools = [create_memory_tool(tac, session), look_up_outage_tool, knowledge_tool]
 
     return client.as_agent(
         name="OwlAgent",

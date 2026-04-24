@@ -6,13 +6,13 @@ to :class:`VoiceLiveConfig` — no conversion step needed.
 Usage::
 
     from tac_azure.voice_live_tools import (
-        create_memory_recall_tool,
+        create_memory_tool,
         create_knowledge_tool,
     )
 
     tools = [
-        create_memory_recall_tool(tac, session),
-        create_knowledge_tool(tac, kb_id, description="..."),
+        create_memory_tool(tac, session),
+        await create_knowledge_tool(tac, kb_id),
         my_custom_tac_tool,  # TACTool from @function_tool
     ]
 
@@ -21,23 +21,20 @@ Usage::
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from . import _tool_factories
 from ._tool_factories import KnowledgeBaseInfo, fetch_knowledge_base_info
 
 if TYPE_CHECKING:
     from tac import TAC
-    from tac.context.memory import MemoryClient
-    from tac.core.config import TACConfig
     from tac.models.session import ConversationSession
     from tac.tools.base import TACTool
 
 __all__ = [
-    "create_memory_recall_tool",
+    "create_memory_tool",
     "create_knowledge_tool",
-    "create_flex_escalation_tool",
-    "create_messaging_tool",
+    "create_handoff_tool",
     "KnowledgeBaseInfo",
     "fetch_knowledge_base_info",
 ]
@@ -47,41 +44,51 @@ __all__ = [
 # Tool factories (return TACTool)
 # ------------------------------------------------------------------
 
-def create_memory_recall_tool(
+def create_memory_tool(
     tac: TAC,
     session: ConversationSession,
+    *,
+    name: str | None = None,
+    description: str | None = None,
 ) -> TACTool | None:
-    """Create a memory recall TACTool for Voice Live.
+    """Create a memory TACTool for Voice Live.
 
     Returns ``None`` if prerequisites are not met.
     """
-    return _tool_factories.create_memory_recall_tool(tac, session)
-
-
-def create_knowledge_tool(
-    tac: TAC,
-    knowledge_base_id: str,
-    description: str,
-    name: str = "search_knowledge_base",
-    top_k: int = 5,
-) -> TACTool:
-    """Create a knowledge base search TACTool for Voice Live."""
-    return _tool_factories.create_knowledge_tool(
-        tac, knowledge_base_id, description, name, top_k,
+    return _tool_factories.create_memory_tool(
+        tac, session, name=name, description=description,
     )
 
 
-def create_flex_escalation_tool(
-    memory_client: MemoryClient,
-    config: TACConfig,
+async def create_knowledge_tool(
+    tac: TAC,
+    knowledge_base_id: str,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+    top_k: int = 5,
 ) -> TACTool:
-    """Create a Flex escalation TACTool for Voice Live."""
-    return _tool_factories.create_flex_escalation_tool(memory_client, config)
+    """Create a knowledge base search TACTool for Voice Live.
+
+    If ``name`` or ``description`` is omitted, fetches the knowledge base
+    metadata to derive defaults.
+    """
+    return await _tool_factories.create_knowledge_tool(
+        tac,
+        knowledge_base_id,
+        name=name,
+        description=description,
+        top_k=top_k,
+    )
 
 
-def create_messaging_tool(
-    memory_client: MemoryClient,
-    config: TACConfig,
+def create_handoff_tool(
+    tac: TAC,
+    session: ConversationSession,
+    attributes: dict[str, Any] | None = None,
 ) -> TACTool:
-    """Create a messaging TACTool for Voice Live."""
-    return _tool_factories.create_messaging_tool(memory_client, config)
+    """Create a Studio handoff TACTool for Voice Live.
+
+    Requires ``tac.config.studio_handoff_flow_sid`` to be set.
+    """
+    return _tool_factories.create_handoff_tool(tac, session, attributes)
