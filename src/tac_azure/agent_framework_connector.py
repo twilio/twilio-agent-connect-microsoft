@@ -7,8 +7,9 @@ Agent Framework.  HTTP/WebSocket routing is delegated to ``TACFastAPIServer`` fr
 
 Key design:
 - ``create_agent`` factory returns an Agent Framework ``Agent``
-- Voice and SMS channel instances are exposed as ``voice_channel`` / ``sms_channel``
-  — pass whichever you need to ``TACFastAPIServer`` to wire up routing
+- Voice, SMS, and chat channel instances are exposed as ``voice_channel`` /
+  ``sms_channel`` / ``chat_channel`` — pass whichever you need to
+  ``TACFastAPIServer`` to wire up routing
 
 Conversation history:
 - The bridge passes an ``AgentSession`` to every ``agent.run()`` call so
@@ -19,10 +20,11 @@ Conversation history:
   to the ``AgentSessionStore`` in the background (fire-and-forget) after each
   utterance and on disconnect, enabling auditing and persistence of
   Foundry thread IDs without impacting voice latency.
-- SMS: an ``AgentSessionStore`` persists the ``AgentSession`` between messages.
-  Before each ``agent.run()``, the bridge loads the session from the store
-  (or creates a new one); after the run it saves the session back.  This
-  enables conversation continuity across messages for all provider types:
+- SMS/chat: an ``AgentSessionStore`` persists the ``AgentSession`` between
+  messages.  Before each ``agent.run()``, the bridge loads the session from
+  the store (or creates a new one); after the run it saves the session
+  back.  This enables conversation continuity across messages for all
+  provider types:
     - Foundry Agent Service: the server-side ``thread_id`` (stored as
       ``session.service_session_id``) is preserved so subsequent messages
       reuse the same thread.
@@ -41,6 +43,8 @@ from typing import TYPE_CHECKING, Any
 
 from agent_framework import Agent, AgentSession
 from tac.session import ThreadSafeSessionManager
+from tac.channels.chat import ChatChannel, ChatChannelConfig
+from tac.channels.messaging import MessagingChannel
 from tac.channels.sms import SMSChannel, SMSChannelConfig
 from tac.channels.voice import VoiceChannel, VoiceChannelConfig
 from tac.core.logging import get_logger
@@ -58,19 +62,20 @@ logger = get_logger(__name__)
 
 class AgentFrameworkConnector:
     """
-    Bridge for Twilio channels (Voice and SMS) with Agent Framework agents.
+    Bridge for Twilio channels (Voice, SMS, Chat) with Agent Framework agents.
 
-    Both voice and SMS flows are fully managed internally.  The developer
+    All three channel flows are fully managed internally.  The developer
     supplies a ``create_agent`` factory and, optionally, hooks for message
     augmentation and error handling.  HTTP/WebSocket routing is handled
-    by ``TACFastAPIServer`` — pass ``voice_channel`` and/or ``sms_channel`` to it
-    to control which channels are active.
+    by ``TACFastAPIServer`` — pass ``voice_channel`` and/or messaging channels
+    (``sms_channel`` / ``chat_channel``) to it to control which channels are
+    active.
 
     Conversation history is managed via Agent Framework's ``AgentSession``.
     For voice, the agent and session persist in-memory for the duration of
     the WebSocket call, with background saves to the ``AgentSessionStore`` after
-    each utterance for persistence/auditing.  For SMS, the session is loaded
-    from and saved to the ``AgentSessionStore`` on every message.
+    each utterance for persistence/auditing.  For SMS and chat, the session
+    is loaded from and saved to the ``AgentSessionStore`` on every message.
 
     Lifecycle callbacks (``on_conversation_ended``, ``on_interrupt``) are
     wired automatically to handle voice agent cleanup and logging.
@@ -91,6 +96,9 @@ class AgentFrameworkConnector:
         sms_config: Optional SMS channel configuration
             (``SMSChannelConfig`` or dict).  Controls auto memory
             retrieval, deduplication capacity, etc.
+        chat_config: Optional Chat channel configuration
+            (``ChatChannelConfig`` or dict).  Controls agent identity,
+            auto memory retrieval, deduplication capacity, etc.
         session_store: Persistence layer for ``AgentSession`` objects.
             Used for SMS session continuity across messages and for
             background persistence of voice sessions (auditing, Foundry
@@ -115,6 +123,7 @@ class AgentFrameworkConnector:
         ) = None,
         voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
         sms_config: SMSChannelConfig | dict[str, Any] | None = None,
+        chat_config: ChatChannelConfig | dict[str, Any] | None = None,
         session_store: AgentSessionStore | None = None,
     ):
         self.tac = tac
@@ -149,6 +158,9 @@ class AgentFrameworkConnector:
         # -- SMS channel ------------------------------------------------------
         self.sms_channel = SMSChannel(tac=self.tac, config=sms_config)
 
+        # -- Chat channel -----------------------------------------------------
+        self.chat_channel = ChatChannel(tac=self.tac, config=chat_config)
+
         # -- TAC callbacks ----------------------------------------------------
         self.tac.on_message_ready(self._handle_message)
         self.tac.on_conversation_ended(self._handle_conversation_ended)
@@ -171,10 +183,10 @@ class AgentFrameworkConnector:
         Dispatches to the appropriate channel handler based on
         ``context.channel``.
         """
-        if context.channel == "sms":
-            await self._handle_sms_message(user_message, context, memory_response)
-        elif context.channel == "voice":
+        if context.channel == "voice":
             await self._handle_voice_message(user_message, context, memory_response)
+        elif context.channel in ("sms", "chat"):
+            await self._handle_messaging_message(user_message, context, memory_response)
         else:
             logger.warning(
                 "Unknown channel in _handle_message",
@@ -264,16 +276,24 @@ class AgentFrameworkConnector:
         )
 
     # -------------------------------------------------------------------------
-    # Internal SMS handler
+    # Internal messaging handler (SMS + chat)
     # -------------------------------------------------------------------------
 
-    async def _handle_sms_message(
+    def _get_messaging_channel(self, channel: str) -> MessagingChannel:
+        """Return the messaging channel instance for the given channel name."""
+        if channel == "sms":
+            return self.sms_channel
+        if channel == "chat":
+            return self.chat_channel
+        raise ValueError(f"Unsupported messaging channel: {channel}")
+
+    async def _handle_messaging_message(
         self,
         user_message: str,
         context: ConversationSession,
         memory_response: TACMemoryResponse | None,
     ) -> None:
-        """Internal callback registered with ``tac.on_message_ready()``.
+        """Handle an inbound SMS or chat message.
 
         Creates an agent, restores the ``AgentSession`` from the session
         store (or creates a new one), runs the agent, and persists the
@@ -281,9 +301,7 @@ class AgentFrameworkConnector:
         across messages for all provider types (Foundry threads, Responses
         API history, etc.).
         """
-        if not context or context.channel != "sms":
-            return
-
+        channel = self._get_messaging_channel(context.channel)
         message = self._build_message(user_message, context, memory_response)
 
         # Restore session from store (preserves Foundry thread_id,
@@ -295,17 +313,17 @@ class AgentFrameworkConnector:
         try:
             agent = self.create_agent(context)
             result = await agent.run(message, session=af_session)
-            await self.sms_channel.send_response(
+            await channel.send_response(
                 context.conversation_id, result.text, role="assistant"
             )
         except Exception as e:
             logger.error(
-                "Error processing SMS message",
+                "Error processing messaging message",
                 conversation_id=context.conversation_id,
-                channel="sms",
+                channel=context.channel,
                 exc_info=True,
             )
-            await self.sms_channel.send_response(
+            await channel.send_response(
                 context.conversation_id,
                 self._get_error_response(e, context),
                 role="assistant",

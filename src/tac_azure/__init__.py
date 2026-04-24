@@ -8,6 +8,7 @@ import from a single namespace::
 
 # Re-export all public symbols from core TAC (TAC, TACConfig, get_logger, TwiMLOptions, etc.)
 from tac import *  # noqa: F401,F403
+from tac.channels.chat import ChatChannelConfig
 from tac.channels.sms import SMSChannelConfig
 from tac.channels.voice import VoiceChannelConfig
 from tac.models.session import ConversationSession
@@ -72,6 +73,7 @@ __all__ = [
     "ConversationSession",
     "VoiceChannelConfig",
     "SMSChannelConfig",
+    "ChatChannelConfig",
     "get_logger",
     # Connectors
     "AgentFrameworkConnector",
