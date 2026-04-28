@@ -42,16 +42,18 @@ from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING, Any
 
 from agent_framework import Agent, AgentSession
-from tac.session import ThreadSafeSessionManager
+from tac import PartnerConnector
 from tac.channels.chat import ChatChannel, ChatChannelConfig
 from tac.channels.messaging import MessagingChannel
 from tac.channels.sms import SMSChannel, SMSChannelConfig
 from tac.channels.voice import VoiceChannel, VoiceChannelConfig
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
+from tac.session import ThreadSafeSessionManager
 
-from .stores.in_memory import InMemoryAgentSessionStore
+from ._version import __version__ as _tac_azure_version
 from .agent_framework_types import AgentSessionStore
+from .stores.in_memory import InMemoryAgentSessionStore
 from .utils import format_memory_context
 
 if TYPE_CHECKING:
@@ -118,15 +120,16 @@ class AgentFrameworkConnector:
             ]
             | None
         ) = None,
-        on_error: (
-            Callable[[Exception, ConversationSession], str] | None
-        ) = None,
+        on_error: (Callable[[Exception, ConversationSession], str] | None) = None,
         voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
         sms_config: SMSChannelConfig | dict[str, Any] | None = None,
         chat_config: ChatChannelConfig | dict[str, Any] | None = None,
         session_store: AgentSessionStore | None = None,
     ):
         self.tac = tac
+        self.tac.register_partner_connector(
+            PartnerConnector.AZURE_AGENT_FRAMEWORK, _tac_azure_version
+        )
         self.create_agent = create_agent
         self.on_message = on_message
         self.on_error = on_error
@@ -141,17 +144,13 @@ class AgentFrameworkConnector:
 
         # Merge session_manager into voice config
         if isinstance(voice_config, dict):
-            voice_config = VoiceChannelConfig(
-                session_manager=self._session_manager, **voice_config
-            )
+            voice_config = VoiceChannelConfig(session_manager=self._session_manager, **voice_config)
         elif voice_config is not None:
             voice_config = voice_config.model_copy(
                 update={"session_manager": self._session_manager}
             )
         else:
-            voice_config = VoiceChannelConfig(
-                session_manager=self._session_manager
-            )
+            voice_config = VoiceChannelConfig(session_manager=self._session_manager)
 
         self.voice_channel = VoiceChannel(tac=self.tac, config=voice_config)
 
@@ -242,9 +241,7 @@ class AgentFrameworkConnector:
             return self.on_message(user_message, context, memory_response)
         return format_memory_context(memory_response, user_message)
 
-    def _get_error_response(
-        self, error: Exception, context: ConversationSession
-    ) -> str:
+    def _get_error_response(self, error: Exception, context: ConversationSession) -> str:
         """Get error response message.
 
         Uses ``on_error`` hook if set, otherwise returns a default message.
@@ -313,9 +310,7 @@ class AgentFrameworkConnector:
         try:
             agent = self.create_agent(context)
             result = await agent.run(message, session=af_session)
-            await channel.send_response(
-                context.conversation_id, result.text, role="assistant"
-            )
+            await channel.send_response(context.conversation_id, result.text, role="assistant")
         except Exception as e:
             logger.error(
                 "Error processing messaging message",
@@ -418,18 +413,14 @@ class AgentFrameworkConnector:
         WebSocket call so history accumulates across utterances.
         """
         if conversation_id not in self._voice_sessions:
-            self._voice_sessions[conversation_id] = AgentSession(
-                session_id=conversation_id
-            )
+            self._voice_sessions[conversation_id] = AgentSession(session_id=conversation_id)
             logger.info(
                 "Created new voice AgentSession",
                 conversation_id=conversation_id,
             )
         return self._voice_sessions[conversation_id]
 
-    def _background_save_session(
-        self, session_id: str, session: AgentSession
-    ) -> None:
+    def _background_save_session(self, session_id: str, session: AgentSession) -> None:
         """Fire-and-forget save of a session to the store.
 
         Does not block the calling coroutine.  Errors are logged but
@@ -458,9 +449,7 @@ class AgentFrameworkConnector:
                 conversation_id=conversation_id,
             )
         else:
-            logger.warning(
-                "No voice agent found to cleanup", conversation_id=conversation_id
-            )
+            logger.warning("No voice agent found to cleanup", conversation_id=conversation_id)
         if af_session:
             # Final persist to session store before discarding.
             self._background_save_session(conversation_id, af_session)

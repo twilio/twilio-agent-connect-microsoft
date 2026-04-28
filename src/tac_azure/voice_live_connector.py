@@ -24,11 +24,13 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator, Callable
 from typing import TYPE_CHECKING, Any
 
-from tac.session import ThreadSafeSessionManager
+from tac import PartnerConnector
 from tac.channels.voice import VoiceChannel, VoiceChannelConfig
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
+from tac.session import ThreadSafeSessionManager
 
+from ._version import __version__ as _tac_azure_version
 from .utils import format_memory_context
 from .voice_live_session import VoiceLiveSession
 from .voice_live_types import VoiceLiveConfig
@@ -73,12 +75,11 @@ class VoiceLiveConnector:
             ]
             | None
         ) = None,
-        on_error: (
-            Callable[[Exception, ConversationSession], str] | None
-        ) = None,
+        on_error: (Callable[[Exception, ConversationSession], str] | None) = None,
         voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
     ):
         self.tac = tac
+        self.tac.register_partner_connector(PartnerConnector.AZURE_VOICE_LIVE, _tac_azure_version)
         self.config = config
         self.on_message = on_message
         self.on_error = on_error
@@ -90,17 +91,13 @@ class VoiceLiveConnector:
         self._session_manager = ThreadSafeSessionManager()
 
         if isinstance(voice_config, dict):
-            voice_config = VoiceChannelConfig(
-                session_manager=self._session_manager, **voice_config
-            )
+            voice_config = VoiceChannelConfig(session_manager=self._session_manager, **voice_config)
         elif voice_config is not None:
             voice_config = voice_config.model_copy(
                 update={"session_manager": self._session_manager}
             )
         else:
-            voice_config = VoiceChannelConfig(
-                session_manager=self._session_manager
-            )
+            voice_config = VoiceChannelConfig(session_manager=self._session_manager)
 
         self.voice_channel = VoiceChannel(tac=self.tac, config=voice_config)
 
@@ -135,9 +132,7 @@ class VoiceLiveConnector:
     # Lifecycle callbacks
     # ------------------------------------------------------------------
 
-    async def _handle_conversation_ended(
-        self, context: ConversationSession
-    ) -> None:
+    async def _handle_conversation_ended(self, context: ConversationSession) -> None:
         """Close and clean up the Voice Live session when a call ends."""
         if context.channel == "voice":
             await self._cleanup_voice_session(context.conversation_id)
@@ -175,9 +170,7 @@ class VoiceLiveConnector:
             return self.on_message(user_message, context, memory_response)
         return format_memory_context(memory_response, user_message)
 
-    def _get_error_response(
-        self, error: Exception, context: ConversationSession
-    ) -> str:
+    def _get_error_response(self, error: Exception, context: ConversationSession) -> str:
         """Get error response message."""
         if self.on_error is not None:
             try:
@@ -257,9 +250,7 @@ class VoiceLiveConnector:
     # Session lifecycle
     # ------------------------------------------------------------------
 
-    async def _get_or_create_voice_session(
-        self, conversation_id: str
-    ) -> VoiceLiveSession:
+    async def _get_or_create_voice_session(self, conversation_id: str) -> VoiceLiveSession:
         """Get an existing session or create and configure a new one."""
         if conversation_id not in self._voice_sessions:
             logger.info(
