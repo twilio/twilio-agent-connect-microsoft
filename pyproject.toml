@@ -22,7 +22,7 @@ classifiers = [
 
 dependencies = [
     # Core TAC from GitHub
-    "twilio-agent-connect @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@10bd99c",
+    "twilio-agent-connect @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@a79515d11dd04e61e34036f781f3f2aad0ee0beb",
     "pydantic>=2.0.0",
     "python-dotenv",
     "truststore>=0.10.4",
@@ -31,7 +31,7 @@ dependencies = [
 [project.optional-dependencies]
 # FastAPI-based TAC Server (uses TAC core's server extras)
 server = [
-    "twilio-agent-connect[server] @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@10bd99c",
+    "twilio-agent-connect[server] @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@a79515d11dd04e61e34036f781f3f2aad0ee0beb",
 ]
 
 # Microsoft Agent Framework connector
@@ -60,7 +60,7 @@ dev = [
     "azure-cosmos>=4.7.0",
     "websockets>=13.0",
     # Server dependencies (via TAC core)
-    "twilio-agent-connect[server] @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@10bd99c",
+    "twilio-agent-connect[server] @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@a79515d11dd04e61e34036f781f3f2aad0ee0beb",
     # Dev tools
     "ruff>=0.8.0,<1",
     "mypy>=1.0.0,<2",

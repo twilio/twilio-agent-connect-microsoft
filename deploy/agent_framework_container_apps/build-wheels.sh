@@ -42,7 +42,7 @@ TAC_AZURE_REPO="https://github.com/twilio-innovation/azure-twilio-agent-connect-
 TAC_AZURE_COMMIT="096786c"
 
 TAC_REPO="https://github.com/twilio-innovation/twilio-agent-connect-python.git"
-TAC_COMMIT="10bd99c"
+TAC_COMMIT="a79515d11dd04e61e34036f781f3f2aad0ee0beb"
 
 WHEELS_DIR="$(pwd)/wheels"
 BUILD_DIR="/tmp/tac-wheels-build"
