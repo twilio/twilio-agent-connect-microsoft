@@ -66,6 +66,7 @@ TWILIO_PHONE_NUMBER=+1234567890
 TWILIO_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 
 # Azure OpenAI — Agent Framework basic example (API key auth)
+# Endpoint is the resource base URL only — no /openai/v1 suffix.
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_AI_API_KEY=your_azure_openai_api_key
 AZURE_AI_DEPLOYMENT_NAME=gpt-4o

@@ -55,6 +55,8 @@ TWILIO_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io
 
 ### Agent Framework — `basic.py` (Azure OpenAI, API key auth)
 
+`AZURE_OPENAI_ENDPOINT` must be the resource base URL only — strip any `/openai/v1` suffix (the Foundry portal sometimes shows the longer form).
+
 ```bash
 AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_AI_API_KEY=your_azure_openai_api_key
