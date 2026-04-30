@@ -85,6 +85,6 @@ hooks:
         echo ""
         echo "Next step: Configure Twilio webhooks:"
         echo "    Voice: https://$FQDN/twiml"
-        echo "    SMS:   https://$FQDN/webhook"
+        echo "    Conversation Orchestrator: https://$FQDN/webhook"
       interactive: true
       continueOnError: false
