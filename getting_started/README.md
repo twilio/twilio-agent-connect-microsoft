@@ -23,7 +23,7 @@ pip install tac-azure[voice-live,server]
 ### Development (from source)
 
 ```bash
-git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python.git
+git clone https://github.com/twilio/azure-twilio-agent-connect-python.git
 cd azure-twilio-agent-connect-python
 uv sync --all-extras
 ```
@@ -61,12 +61,12 @@ AZURE_AI_API_KEY=your_azure_openai_api_key
 AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 ```
 
-### Agent Framework — `advanced.py` (Azure AI Foundry, Entra ID auth)
+### Agent Framework — `advanced.py` (Azure OpenAI, Entra ID auth)
 
 Uses `DefaultAzureCredential` — run `az login` first.
 
 ```bash
-AZURE_AI_PROJECT_ENDPOINT=https://your-project.services.ai.azure.com/
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 # AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 ```
 
@@ -122,7 +122,7 @@ Set `TWILIO_VOICE_PUBLIC_DOMAIN` in your `.env` to the ngrok hostname (e.g. `abc
 ```python
 import os
 
-from agent_framework.azure import AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
@@ -136,10 +136,10 @@ load_dotenv()
 tac = TAC(config=TACConfig.from_env())
 
 credential = DefaultAzureCredential()
-client = AzureOpenAIResponsesClient(
+client = OpenAIChatClient(
     credential=credential,
-    project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    deployment_name="gpt-4o",
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    model="gpt-4o",
 )
 
 def create_agent(session: ConversationSession):

@@ -3,7 +3,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio-innovation/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
+Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
 
 ## Features
 
@@ -38,7 +38,7 @@ pip install tac-azure[voice-live,server]
 ### Development
 
 ```bash
-git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python.git
+git clone https://github.com/twilio/azure-twilio-agent-connect-python.git
 cd azure-twilio-agent-connect-python
 uv sync --all-extras
 ```
@@ -49,7 +49,7 @@ Before running any examples, you need to create and configure the required Twili
 
 ## Configuration
 
-TAC Azure requires TAC environment variables. See [TAC Configuration](https://github.com/twilio-innovation/twilio-agent-connect-python#configuration) for details.
+TAC Azure requires TAC environment variables. See [TAC Configuration](https://github.com/twilio/twilio-agent-connect-python#configuration) for details.
 
 ### Required Environment Variables
 
@@ -70,8 +70,8 @@ AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
 AZURE_AI_API_KEY=your_azure_openai_api_key
 AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 
-# Azure AI Foundry — Agent Framework advanced example (Entra ID auth via `az login`)
-# AZURE_AI_PROJECT_ENDPOINT=https://your-project.services.ai.azure.com/
+# Agent Framework advanced example uses the same AZURE_OPENAI_ENDPOINT as basic,
+# but authenticates via `DefaultAzureCredential` (run `az login` first) instead of an API key.
 
 # Azure AI Voice Live — voice_live example (hostname only, no https:// prefix)
 # AZURE_VOICE_LIVE_ENDPOINT=your-resource.services.ai.azure.com
@@ -120,7 +120,7 @@ Implement the protocol to use any other backing store (Redis, DynamoDB, Postgres
 
 ```bash
 # Clone repository
-git clone https://github.com/twilio-innovation/azure-twilio-agent-connect-python.git
+git clone https://github.com/twilio/azure-twilio-agent-connect-python.git
 cd azure-twilio-agent-connect-python
 
 # Install dependencies
@@ -134,7 +134,7 @@ See [`getting_started/README.md`](getting_started/README.md) for the full setup 
 ## Dependencies
 
 TAC Azure depends on:
-- **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio-innovation/twilio-agent-connect-python) framework (installed from GitHub)
+- **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio/twilio-agent-connect-python) framework (installed from GitHub)
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
 - **agent-framework** (optional) - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **websockets** (optional) - For Voice Live connector
