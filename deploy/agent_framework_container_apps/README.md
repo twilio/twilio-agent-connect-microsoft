@@ -120,15 +120,19 @@ Edit `.env` and fill in your Twilio and Azure credentials.
 
 ```bash
 azd env new my-tac-agent
+azd env set --file .env
 azd up
 ```
 
+`azd env set --file .env` loads your `.env` into the azd environment so `azd up`
+can resolve every Bicep parameter without prompting. Omit it only if you're
+happy answering the prompts on first run.
+
 This automatically:
-1. Imports your `.env` values
-2. Builds Python wheels for private dependencies
-3. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
-4. Builds and pushes the Docker image to ACR
-5. Configures the Container App with the image and FQDN
+1. Builds Python wheels for private dependencies
+2. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
+3. Builds and pushes the Docker image to ACR
+4. Configures the Container App with the image and FQDN
 
 ### Step 3: Configure Twilio Webhooks
 
