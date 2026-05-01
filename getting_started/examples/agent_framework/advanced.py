@@ -23,7 +23,7 @@ import logging
 import os
 from pathlib import Path
 
-from agent_framework.azure import AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
@@ -49,10 +49,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 credential = DefaultAzureCredential()
-client = AzureOpenAIResponsesClient(
+client = OpenAIChatClient(
     credential=credential,
-    project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-    deployment_name=os.environ.get("AZURE_AI_DEPLOYMENT_NAME", "gpt-4o"),
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    model=os.environ.get("AZURE_AI_DEPLOYMENT_NAME", "gpt-4o"),
 )
 
 # ---------------------------------------------------------------------------

@@ -11,7 +11,7 @@ truststore.inject_into_ssl()
 import asyncio
 import os
 
-from agent_framework.azure import AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -31,10 +31,10 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 # Azure AI client
 # ---------------------------------------------------------------------------
 
-client = AzureOpenAIResponsesClient(
-    endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+client = OpenAIChatClient(
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
     api_key=os.environ["AZURE_AI_API_KEY"],
-    deployment_name=os.environ.get("AZURE_AI_DEPLOYMENT_NAME"),
+    model=os.environ.get("AZURE_AI_DEPLOYMENT_NAME"),
 )
 
 

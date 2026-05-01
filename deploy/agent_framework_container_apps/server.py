@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 
-from agent_framework.azure import AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 
 from tac_azure import (
@@ -30,10 +30,10 @@ from tac_azure import (
 # ---------------------------------------------------------------------------
 
 credential = DefaultAzureCredential()
-client = AzureOpenAIResponsesClient(
+client = OpenAIChatClient(
     credential=credential,
-    endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-    deployment_name=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+    model=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
 )
 
 # ---------------------------------------------------------------------------

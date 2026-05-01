@@ -10,16 +10,71 @@ TAC Azure is an open-source library providing Azure-specific integrations for Tw
 
 ## Understanding TAC and Twilio Platform Services
 
-TAC (Twilio Agent Connect) is middleware that integrates with several Twilio platform services (Conversation Orchestrator, Conversation Memory, Conversation Intelligence, Knowledge) to enable context-aware AI agents.
+TAC (Twilio Agent Connect) is middleware that integrates with several Twilio platform services to enable context-aware AI agents. Understanding these services is essential for using TAC Azure effectively.
 
-For a full rundown of how each Twilio service works and how TAC plugs into them, see the [TAC AWS CLAUDE.md](https://github.com/twilio-innovation/aws-twilio-agent-connect-python/blob/main/CLAUDE.md#understanding-tac-and-twilio-platform-services) — it's the same platform, just with AWS connectors swapped for Azure ones.
+### Conversation Orchestrator
 
-### How TAC Azure uses Twilio services
+**What it is**: Conversation Orchestrator organizes your voice calls, SMS messages, and WhatsApp messages into conversations. It observes traffic from your Twilio account, links it to customer profiles, and makes it available for AI agents and analytics.
 
-- **Conversation Orchestrator** — routes messages/calls to `AgentFrameworkConnector` or `VoiceLiveConnector`; `conversation_id` becomes the session identifier for the Azure agent runtime (Agent Framework `AgentSession`, Voice Live WebSocket session).
-- **Conversation Memory** — auto-retrieved via `MemoryClient`; memory context is injected into the user message through `format_memory_context()` or a custom `on_message` hook. `auto_retrieve_memory` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` toggles this.
-- **Conversation Intelligence** — not directly invoked by connectors; benefits show up automatically as the CI pipeline writes observations/summaries back into Memory.
-- **Knowledge** — exposed via `create_knowledge_tool()` in both `agent_framework_tools` and `voice_live_tools`.
+**How TAC uses it**: TAC initializes a `ConversationClient` that interacts with Conversation Orchestrator APIs to:
+- Create and manage conversations
+- Track participants across channels
+- List conversation history (communications)
+- Link channel IDs (call IDs, message IDs) to conversations
+- Retrieve conversation configuration (including memory store ID)
+
+**In TAC Azure**: Connectors use TAC's conversation management to route messages to the appropriate agent instance per conversation. The `conversation_id` from Orchestrator becomes the session identifier for Azure agent runtimes (Agent Framework `AgentSession`, Voice Live WebSocket session).
+
+### Conversation Memory
+
+**What it is**: Conversation Memory provides agents with real-time, contextual data about customers. It stores and retrieves key facts, conversation history, preferences, and insights across different channels. This allows agents to build on previous conversations rather than treating every interaction as isolated.
+
+**Key capabilities**:
+- **Observations**: Facts and preferences extracted from conversations (e.g., "prefers window seats", "allergic to peanuts")
+- **Summaries**: Conversation summaries that provide quick context
+- **Sessions**: Historical session data
+- **Profile lookup**: Find customer profiles by phone/email
+
+**How TAC uses it**: TAC initializes a `MemoryClient` (using the memory_store_id from Conversation Orchestrator configuration) that:
+- Retrieves memories via `retrieve_memory()` with optional semantic search
+- Looks up profiles by phone/email when profile_id isn't available
+- Provides memory context to your agent callback via `TACMemoryResponse`
+- Falls back to Conversation Orchestrator's communication history if Memory API fails
+
+**In TAC Azure**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `auto_retrieve_memory` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` toggles this behavior.
+
+### Conversation Intelligence
+
+**What it is**: Conversation Intelligence analyzes conversations using language operators to extract insights, detect sentiment, generate summaries, and more. It processes conversations asynchronously and sends results via webhooks.
+
+**How TAC uses it**: TAC includes an `OperatorResultProcessor` that:
+- Processes Conversation Intelligence webhook events
+- Filters events by configuration ID and operator SID
+- Automatically creates observations or summaries in Conversation Memory based on CI results
+- Handles multiple operator results per event
+
+**In TAC Azure**: `TACFastAPIServer` provides an optional `/ci-webhook` endpoint for receiving Conversation Intelligence events. Connectors don't directly interact with CI, but they benefit from the observations and summaries that CI writes back into Memory.
+
+### Knowledge
+
+**What it is**: Knowledge provides semantic search capabilities over knowledge bases (FAQs, product documentation, company policies, etc.). It enables agents to ground responses in authoritative source material.
+
+**How TAC uses it**: TAC optionally initializes a `KnowledgeClient` that:
+- Searches knowledge bases with semantic queries
+- Returns relevant chunks with relevance scores
+- Provides a `create_knowledge_tool()` for LLM function calling
+
+**In TAC Azure**: Knowledge search is exposed via `create_knowledge_tool()` in both `agent_framework_tools` (plain async callable) and `voice_live_tools` (`TACTool` instance). Knowledge results can supplement agent context alongside memory.
+
+### How It All Works Together
+
+1. **Conversation starts**: Customer sends SMS or calls → Conversation Orchestrator creates a conversation
+2. **TAC retrieves context**: TAC uses conversation_id and profile_id to fetch memories from Conversation Memory
+3. **Memory is injected**: TAC provides memory context to your agent (via callback or `format_memory_context()`)
+4. **Agent responds**: Your agent (Agent Framework, Voice Live, etc.) processes user message with full context
+5. **Conversation continues**: Subsequent messages in the same conversation maintain context
+6. **Intelligence analyzes**: Conversation Intelligence processes the conversation and creates new observations/summaries
+7. **Memory grows**: Future conversations benefit from richer customer profiles
 
 ## Development Commands
 
@@ -54,7 +109,7 @@ src/tac_azure/
 
 getting_started/
 └── examples/
-    ├── agent_framework/basic.py        # Minimal setup with AzureOpenAIResponsesClient
+    ├── agent_framework/basic.py        # Minimal setup with OpenAIChatClient (Azure)
     ├── agent_framework/advanced.py     # Full features: channel-aware prompts, tools, hooks, session store
     └── voice_live/basic.py             # Voice Live with custom @function_tool
 
@@ -81,7 +136,7 @@ TAC Azure depends on TAC from GitHub (locked to a specific commit):
 
 ```toml
 dependencies = [
-    "twilio-agent-connect @ git+https://github.com/twilio-innovation/twilio-agent-connect-python.git@{commit_hash}",
+    "twilio-agent-connect @ git+https://github.com/twilio/twilio-agent-connect-python.git@{commit_hash}",
 ]
 ```
 
@@ -185,7 +240,7 @@ from src.tac.adapters import BaseAgentAdapter
 ### Agent Framework with TAC Server
 
 ```python
-from agent_framework.azure import AzureOpenAIResponsesClient
+from agent_framework.openai import OpenAIChatClient
 from tac_azure import (
     TAC, TACConfig, TACFastAPIServer,
     AgentFrameworkConnector, ConversationSession,
@@ -194,10 +249,10 @@ from tac_azure import (
 
 tac = TAC(config=TACConfig.from_env())
 
-client = AzureOpenAIResponsesClient(
-    endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
+client = OpenAIChatClient(
+    azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
     api_key=os.environ["AZURE_AI_API_KEY"],
-    deployment_name=os.environ["AZURE_AI_DEPLOYMENT_NAME"],
+    model=os.environ["AZURE_AI_DEPLOYMENT_NAME"],
 )
 
 def create_agent(session: ConversationSession):
@@ -292,7 +347,7 @@ make check
 
 ## Related Documentation
 
-- TAC Core: [CLAUDE.md](https://github.com/twilio-innovation/twilio-agent-connect-python/blob/main/CLAUDE.md)
-- TAC AWS sibling: [CLAUDE.md](https://github.com/twilio-innovation/aws-twilio-agent-connect-python/blob/main/CLAUDE.md)
+- TAC Core: [CLAUDE.md](https://github.com/twilio/twilio-agent-connect-python/blob/main/CLAUDE.md)
+- TAC AWS sibling: [CLAUDE.md](https://github.com/twilio/aws-twilio-agent-connect-python/blob/main/CLAUDE.md)
 - Microsoft Agent Framework: [github.com/microsoft/agent-framework](https://github.com/microsoft/agent-framework)
 - Azure AI Foundry Voice Live: [learn.microsoft.com/azure/ai-foundry](https://learn.microsoft.com/azure/ai-foundry/)
