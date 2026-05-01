@@ -55,8 +55,9 @@ Each deployment variant supports [Azure Developer CLI](https://learn.microsoft.c
 
 ```bash
 cd deploy/agent_framework_container_apps
-cp .env.template .env   # fill in your values
+cp .env.template .env         # fill in your values
 azd env new my-tac-agent
+azd env set --file .env       # load .env into the azd env (skips prompts)
 azd up
 ```
 
@@ -64,8 +65,9 @@ azd up
 
 ```bash
 cd deploy/voice_live_container_apps
-cp .env.template .env   # fill in your values
+cp .env.template .env         # fill in your values
 azd env new my-tac-voice-live
+azd env set --file .env       # load .env into the azd env (skips prompts)
 azd up
 ```
 
