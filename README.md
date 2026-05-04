@@ -1,10 +1,10 @@
 <div align="center">
   <div>
-    <img src="logo.svg" alt="TAC Azure Logo" width="120" height="120">
+    <img src="logo.svg" alt="TAC Microsoft Logo" width="120" height="120">
   </div>
 
   <h1>
-    TAC Azure
+    TAC Microsoft
   </h1>
 
   <h2>
@@ -12,7 +12,7 @@
   </h2>
 
   <div align="center">
-    <a href="https://github.com/twilio/azure-twilio-agent-connect-python"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
+    <a href="https://github.com/twilio/twilio-agent-connect-microsoft"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
     <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
     <a href="getting_started/examples/"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
   </div>
@@ -51,20 +51,20 @@ Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/tw
 ### With Agent Framework
 
 ```bash
-pip install tac-azure[agent-framework,server]
+pip install twilio-agent-connect-microsoft[agent-framework,server]
 ```
 
 ### With Voice Live
 
 ```bash
-pip install tac-azure[voice-live,server]
+pip install twilio-agent-connect-microsoft[voice-live,server]
 ```
 
 ### Development
 
 ```bash
-git clone https://github.com/twilio/azure-twilio-agent-connect-python.git
-cd azure-twilio-agent-connect-python
+git clone https://github.com/twilio/twilio-agent-connect-microsoft.git
+cd twilio-agent-connect-microsoft
 uv sync --all-extras
 ```
 
@@ -74,7 +74,7 @@ Before running any examples, you need to create and configure the required Twili
 
 ## Configuration
 
-TAC Azure requires TAC environment variables. See [TAC Configuration](https://github.com/twilio/twilio-agent-connect-python#configuration) for details.
+TAC Microsoft requires TAC environment variables. See [TAC Configuration](https://github.com/twilio/twilio-agent-connect-python#configuration) for details.
 
 ### Required Environment Variables
 
@@ -109,15 +109,15 @@ See [`getting_started/examples/.env.example`](getting_started/examples/.env.exam
 
 ## Quick Start
 
-Everything imports from `tac_azure` — no need to import from the underlying `tac` package:
+Everything imports from `twilio_agent_connect_microsoft` — no need to import from the underlying `tac` package:
 
 ```python
-from tac_azure import (
+from twilio_agent_connect_microsoft import (
     TAC, TACConfig, TACFastAPIServer,
     AgentFrameworkConnector, ConversationSession,
     FileAgentSessionStore,
 )
-from tac_azure.agent_framework_tools import create_memory_tool
+from twilio_agent_connect_microsoft.agent_framework_tools import create_memory_tool
 ```
 
 ## Examples
@@ -136,7 +136,7 @@ Three implementations are included:
 
 - **`InMemoryAgentSessionStore`** — default, suitable for single-instance deployments
 - **`FileAgentSessionStore`** — persists sessions as JSON files on disk (single-instance, local dev)
-- **`CosmosDBAgentSessionStore`** — persists sessions in Azure Cosmos DB for NoSQL (horizontally scaled production). Requires the `cosmos` extra: `pip install tac-azure[cosmos]`
+- **`CosmosDBAgentSessionStore`** — persists sessions in Azure Cosmos DB for NoSQL (horizontally scaled production). Requires the `cosmos` extra: `pip install twilio-agent-connect-microsoft[cosmos]`
 
 Implement the protocol to use any other backing store (Redis, DynamoDB, Postgres, etc.).
 
@@ -146,8 +146,8 @@ Implement the protocol to use any other backing store (Redis, DynamoDB, Postgres
 
 ```bash
 # Clone repository
-git clone https://github.com/twilio/azure-twilio-agent-connect-python.git
-cd azure-twilio-agent-connect-python
+git clone https://github.com/twilio/twilio-agent-connect-microsoft.git
+cd twilio-agent-connect-microsoft
 
 # Install dependencies
 uv sync --all-extras
@@ -159,7 +159,7 @@ See [`getting_started/README.md`](getting_started/README.md) for the full setup 
 
 ## Dependencies
 
-TAC Azure depends on:
+TAC Microsoft depends on:
 - **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio/twilio-agent-connect-python) framework (installed from GitHub)
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
 - **agent-framework** (optional) - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)

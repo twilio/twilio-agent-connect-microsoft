@@ -11,6 +11,7 @@ deltas back.
 
 # Fix SSL certificate verification on macOS (must be before other imports)
 import truststore
+
 truststore.inject_into_ssl()
 
 import os
@@ -19,12 +20,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 from tac.tools.base import function_tool
 
-from tac_azure import (
+from twilio_agent_connect_microsoft import (
     TAC,
     TACConfig,
     TACFastAPIServer,
-    VoiceLiveConnector,
     VoiceLiveConfig,
+    VoiceLiveConnector,
 )
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -33,6 +34,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 # ---------------------------------------------------------------------------
 # Custom tools — use @function_tool to create TACTool instances
 # ---------------------------------------------------------------------------
+
 
 @function_tool()
 def look_up_outage(zip_code: str) -> str:

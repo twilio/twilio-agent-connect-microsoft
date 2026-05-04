@@ -1,6 +1,6 @@
-"""AgentSessionStore implementations for TAC Azure."""
+"""AgentSessionStore implementations for TAC Microsoft."""
 
-from tac_azure.agent_framework_types import AgentSessionStore
+from twilio_agent_connect_microsoft.agent_framework_types import AgentSessionStore
 
 from .file import FileAgentSessionStore
 from .in_memory import InMemoryAgentSessionStore

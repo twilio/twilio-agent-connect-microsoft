@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 
 class VoiceLiveError(Exception):
@@ -52,9 +53,7 @@ class VoiceLiveConfig:
     # Session configuration
     instructions: str = ""
     tools: list[Any] = field(default_factory=list)
-    tool_executors: dict[str, Callable[..., Awaitable[Any]]] = field(
-        default_factory=dict
-    )
+    tool_executors: dict[str, Callable[..., Awaitable[Any]]] = field(default_factory=dict)
     modalities: list[str] = field(default_factory=lambda: ["text"])
     temperature: float | None = None
     max_response_output_tokens: int | str | None = None

@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TAC Azure is an open-source library providing Azure-specific integrations for Twilio Agent Connect (TAC). It contains connectors that combine agent runtime integration with multi-channel conversation management.
+TAC Microsoft is an open-source library providing Azure-specific integrations for Twilio Agent Connect (TAC). It contains connectors that combine agent runtime integration with multi-channel conversation management.
 
-**Key Architecture**: TAC Azure is a separate package that depends on TAC (Core Python) as an external dependency. It does NOT contain TAC source code — it imports from the `tac` package.
+**Key Architecture**: TAC Microsoft is a separate package that depends on TAC (Core Python) as an external dependency. It does NOT contain TAC source code — it imports from the `tac` package.
 
 ## Understanding TAC and Twilio Platform Services
 
-TAC (Twilio Agent Connect) is middleware that integrates with several Twilio platform services to enable context-aware AI agents. Understanding these services is essential for using TAC Azure effectively.
+TAC (Twilio Agent Connect) is middleware that integrates with several Twilio platform services to enable context-aware AI agents. Understanding these services is essential for using TAC Microsoft effectively.
 
 ### Conversation Orchestrator
 
@@ -23,7 +23,7 @@ TAC (Twilio Agent Connect) is middleware that integrates with several Twilio pla
 - Link channel IDs (call IDs, message IDs) to conversations
 - Retrieve conversation configuration (including memory store ID)
 
-**In TAC Azure**: Connectors use TAC's conversation management to route messages to the appropriate agent instance per conversation. The `conversation_id` from Orchestrator becomes the session identifier for Azure agent runtimes (Agent Framework `AgentSession`, Voice Live WebSocket session).
+**In TAC Microsoft**: Connectors use TAC's conversation management to route messages to the appropriate agent instance per conversation. The `conversation_id` from Orchestrator becomes the session identifier for Azure agent runtimes (Agent Framework `AgentSession`, Voice Live WebSocket session).
 
 ### Conversation Memory
 
@@ -41,7 +41,7 @@ TAC (Twilio Agent Connect) is middleware that integrates with several Twilio pla
 - Provides memory context to your agent callback via `TACMemoryResponse`
 - Falls back to Conversation Orchestrator's communication history if Memory API fails
 
-**In TAC Azure**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `auto_retrieve_memory` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` toggles this behavior.
+**In TAC Microsoft**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `auto_retrieve_memory` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` toggles this behavior.
 
 ### Conversation Intelligence
 
@@ -53,7 +53,7 @@ TAC (Twilio Agent Connect) is middleware that integrates with several Twilio pla
 - Automatically creates observations or summaries in Conversation Memory based on CI results
 - Handles multiple operator results per event
 
-**In TAC Azure**: `TACFastAPIServer` provides an optional `/ci-webhook` endpoint for receiving Conversation Intelligence events. Connectors don't directly interact with CI, but they benefit from the observations and summaries that CI writes back into Memory.
+**In TAC Microsoft**: `TACFastAPIServer` provides an optional `/ci-webhook` endpoint for receiving Conversation Intelligence events. Connectors don't directly interact with CI, but they benefit from the observations and summaries that CI writes back into Memory.
 
 ### Knowledge
 
@@ -64,7 +64,7 @@ TAC (Twilio Agent Connect) is middleware that integrates with several Twilio pla
 - Returns relevant chunks with relevance scores
 - Provides a `create_knowledge_tool()` for LLM function calling
 
-**In TAC Azure**: Knowledge search is exposed via `create_knowledge_tool()` in both `agent_framework_tools` (plain async callable) and `voice_live_tools` (`TACTool` instance). Knowledge results can supplement agent context alongside memory.
+**In TAC Microsoft**: Knowledge search is exposed via `create_knowledge_tool()` in both `agent_framework_tools` (plain async callable) and `voice_live_tools` (`TACTool` instance). Knowledge results can supplement agent context alongside memory.
 
 ### How It All Works Together
 
@@ -91,7 +91,7 @@ make check             # All checks (lint + type-check + test)
 ## Package Structure
 
 ```
-src/tac_azure/
+src/twilio_agent_connect_microsoft/
 ├── __init__.py                         # Lazy-loaded public exports + re-exports from `tac`
 ├── agent_framework_connector.py        # AgentFrameworkConnector (voice + SMS + chat)
 ├── agent_framework_tools.py            # Tool factories returning plain async callables
@@ -125,14 +125,14 @@ tests/                                  # pytest suite (native asyncio mode)
 - **Python 3.10+**: Prefer modern syntax (`str | None`, `list[str]`), `from __future__ import annotations` in new modules.
 - **mypy strict**: All functions need type hints, no incomplete defs.
 - **ruff**: Line length 100, isort-compatible import ordering.
-- **Imports from TAC**: Always import from `tac` package, never from internal `tac_azure` paths except for local imports.
-- **Lazy imports**: `tac_azure.__init__` uses `__getattr__` to lazy-load optional-extra modules so `import tac_azure` succeeds with just core deps installed.
+- **Imports from TAC**: Always import from `tac` package, never from internal `twilio_agent_connect_microsoft` paths except for local imports.
+- **Lazy imports**: `twilio_agent_connect_microsoft.__init__` uses `__getattr__` to lazy-load optional-extra modules so `import twilio_agent_connect_microsoft` succeeds with just core deps installed.
 
 ## Dependencies
 
 ### Core Dependency
 
-TAC Azure depends on TAC from GitHub (locked to a specific commit):
+TAC Microsoft depends on TAC from GitHub (locked to a specific commit):
 
 ```toml
 dependencies = [
@@ -191,12 +191,12 @@ Three built-in tool factories, all thin wrappers around core `tac.tools`:
 - `create_handoff_tool(tac, session, attributes=None)` — Studio-Flow handoff; requires `TWILIO_STUDIO_HANDOFF_FLOW_SID`.
 
 Two export variants:
-- `tac_azure.agent_framework_tools` — returns plain async callables (Agent Framework auto-discovers from function name/docstring/annotations).
-- `tac_azure.voice_live_tools` — returns `TACTool` instances (Voice Live accepts them via `VoiceLiveConfig.tools`).
+- `twilio_agent_connect_microsoft.agent_framework_tools` — returns plain async callables (Agent Framework auto-discovers from function name/docstring/annotations).
+- `twilio_agent_connect_microsoft.voice_live_tools` — returns `TACTool` instances (Voice Live accepts them via `VoiceLiveConfig.tools`).
 
 ### Server
 
-TAC Azure uses `TACFastAPIServer` from the core TAC package (`tac.server`). Connectors expose the channel instances; the server does the HTTP routing:
+TAC Microsoft uses `TACFastAPIServer` from the core TAC package (`tac.server`). Connectors expose the channel instances; the server does the HTTP routing:
 
 ```python
 server = TACFastAPIServer(
@@ -215,21 +215,21 @@ server = TACFastAPIServer(
 from tac import TAC, TACConfig
 from tac.models.session import ConversationSession
 
-# TAC Azure imports — local package (re-exports TAC core where possible)
-from tac_azure import (
+# TAC Microsoft imports — local package (re-exports TAC core where possible)
+from twilio_agent_connect_microsoft import (
     AgentFrameworkConnector,
     VoiceLiveConnector,
     TACFastAPIServer,
     FileAgentSessionStore,
 )
-from tac_azure.agent_framework_tools import create_memory_tool, create_knowledge_tool
+from twilio_agent_connect_microsoft.agent_framework_tools import create_memory_tool, create_knowledge_tool
 ```
 
 ### Incorrect Imports (DO NOT DO)
 
 ```python
-# ❌ Wrong - tac_azure has no `.core` submodule
-from tac_azure.core import TAC
+# ❌ Wrong - twilio_agent_connect_microsoft has no `.core` submodule
+from twilio_agent_connect_microsoft.core import TAC
 
 # ❌ Wrong - don't import from source paths
 from src.tac.adapters import BaseAgentAdapter
@@ -241,7 +241,7 @@ from src.tac.adapters import BaseAgentAdapter
 
 ```python
 from agent_framework.openai import OpenAIChatClient
-from tac_azure import (
+from twilio_agent_connect_microsoft import (
     TAC, TACConfig, TACFastAPIServer,
     AgentFrameworkConnector, ConversationSession,
     SMSChannelConfig,
@@ -275,7 +275,7 @@ server.start()
 ### Horizontal Scaling with CosmosDBAgentSessionStore
 
 ```python
-from tac_azure import CosmosDBAgentSessionStore
+from twilio_agent_connect_microsoft import CosmosDBAgentSessionStore
 
 session_store = CosmosDBAgentSessionStore(
     endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
@@ -293,7 +293,7 @@ connector = AgentFrameworkConnector(
 
 ```python
 from tac.tools.base import function_tool
-from tac_azure import TAC, TACConfig, TACFastAPIServer, VoiceLiveConnector, VoiceLiveConfig
+from twilio_agent_connect_microsoft import TAC, TACConfig, TACFastAPIServer, VoiceLiveConnector, VoiceLiveConfig
 
 tac = TAC(config=TACConfig.from_env())
 
@@ -318,7 +318,7 @@ server.start()
 
 Tests live in `tests/` and use pytest with `asyncio_mode = auto` (via `pytest.ini`). Run with `make test` or `uv run pytest`. Conventions:
 
-- Import from `tac_azure` (local) and `tac` (external).
+- Import from `twilio_agent_connect_microsoft` (local) and `tac` (external).
 - Use `AsyncMock` / `MagicMock` for `TAC`, channels, and Azure clients.
 - Treat the tool factories as thin wrappers around `tac.tools` — prefer testing the wiring, not reimplementing core's tests.
 
@@ -339,11 +339,11 @@ make check
 
 ## Common Pitfalls
 
-1. **Don't import TAC classes from `tac_azure` internal paths** — use `from tac.X import Y`.
+1. **Don't import TAC classes from `twilio_agent_connect_microsoft` internal paths** — use `from tac.X import Y`.
 2. **Don't copy TAC source code** — TAC is a pinned git dependency, not vendored.
 3. **Connectors own the channels** — don't instantiate `VoiceChannel` / `SMSChannel` / `ChatChannel` yourself; read them off the connector.
 4. **`create_knowledge_tool` is async** — if you call it inside a sync `create_agent` factory, build it once at module load via `asyncio.run()` and reuse the result.
-5. **Lazy `__getattr__`** — if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/tac_azure/__init__.py`.
+5. **Lazy `__getattr__`** — if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/twilio_agent_connect_microsoft/__init__.py`.
 
 ## Related Documentation
 

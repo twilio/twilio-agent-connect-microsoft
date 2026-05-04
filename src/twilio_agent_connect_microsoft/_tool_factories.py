@@ -30,6 +30,7 @@ if TYPE_CHECKING:
 # Knowledge base info helper
 # ------------------------------------------------------------------
 
+
 @dataclass
 class KnowledgeBaseInfo:
     """Metadata fetched from a knowledge base."""
@@ -76,6 +77,7 @@ async def fetch_knowledge_base_info(
 # Memory — wraps tac.tools.create_memory_tool
 # ------------------------------------------------------------------
 
+
 def create_memory_tool(
     tac: TAC,
     session: ConversationSession,
@@ -105,6 +107,7 @@ def create_memory_tool(
 # ------------------------------------------------------------------
 # Knowledge — wraps tac.tools.create_knowledge_tool
 # ------------------------------------------------------------------
+
 
 async def create_knowledge_tool(
     tac: TAC,
@@ -140,6 +143,7 @@ async def create_knowledge_tool(
 # ------------------------------------------------------------------
 # Handoff — wraps tac.tools.create_studio_handoff_tool
 # ------------------------------------------------------------------
+
 
 def create_handoff_tool(
     tac: TAC,

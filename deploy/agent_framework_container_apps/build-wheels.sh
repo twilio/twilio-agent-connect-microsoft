@@ -35,11 +35,11 @@ if command -v brew &>/dev/null; then
 fi
 
 echo "Using $($PYTHON --version) ($PYTHON)"
-echo "Building wheels for tac-azure and twilio-agent-connect..."
+echo "Building wheels for twilio-agent-connect-microsoft and twilio-agent-connect..."
 
 # Configuration
-TAC_AZURE_REPO="https://github.com/twilio/azure-twilio-agent-connect-python.git"
-TAC_AZURE_COMMIT="95ebd2e"
+TAC_MICROSOFT_REPO="https://github.com/twilio/twilio-agent-connect-microsoft.git"
+TAC_MICROSOFT_COMMIT="95ebd2e"
 
 TAC_REPO="https://github.com/twilio/twilio-agent-connect-python.git"
 TAC_COMMIT="a79515d11dd04e61e34036f781f3f2aad0ee0beb"
@@ -55,12 +55,12 @@ rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 
 echo ""
-echo "1/4 Cloning tac-azure repository..."
-git clone "$TAC_AZURE_REPO" "$BUILD_DIR/tac-azure" --quiet
-cd "$BUILD_DIR/tac-azure"
-git checkout "$TAC_AZURE_COMMIT" --quiet
+echo "1/4 Cloning twilio-agent-connect-microsoft repository..."
+git clone "$TAC_MICROSOFT_REPO" "$BUILD_DIR/twilio-agent-connect-microsoft" --quiet
+cd "$BUILD_DIR/twilio-agent-connect-microsoft"
+git checkout "$TAC_MICROSOFT_COMMIT" --quiet
 
-echo "2/4 Building tac-azure wheel..."
+echo "2/4 Building twilio-agent-connect-microsoft wheel..."
 $PYTHON -m pip wheel --no-deps . -w "$WHEELS_DIR" --quiet
 cd -
 

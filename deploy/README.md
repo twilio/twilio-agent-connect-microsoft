@@ -1,6 +1,6 @@
-# TAC Azure Deployment Guide
+# TAC Microsoft Deployment Guide
 
-Production deployment options for TAC Azure connectors.
+Production deployment options for TAC Microsoft connectors.
 
 ## Available Deployments
 

@@ -3,7 +3,7 @@
 #
 # Includes extras: [server], [agent-framework], [cosmos]
 #
-# Regenerate: install tac-azure[server,agent-framework,cosmos] in a clean venv, then pip freeze
+# Regenerate: install twilio-agent-connect-microsoft[server,agent-framework,cosmos] in a clean venv, then pip freeze
 # Note: agent-framework 1.2.2 depends on agent-framework-core[all], which transitively
 # pulls in providers we don't use (Anthropic, Bedrock, Google, Ollama, Redis, etc.).
 

@@ -3608,7 +3608,7 @@ wheels = [
 ]
 
 [[package]]
-name = "tac-azure"
+name = "twilio-agent-connect-microsoft"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

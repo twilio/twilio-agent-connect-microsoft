@@ -5,9 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from agent_framework import AgentSession
-from azure.cosmos.aio import CosmosClient
 from azure.cosmos import PartitionKey, exceptions
-
+from azure.cosmos.aio import CosmosClient
 
 # Cosmos metadata fields to strip when loading sessions
 _COSMOS_METADATA_KEYS = {"_rid", "_self", "_etag", "_ts", "_attachments"}
@@ -36,7 +35,7 @@ class CosmosDBAgentSessionStore:
     Example::
 
         from azure.identity.aio import DefaultAzureCredential
-        from tac_azure.stores import CosmosDBAgentSessionStore
+        from twilio_agent_connect_microsoft.stores import CosmosDBAgentSessionStore
 
         store = CosmosDBAgentSessionStore(
             endpoint="https://my-account.documents.azure.com:443/",

@@ -15,7 +15,7 @@ import os
 from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 
-from tac_azure import (
+from twilio_agent_connect_microsoft import (
     TAC,
     TACConfig,
     TACFastAPIServer,
