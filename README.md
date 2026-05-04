@@ -1,25 +1,50 @@
-# TAC Azure - Azure Integrations for Twilio Agent Connect
+<div align="center">
+  <div>
+    <img src="logo.svg" alt="TAC Azure Logo" width="120" height="120">
+  </div>
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  <h1>
+    TAC Azure
+  </h1>
 
-Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
+  <h2>
+    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents to Twilio's communication channels.
+  </h2>
+
+  <div align="center">
+    <a href="https://github.com/twilio/azure-twilio-agent-connect-python"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
+    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
+    <a href="getting_started/examples/"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
+  </div>
+  
+  <p>
+    <a href="https://www.twilio.com/docs/platform/tac/overview">Documentation</a>
+    ◆ <a href="https://github.com/twilio/twilio-agent-connect-python">Python SDK</a>
+    ◆ <a href="getting_started/examples/">Examples</a>
+    ◆ <a href="deploy/">Deployment</a>
+  </p>
+</div>
+
+Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry) — including [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) and the [Voice Live API](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live).
+
+---
 
 ## Features
 
 - **AgentFrameworkConnector** - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) integration
-  - Agent lifecycle management (voice + SMS)
+  - Agent lifecycle management (Voice + SMS + Chat)
   - Supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](https://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison)
   - Pluggable session persistence via `AgentSessionStore` protocol
   - Memory context injection and `on_message` / `on_error` hooks
-- **VoiceLiveConnector** - [Azure AI Foundry Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) integration
-  - Low-latency streaming inference over WebSocket
+- **VoiceLiveConnector** - [Voice Live API](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) integration
+  - Text-in / text-streaming-out over WebSocket (STT and TTS handled by Twilio Conversation Relay)
   - Server-side conversation state (no local session management)
+  - Native interrupt handling via Voice Live `response.cancel` (server-side truncation of in-flight responses)
   - Tool execution with async handlers
-- Multi-channel support (SMS + Voice)
-- Built-in TAC tools (memory recall, knowledge search, Flex escalation, messaging, interstitial filler)
+- Multi-channel support (Voice + SMS + Chat)
+- Built-in TAC tools (memory recall, knowledge search, Studio Flow handoff)
 - Getting-started deployment guide with Dockerfile and deployment helpers
-- [`AgentSessionStore`](#agentsessionstore) implementations for in-memory and CosmosDB
+- [`AgentSessionStore`](#agentsessionstore) implementations for in-memory, file, and Cosmos DB
 
 ## Installation
 
@@ -74,7 +99,7 @@ AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 # Agent Framework advanced example uses the same AZURE_OPENAI_ENDPOINT as basic,
 # but authenticates via `DefaultAzureCredential` (run `az login` first) instead of an API key.
 
-# Azure AI Voice Live — voice_live example (hostname only, no https:// prefix)
+# Voice Live API — voice_live example (hostname only, no https:// prefix)
 # AZURE_VOICE_LIVE_ENDPOINT=your-resource.services.ai.azure.com
 # AZURE_VOICE_LIVE_API_KEY=your_voice_live_api_key
 # AZURE_VOICE_LIVE_MODEL=gpt-realtime
@@ -101,7 +126,7 @@ Full examples available in [`getting_started/examples/`](getting_started/example
 
 - **`agent_framework/basic.py`** - Minimal Agent Framework setup (~30 lines)
 - **`agent_framework/advanced.py`** - Full feature set (channel-aware prompts, tools, hooks, session persistence)
-- **`voice_live/basic.py`** - Azure AI Foundry Voice Live with tool calling
+- **`voice_live/basic.py`** - Voice Live API with tool calling
 
 ## AgentSessionStore
 
