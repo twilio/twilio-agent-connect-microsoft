@@ -8,7 +8,7 @@
   </h1>
 
   <h2>
-    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents and voice services to Twilio's communication channels.
+    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents to Twilio's communication channels.
   </h2>
 
   <div align="center">
@@ -37,7 +37,7 @@ Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/tw
   - Pluggable session persistence via `AgentSessionStore` protocol
   - Memory context injection and `on_message` / `on_error` hooks
 - **VoiceLiveConnector** - [Voice Live API](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) integration
-  - Low-latency streaming inference over WebSocket
+  - Text-in / text-streaming-out over WebSocket (STT and TTS handled by Twilio Conversation Relay)
   - Server-side conversation state (no local session management)
   - Tool execution with async handlers
 - Multi-channel support (Voice + SMS + Chat)
