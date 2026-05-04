@@ -39,6 +39,7 @@ Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/tw
 - **VoiceLiveConnector** - [Voice Live API](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) integration
   - Text-in / text-streaming-out over WebSocket (STT and TTS handled by Twilio Conversation Relay)
   - Server-side conversation state (no local session management)
+  - Native interrupt handling via Voice Live `response.cancel` (server-side truncation of in-flight responses)
   - Tool execution with async handlers
 - Multi-channel support (Voice + SMS + Chat)
 - Built-in TAC tools (memory recall, knowledge search, Studio Flow handoff)
