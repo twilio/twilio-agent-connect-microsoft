@@ -8,7 +8,7 @@
   </h1>
 
   <h2>
-    Azure integrations for Twilio Agent Connect — connect Azure AI agent services to Twilio's communication channels.
+    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agent services to Twilio's communication channels.
   </h2>
 
   <div align="center">
@@ -25,7 +25,7 @@
   </p>
 </div>
 
-Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services like Microsoft Agent Framework and Azure AI Foundry Voice Live.
+Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with Microsoft Foundry agent services like Microsoft Agent Framework and Microsoft Foundry Voice Live.
 
 ---
 
