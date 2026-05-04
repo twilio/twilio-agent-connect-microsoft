@@ -11,8 +11,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tac_azure.voice_live_connector import VoiceLiveConnector
-from tac_azure.voice_live_types import VoiceLiveConfig
+from twilio_agent_connect_microsoft.voice_live_connector import VoiceLiveConnector
+from twilio_agent_connect_microsoft.voice_live_types import VoiceLiveConfig
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ def voice_live_config() -> VoiceLiveConfig:
 def _patched_connector():
     """Build a VoiceLiveConnector with VoiceChannel mocked."""
     return patch(
-        "tac_azure.voice_live_connector.VoiceChannel",
+        "twilio_agent_connect_microsoft.voice_live_connector.VoiceChannel",
         MagicMock(return_value=MagicMock(send_response=AsyncMock())),
     )
 
@@ -131,8 +131,12 @@ class TestSessionLifecycle:
     ) -> None:
         session = _mock_voice_session()
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
             result = await connector._get_or_create_voice_session("conv_1")
@@ -146,9 +150,13 @@ class TestSessionLifecycle:
     ) -> None:
         session = _mock_voice_session()
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
-        ) as session_cls:
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ) as session_cls,
+        ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
 
             s1 = await connector._get_or_create_voice_session("conv_1")
@@ -163,8 +171,12 @@ class TestSessionLifecycle:
     ) -> None:
         sessions = [_mock_voice_session(), _mock_voice_session()]
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", side_effect=sessions
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                side_effect=sessions,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
 
@@ -181,8 +193,12 @@ class TestSessionLifecycle:
     ) -> None:
         session = _mock_voice_session()
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
             await connector._get_or_create_voice_session("conv_voice_123")
@@ -229,8 +245,12 @@ class TestInterrupt:
     ) -> None:
         session = _mock_voice_session()
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
             await connector._get_or_create_voice_session("conv_voice_123")
@@ -263,8 +283,12 @@ class TestStreaming:
     ) -> None:
         session = _mock_voice_session(chunks=["alpha ", "beta ", "gamma"])
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
 
@@ -289,8 +313,12 @@ class TestStreaming:
 
         session.send_message_and_stream = _boom
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
 
@@ -313,8 +341,12 @@ class TestStreaming:
     ) -> None:
         session = _mock_voice_session()
 
-        with _patched_connector(), patch(
-            "tac_azure.voice_live_connector.VoiceLiveSession", return_value=session
+        with (
+            _patched_connector(),
+            patch(
+                "twilio_agent_connect_microsoft.voice_live_connector.VoiceLiveSession",
+                return_value=session,
+            ),
         ):
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
 
@@ -358,7 +390,7 @@ class TestOnMessageHook:
             connector = VoiceLiveConnector(tac=mock_tac, config=voice_live_config)
 
         with patch(
-            "tac_azure.voice_live_connector.format_memory_context",
+            "twilio_agent_connect_microsoft.voice_live_connector.format_memory_context",
             return_value="formatted",
         ) as fmt:
             result = connector._build_message("hello", mock_voice_session, mock_memory_response)

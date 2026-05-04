@@ -5,7 +5,7 @@ auto-discovers from function name, docstring, and type annotations.
 
 Usage::
 
-    from tac_azure.agent_framework_tools import (
+    from twilio_agent_connect_microsoft.agent_framework_tools import (
         create_memory_tool,
         create_knowledge_tool,
     )
@@ -19,7 +19,8 @@ Usage::
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import TYPE_CHECKING, Any
 
 from tac.core.logging import get_logger
 
@@ -46,6 +47,7 @@ __all__ = [
 # Tool factories (return plain callables for Agent Framework)
 # ------------------------------------------------------------------
 
+
 def create_memory_tool(
     tac: TAC,
     session: ConversationSession,
@@ -59,7 +61,10 @@ def create_memory_tool(
     not met (no memory client or ``profile_id``).
     """
     tool = _tool_factories.create_memory_tool(
-        tac, session, name=name, description=description,
+        tac,
+        session,
+        name=name,
+        description=description,
     )
     return tool.implementation if tool else None
 
@@ -103,6 +108,7 @@ def create_handoff_tool(
 # ------------------------------------------------------------------
 # Interstitial filler (Agent Framework only)
 # ------------------------------------------------------------------
+
 
 async def interstitial_filler(filler_words: str) -> AsyncGenerator[dict[str, Any], None]:
     """Provide a short, conversational filler sentence to fill dead air latency.

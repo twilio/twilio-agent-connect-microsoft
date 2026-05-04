@@ -1,5 +1,5 @@
 [project]
-name = "tac-azure"
+name = "twilio-agent-connect-microsoft"
 version = "0.1.0"
 description = "Azure integrations for Twilio Agent Connect (TAC) - connectors for Azure AI agent services"
 readme = "README.md"
@@ -68,17 +68,17 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/twilio/azure-twilio-agent-connect-python"
-Documentation = "https://github.com/twilio/azure-twilio-agent-connect-python#readme"
-Repository = "https://github.com/twilio/azure-twilio-agent-connect-python"
-Issues = "https://github.com/twilio/azure-twilio-agent-connect-python/issues"
+Homepage = "https://github.com/twilio/twilio-agent-connect-microsoft"
+Documentation = "https://github.com/twilio/twilio-agent-connect-microsoft#readme"
+Repository = "https://github.com/twilio/twilio-agent-connect-microsoft"
+Issues = "https://github.com/twilio/twilio-agent-connect-microsoft/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tac_azure"]
+packages = ["src/twilio_agent_connect_microsoft"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -97,7 +97,7 @@ unfixable = []
 "getting_started/*" = ["E402", "E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["tac_azure"]
+known-first-party = ["twilio_agent_connect_microsoft"]
 combine-as-imports = true
 
 [tool.mypy]

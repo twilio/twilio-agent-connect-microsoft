@@ -11,7 +11,7 @@ COPY voice_live_container_apps/wheels/*.whl /app/wheels/
 COPY voice_live_container_apps/requirements.txt /app/requirements.txt
 
 # Install the git-sourced packages from wheels first (without dependencies)
-RUN pip install --no-cache-dir --no-deps /app/wheels/twilio_agent_connect-*.whl /app/wheels/tac_azure-*.whl
+RUN pip install --no-cache-dir --no-deps /app/wheels/twilio_agent_connect-*.whl /app/wheels/twilio_agent_connect_microsoft-*.whl
 
 # Install all other dependencies
 RUN pip install --no-cache-dir -r requirements.txt

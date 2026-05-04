@@ -13,7 +13,6 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import websockets
-
 from tac.core.logging import get_logger
 
 from .voice_live_types import VoiceLiveConfig, VoiceLiveError
@@ -59,9 +58,7 @@ class VoiceLiveSession:
         # Wait for session.created
         event = await self._recv_event()
         if event.get("type") != "session.created":
-            raise VoiceLiveError(
-                f"Expected session.created, got {event.get('type')}"
-            )
+            raise VoiceLiveError(f"Expected session.created, got {event.get('type')}")
         logger.info(
             "Voice Live session connected",
             session_id=self._session_id,
@@ -95,23 +92,21 @@ class VoiceLiveSession:
             session_cfg["temperature"] = self._config.temperature
 
         if self._config.max_response_output_tokens is not None:
-            session_cfg["max_response_output_tokens"] = (
-                self._config.max_response_output_tokens
-            )
+            session_cfg["max_response_output_tokens"] = self._config.max_response_output_tokens
 
         session_cfg.update(overrides)
 
-        await self._send_event({
-            "type": "session.update",
-            "session": session_cfg,
-        })
+        await self._send_event(
+            {
+                "type": "session.update",
+                "session": session_cfg,
+            }
+        )
 
         # Wait for session.updated confirmation
         event = await self._recv_event()
         if event.get("type") == "error":
-            raise VoiceLiveError(
-                event.get("error", {}).get("message", "session.update failed")
-            )
+            raise VoiceLiveError(event.get("error", {}).get("message", "session.update failed"))
         logger.info(
             "Voice Live session configured",
             session_id=self._session_id,
@@ -121,9 +116,7 @@ class VoiceLiveSession:
     # Messaging
     # ------------------------------------------------------------------
 
-    async def send_message_and_stream(
-        self, text: str
-    ) -> AsyncGenerator[str, None]:
+    async def send_message_and_stream(self, text: str) -> AsyncGenerator[str, None]:
         """Send a user message and yield streaming text deltas.
 
         Handles function calling transparently: when the model requests a
@@ -132,14 +125,16 @@ class VoiceLiveSession:
         """
         async with self._lock:
             # 1. Add user message to conversation
-            await self._send_event({
-                "type": "conversation.item.create",
-                "item": {
-                    "type": "message",
-                    "role": "user",
-                    "content": [{"type": "input_text", "text": text}],
-                },
-            })
+            await self._send_event(
+                {
+                    "type": "conversation.item.create",
+                    "item": {
+                        "type": "message",
+                        "role": "user",
+                        "content": [{"type": "input_text", "text": text}],
+                    },
+                }
+            )
 
             # 2. Request a response
             await self._send_event({"type": "response.create"})
@@ -230,9 +225,7 @@ class VoiceLiveSession:
     # Internal: tool execution
     # ------------------------------------------------------------------
 
-    async def _execute_tool(
-        self, name: str, call_id: str, arguments: str
-    ) -> None:
+    async def _execute_tool(self, name: str, call_id: str, arguments: str) -> None:
         """Execute a tool and send the result back to Voice Live."""
         executor = self._config.tool_executors.get(name)
         if executor is None:
@@ -263,14 +256,16 @@ class VoiceLiveSession:
         )
 
         # Send tool result
-        await self._send_event({
-            "type": "conversation.item.create",
-            "item": {
-                "type": "function_call_output",
-                "call_id": call_id,
-                "output": result,
-            },
-        })
+        await self._send_event(
+            {
+                "type": "conversation.item.create",
+                "item": {
+                    "type": "function_call_output",
+                    "call_id": call_id,
+                    "output": result,
+                },
+            }
+        )
 
         # Request continuation
         await self._send_event({"type": "response.create"})
@@ -317,7 +312,6 @@ class VoiceLiveSession:
             return {"api-key": self._config.api_key}
 
         if self._config.credential:
-            from azure.identity.aio import get_bearer_token_provider
 
             token = self._config.credential.get_token(
                 "https://cognitiveservices.azure.com/.default"
@@ -326,6 +320,4 @@ class VoiceLiveSession:
                 token = await token
             return {"Authorization": f"Bearer {token.token}"}
 
-        raise VoiceLiveError(
-            "VoiceLiveConfig must specify either api_key or credential"
-        )
+        raise VoiceLiveError("VoiceLiveConfig must specify either api_key or credential")

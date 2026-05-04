@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import os
 
-from tac_azure import (
+from twilio_agent_connect_microsoft import (
     TAC,
     TACConfig,
     TACFastAPIServer,
