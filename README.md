@@ -1,9 +1,33 @@
-# TAC Azure - Azure Integrations for Twilio Agent Connect
+<div align="center">
+  <div>
+    <img src="logo.svg" alt="TAC Azure Logo" width="120" height="120">
+  </div>
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  <h1>
+    TAC Azure
+  </h1>
 
-Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services.
+  <h2>
+    Azure integrations for Twilio Agent Connect — connect Azure AI agent services to Twilio's communication channels.
+  </h2>
+
+  <div align="center">
+    <a href="https://github.com/twilio/azure-twilio-agent-connect-python"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
+    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
+    <a href="getting_started/examples/"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
+  </div>
+  
+  <p>
+    <a href="https://www.twilio.com/docs/platform/tac/overview">Documentation</a>
+    ◆ <a href="https://github.com/twilio/twilio-agent-connect-python">Python SDK</a>
+    ◆ <a href="getting_started/examples/">Examples</a>
+    ◆ <a href="deploy/">Deployment</a>
+  </p>
+</div>
+
+Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with Azure AI agent services like Microsoft Agent Framework and Azure AI Foundry Voice Live.
+
+---
 
 ## Features
 
