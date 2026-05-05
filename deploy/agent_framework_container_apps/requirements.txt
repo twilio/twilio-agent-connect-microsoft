@@ -1,11 +1,13 @@
 # Pinned dependencies for Agent Framework + Cosmos DB deployment
-# Generated from project venv — excludes twilio-agent-connect-microsoft (installed from local wheel)
+# Generated from project venv.
 #
 # Includes extras: [server], [agent-framework], [cosmos]
 #
 # Regenerate: install twilio-agent-connect-microsoft[server,agent-framework,cosmos] in a clean venv, then pip freeze
 # Note: agent-framework 1.2.2 depends on agent-framework-core[all], which transitively
 # pulls in providers we don't use (Anthropic, Bedrock, Google, Ollama, Redis, etc.).
+
+twilio-agent-connect-microsoft>=1.0.0,<2
 
 a2a-sdk==0.3.23
 ag-ui-protocol==0.1.18

@@ -1,9 +1,11 @@
 # Pinned dependencies for Voice Live deployment
-# Generated from project venv — excludes twilio-agent-connect-microsoft (installed from local wheel)
+# Generated from project venv.
 #
 # Includes extras: [server], [voice-live]
 #
 # Regenerate: install twilio-agent-connect-microsoft[server,voice-live] in a clean venv, then pip freeze
+
+twilio-agent-connect-microsoft>=1.0.0,<2
 
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.5

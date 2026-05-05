@@ -25,9 +25,6 @@ hooks:
             fi
           done < .env
         fi
-
-        echo "==> Building wheels for private dependencies..."
-        ./build-wheels.sh
       interactive: false
       continueOnError: false
 
