@@ -41,7 +41,7 @@ TAC (Twilio Agent Connect) is middleware that integrates with several Twilio pla
 - Provides memory context to your agent callback via `TACMemoryResponse`
 - Falls back to Conversation Orchestrator's communication history if Memory API fails
 
-**In TAC Microsoft**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `auto_retrieve_memory` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` toggles this behavior.
+**In TAC Microsoft**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `memory_mode` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` (`"always"` | `"never"` | `"once"`, default `"never"`) toggles this behavior.
 
 ### Conversation Intelligence
 
@@ -132,11 +132,11 @@ tests/                                  # pytest suite (native asyncio mode)
 
 ### Core Dependency
 
-TAC Microsoft depends on TAC from GitHub (locked to a specific commit):
+TAC Microsoft depends on TAC published on PyPI:
 
 ```toml
 dependencies = [
-    "twilio-agent-connect @ git+https://github.com/twilio/twilio-agent-connect-python.git@{commit_hash}",
+    "twilio-agent-connect>=1.0.0,<2",
 ]
 ```
 
@@ -261,7 +261,7 @@ def create_agent(session: ConversationSession):
 connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
+    sms_config=SMSChannelConfig(memory_mode="always"),
 )
 
 server = TACFastAPIServer(
@@ -324,15 +324,9 @@ Tests live in `tests/` and use pytest with `asyncio_mode = auto` (via `pytest.in
 
 ## Updating TAC Dependency
 
-When TAC core has new changes, update the commit hash in `pyproject.toml`:
+When a new `twilio-agent-connect` version is released on PyPI, bump the version constraint in `pyproject.toml` (all three entries — base, server extra, dev extra) and re-sync:
 
 ```bash
-# In TAC core repo
-git rev-parse HEAD
-
-# In this repo
-# Update pyproject.toml with new commit hash (all three entries — base, server extra, dev extra)
-# Then:
 uv sync --all-extras
 make check
 ```

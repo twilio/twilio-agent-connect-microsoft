@@ -1,5 +1,5 @@
 # Pinned dependencies for Voice Live deployment
-# Generated from project venv — excludes git-sourced packages (installed from wheels)
+# Generated from project venv — excludes twilio-agent-connect-microsoft (installed from local wheel)
 #
 # Includes extras: [server], [voice-live]
 #
@@ -35,6 +35,7 @@ requests==2.33.1
 starlette==1.0.0
 truststore==0.10.4
 twilio==9.10.5
+twilio-agent-connect==1.0.0
 typing-extensions==4.15.0
 typing-inspection==0.4.2
 urllib3==2.6.3

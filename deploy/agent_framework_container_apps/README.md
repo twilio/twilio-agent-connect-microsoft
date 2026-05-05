@@ -129,7 +129,7 @@ can resolve every Bicep parameter without prompting. Omit it only if you're
 happy answering the prompts on first run.
 
 This automatically:
-1. Builds Python wheels for private dependencies
+1. Builds a Python wheel for `twilio-agent-connect-microsoft` from GitHub
 2. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
 3. Builds and pushes the Docker image to ACR
 4. Configures the Container App with the image and FQDN

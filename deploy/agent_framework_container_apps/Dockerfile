@@ -10,8 +10,9 @@ COPY agent_framework_container_apps/wheels/*.whl /app/wheels/
 # Copy requirements file
 COPY agent_framework_container_apps/requirements.txt /app/requirements.txt
 
-# Install the git-sourced packages from wheels first (without dependencies)
-RUN pip install --no-cache-dir --no-deps /app/wheels/twilio_agent_connect-*.whl /app/wheels/tac_microsoft-*.whl
+# Install the locally built tac_microsoft wheel first (without dependencies —
+# twilio-agent-connect is pulled from PyPI via requirements.txt)
+RUN pip install --no-cache-dir --no-deps /app/wheels/tac_microsoft-*.whl
 
 # Install all other dependencies
 RUN pip install --no-cache-dir -r requirements.txt

@@ -164,9 +164,9 @@ connector = AgentFrameworkConnector(
     on_message=on_message,
     on_error=on_error,
     voice_config=VoiceChannelConfig(
-        auto_retrieve_memory=False
-    ),  # Disabling auto memeory for best latency. Agent can use memory tool when needed.
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
+        memory_mode="never"
+    ),  # Disabling auto memory for best latency. Agent can use memory tool when needed.
+    sms_config=SMSChannelConfig(memory_mode="always"),
     session_store=session_store,
 )
 
