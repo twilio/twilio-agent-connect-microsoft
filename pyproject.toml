@@ -80,25 +80,9 @@ build-backend = "hatchling.build"
 packages = ["src/tac_microsoft"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "src/tac_microsoft",
-    "tests",
-    "pyproject.toml",
-    "pytest.ini",
-    "Makefile",
-    "README.md",
-    "LICENSE",
-    "CONTRIBUTING.md",
-    "CODE_OF_CONDUCT.md",
-]
 exclude = [
     ".claude",
     ".github",
-    ".gitignore",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".venv",
     "deploy",
     "getting_started",
     "uv.lock",
