@@ -102,7 +102,6 @@ module app 'container-app.bicep' = {
     environmentName: environmentName
     containerImageName: imageName
     acrLoginServer: registry.outputs.loginServer
-    acrName: registry.outputs.name
     // Twilio
     twilioAccountSid: twilioAccountSid
     twilioAuthToken: twilioAuthToken
@@ -119,6 +118,18 @@ module app 'container-app.bicep' = {
     // Optional
     twilioKnowledgeBaseId: twilioKnowledgeBaseId
     twilioLogLevel: twilioLogLevel
+  }
+}
+
+// ===========================================================================
+// RBAC: AcrPull for Container App's Managed Identity
+// ===========================================================================
+
+module acrRoleAssignment 'acr-role-assignment.bicep' = {
+  name: 'acr-role-assignment'
+  params: {
+    acrName: registry.outputs.name
+    principalId: app.outputs.principalId
   }
 }
 
