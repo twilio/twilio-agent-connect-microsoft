@@ -22,16 +22,16 @@ dev-setup: sync
 
 format:
 	@echo "Formatting code with ruff..."
-	uv run ruff format src/twilio_agent_connect_microsoft getting_started tests
-	uv run ruff check --fix src/twilio_agent_connect_microsoft getting_started tests
+	uv run ruff format src/tac_microsoft getting_started tests
+	uv run ruff check --fix src/tac_microsoft getting_started tests
 
 lint:
 	@echo "Running lint checks..."
-	uv run ruff check src/twilio_agent_connect_microsoft getting_started tests
+	uv run ruff check src/tac_microsoft getting_started tests
 
 type-check:
 	@echo "Running mypy type checking..."
-	MYPYPATH=src uv run mypy src/twilio_agent_connect_microsoft
+	MYPYPATH=src uv run mypy src/tac_microsoft
 
 test:
 	@echo "Running tests..."

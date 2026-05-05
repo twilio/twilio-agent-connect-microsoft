@@ -91,7 +91,7 @@ make check             # All checks (lint + type-check + test)
 ## Package Structure
 
 ```
-src/twilio_agent_connect_microsoft/
+src/tac_microsoft/
 ├── __init__.py                         # Lazy-loaded public exports + re-exports from `tac`
 ├── agent_framework_connector.py        # AgentFrameworkConnector (voice + SMS + chat)
 ├── agent_framework_tools.py            # Tool factories returning plain async callables
@@ -125,8 +125,8 @@ tests/                                  # pytest suite (native asyncio mode)
 - **Python 3.10+**: Prefer modern syntax (`str | None`, `list[str]`), `from __future__ import annotations` in new modules.
 - **mypy strict**: All functions need type hints, no incomplete defs.
 - **ruff**: Line length 100, isort-compatible import ordering.
-- **Imports from TAC**: Always import from `tac` package, never from internal `twilio_agent_connect_microsoft` paths except for local imports.
-- **Lazy imports**: `twilio_agent_connect_microsoft.__init__` uses `__getattr__` to lazy-load optional-extra modules so `import twilio_agent_connect_microsoft` succeeds with just core deps installed.
+- **Imports from TAC**: Always import from `tac` package, never from internal `tac_microsoft` paths except for local imports.
+- **Lazy imports**: `tac_microsoft.__init__` uses `__getattr__` to lazy-load optional-extra modules so `import tac_microsoft` succeeds with just core deps installed.
 
 ## Dependencies
 
@@ -191,8 +191,8 @@ Three built-in tool factories, all thin wrappers around core `tac.tools`:
 - `create_handoff_tool(tac, session, attributes=None)` — Studio-Flow handoff; requires `TWILIO_STUDIO_HANDOFF_FLOW_SID`.
 
 Two export variants:
-- `twilio_agent_connect_microsoft.agent_framework_tools` — returns plain async callables (Agent Framework auto-discovers from function name/docstring/annotations).
-- `twilio_agent_connect_microsoft.voice_live_tools` — returns `TACTool` instances (Voice Live accepts them via `VoiceLiveConfig.tools`).
+- `tac_microsoft.agent_framework_tools` — returns plain async callables (Agent Framework auto-discovers from function name/docstring/annotations).
+- `tac_microsoft.voice_live_tools` — returns `TACTool` instances (Voice Live accepts them via `VoiceLiveConfig.tools`).
 
 ### Server
 
@@ -216,20 +216,20 @@ from tac import TAC, TACConfig
 from tac.models.session import ConversationSession
 
 # TAC Microsoft imports — local package (re-exports TAC core where possible)
-from twilio_agent_connect_microsoft import (
+from tac_microsoft import (
     AgentFrameworkConnector,
     VoiceLiveConnector,
     TACFastAPIServer,
     FileAgentSessionStore,
 )
-from twilio_agent_connect_microsoft.agent_framework_tools import create_memory_tool, create_knowledge_tool
+from tac_microsoft.agent_framework_tools import create_memory_tool, create_knowledge_tool
 ```
 
 ### Incorrect Imports (DO NOT DO)
 
 ```python
-# ❌ Wrong - twilio_agent_connect_microsoft has no `.core` submodule
-from twilio_agent_connect_microsoft.core import TAC
+# ❌ Wrong - tac_microsoft has no `.core` submodule
+from tac_microsoft.core import TAC
 
 # ❌ Wrong - don't import from source paths
 from src.tac.adapters import BaseAgentAdapter
@@ -241,7 +241,7 @@ from src.tac.adapters import BaseAgentAdapter
 
 ```python
 from agent_framework.openai import OpenAIChatClient
-from twilio_agent_connect_microsoft import (
+from tac_microsoft import (
     TAC, TACConfig, TACFastAPIServer,
     AgentFrameworkConnector, ConversationSession,
     SMSChannelConfig,
@@ -275,7 +275,7 @@ server.start()
 ### Horizontal Scaling with CosmosDBAgentSessionStore
 
 ```python
-from twilio_agent_connect_microsoft import CosmosDBAgentSessionStore
+from tac_microsoft import CosmosDBAgentSessionStore
 
 session_store = CosmosDBAgentSessionStore(
     endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
@@ -293,7 +293,7 @@ connector = AgentFrameworkConnector(
 
 ```python
 from tac.tools.base import function_tool
-from twilio_agent_connect_microsoft import TAC, TACConfig, TACFastAPIServer, VoiceLiveConnector, VoiceLiveConfig
+from tac_microsoft import TAC, TACConfig, TACFastAPIServer, VoiceLiveConnector, VoiceLiveConfig
 
 tac = TAC(config=TACConfig.from_env())
 
@@ -318,7 +318,7 @@ server.start()
 
 Tests live in `tests/` and use pytest with `asyncio_mode = auto` (via `pytest.ini`). Run with `make test` or `uv run pytest`. Conventions:
 
-- Import from `twilio_agent_connect_microsoft` (local) and `tac` (external).
+- Import from `tac_microsoft` (local) and `tac` (external).
 - Use `AsyncMock` / `MagicMock` for `TAC`, channels, and Azure clients.
 - Treat the tool factories as thin wrappers around `tac.tools` — prefer testing the wiring, not reimplementing core's tests.
 
@@ -339,11 +339,11 @@ make check
 
 ## Common Pitfalls
 
-1. **Don't import TAC classes from `twilio_agent_connect_microsoft` internal paths** — use `from tac.X import Y`.
+1. **Don't import TAC classes from `tac_microsoft` internal paths** — use `from tac.X import Y`.
 2. **Don't copy TAC source code** — TAC is a pinned git dependency, not vendored.
 3. **Connectors own the channels** — don't instantiate `VoiceChannel` / `SMSChannel` / `ChatChannel` yourself; read them off the connector.
 4. **`create_knowledge_tool` is async** — if you call it inside a sync `create_agent` factory, build it once at module load via `asyncio.run()` and reuse the result.
-5. **Lazy `__getattr__`** — if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/twilio_agent_connect_microsoft/__init__.py`.
+5. **Lazy `__getattr__`** — if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/tac_microsoft/__init__.py`.
 
 ## Related Documentation
 

@@ -109,15 +109,15 @@ See [`getting_started/examples/.env.example`](getting_started/examples/.env.exam
 
 ## Quick Start
 
-Everything imports from `twilio_agent_connect_microsoft` — no need to import from the underlying `tac` package:
+Everything imports from `tac_microsoft` — no need to import from the underlying `tac` package:
 
 ```python
-from twilio_agent_connect_microsoft import (
+from tac_microsoft import (
     TAC, TACConfig, TACFastAPIServer,
     AgentFrameworkConnector, ConversationSession,
     FileAgentSessionStore,
 )
-from twilio_agent_connect_microsoft.agent_framework_tools import create_memory_tool
+from tac_microsoft.agent_framework_tools import create_memory_tool
 ```
 
 ## Examples

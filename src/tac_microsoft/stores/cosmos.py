@@ -35,7 +35,7 @@ class CosmosDBAgentSessionStore:
     Example::
 
         from azure.identity.aio import DefaultAzureCredential
-        from twilio_agent_connect_microsoft.stores import CosmosDBAgentSessionStore
+        from tac_microsoft.stores import CosmosDBAgentSessionStore
 
         store = CosmosDBAgentSessionStore(
             endpoint="https://my-account.documents.azure.com:443/",

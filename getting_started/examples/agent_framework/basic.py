@@ -15,7 +15,7 @@ from pathlib import Path
 from agent_framework.openai import OpenAIChatClient
 from dotenv import load_dotenv
 
-from twilio_agent_connect_microsoft import (
+from tac_microsoft import (
     TAC,
     AgentFrameworkConnector,
     ConversationSession,
