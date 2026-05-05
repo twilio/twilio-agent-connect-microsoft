@@ -5,7 +5,7 @@ to :class:`VoiceLiveConfig` — no conversion step needed.
 
 Usage::
 
-    from twilio_agent_connect_microsoft.voice_live_tools import (
+    from tac_microsoft.voice_live_tools import (
         create_memory_tool,
         create_knowledge_tool,
     )

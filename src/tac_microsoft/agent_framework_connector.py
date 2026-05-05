@@ -51,7 +51,7 @@ from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 from tac.session import ThreadSafeSessionManager
 
-from ._version import __version__ as _twilio_agent_connect_microsoft_version
+from ._version import __version__ as _tac_microsoft_version
 from .agent_framework_types import AgentSessionStore
 from .stores.in_memory import InMemoryAgentSessionStore
 from .utils import format_memory_context
@@ -128,7 +128,7 @@ class AgentFrameworkConnector:
     ):
         self.tac = tac
         self.tac.register_partner_connector(
-            PartnerConnector.AZURE_AGENT_FRAMEWORK, _twilio_agent_connect_microsoft_version
+            PartnerConnector.AZURE_AGENT_FRAMEWORK, _tac_microsoft_version
         )
         self.create_agent = create_agent
         self.on_message = on_message

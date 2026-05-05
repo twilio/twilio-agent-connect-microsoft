@@ -20,7 +20,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from tac.tools.base import function_tool
 
-from twilio_agent_connect_microsoft import (
+from tac_microsoft import (
     TAC,
     TACConfig,
     TACFastAPIServer,

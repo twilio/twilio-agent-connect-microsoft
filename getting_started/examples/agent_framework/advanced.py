@@ -28,7 +28,7 @@ from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
-from twilio_agent_connect_microsoft import (
+from tac_microsoft import (
     TAC,
     AgentFrameworkConnector,
     ConversationSession,
@@ -39,7 +39,7 @@ from twilio_agent_connect_microsoft import (
     VoiceChannelConfig,
     format_memory_context,
 )
-from twilio_agent_connect_microsoft.agent_framework_tools import (
+from tac_microsoft.agent_framework_tools import (
     create_knowledge_tool,
     create_memory_tool,
 )
@@ -125,7 +125,7 @@ def create_agent(session: ConversationSession):
 session_store = FileAgentSessionStore()
 
 # To use CosmosDB instead (for horizontal scaling), uncomment below:
-# from twilio_agent_connect_microsoft import CosmosDBAgentSessionStore
+# from tac_microsoft import CosmosDBAgentSessionStore
 # session_store = CosmosDBAgentSessionStore(
 #     endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
 #     credential=os.environ["AZURE_COSMOS_KEY"],

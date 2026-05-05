@@ -5,7 +5,7 @@ auto-discovers from function name, docstring, and type annotations.
 
 Usage::
 
-    from twilio_agent_connect_microsoft.agent_framework_tools import (
+    from tac_microsoft.agent_framework_tools import (
         create_memory_tool,
         create_knowledge_tool,
     )

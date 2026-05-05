@@ -3,11 +3,19 @@
 Re-exports everything from the core ``tac`` package so developers can
 import from a single namespace::
 
-    from twilio_agent_connect_microsoft import TAC, TACConfig, TACFastAPIServer, AgentFrameworkConnector
+    from tac_microsoft import TAC, TACConfig, TACFastAPIServer, AgentFrameworkConnector
 """
 
-# Re-export all public symbols from core TAC (TAC, TACConfig, get_logger, TwiMLOptions, etc.)
-from tac import *  # noqa: F401,F403
+# Re-export all public symbols from core TAC. Kept explicit (no star import) so
+# the public surface is statically visible to linters, IDEs, and type checkers.
+# If core TAC adds a new top-level export, add it here too.
+from tac import (
+    TAC,
+    PartnerConnector,
+    TACConfig,
+    TwiMLOptions,
+    get_logger,
+)
 from tac.channels.chat import ChatChannelConfig
 from tac.channels.sms import SMSChannelConfig
 from tac.channels.voice import VoiceChannelConfig
@@ -16,7 +24,7 @@ from tac.models.session import ConversationSession
 from .utils import format_memory_context
 
 # Lazy imports for symbols that require optional extras.
-# This lets `import twilio_agent_connect_microsoft` succeed even when only core deps are installed.
+# This lets `import tac_microsoft` succeed even when only core deps are installed.
 
 
 def __getattr__(name: str) -> object:
@@ -74,6 +82,7 @@ __all__ = [
     "VoiceChannelConfig",
     "SMSChannelConfig",
     "ChatChannelConfig",
+    "PartnerConnector",
     "get_logger",
     # Connectors
     "AgentFrameworkConnector",
