@@ -1,6 +1,6 @@
 <div align="center">
   <div>
-    <img src="logo.svg" alt="TAC Microsoft Logo" width="120" height="120">
+    <img src="https://raw.githubusercontent.com/twilio/twilio-agent-connect-microsoft/main/logo.svg" alt="TAC Microsoft Logo" width="120" height="120">
   </div>
 
   <h1>
@@ -13,15 +13,15 @@
 
   <div align="center">
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
-    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
-    <a href="getting_started/examples/"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
+    <a href="https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
+    <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/getting_started/examples"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
   </div>
   
   <p>
     <a href="https://www.twilio.com/docs/platform/tac/overview">Documentation</a>
     ◆ <a href="https://github.com/twilio/twilio-agent-connect-python">Python SDK</a>
-    ◆ <a href="getting_started/examples/">Examples</a>
-    ◆ <a href="deploy/">Deployment</a>
+    ◆ <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/getting_started/examples">Examples</a>
+    ◆ <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/deploy">Deployment</a>
   </p>
 </div>
 
@@ -105,7 +105,7 @@ AZURE_AI_DEPLOYMENT_NAME=gpt-4o
 # AZURE_VOICE_LIVE_MODEL=gpt-realtime
 ```
 
-See [`getting_started/examples/.env.example`](getting_started/examples/.env.example) for the full list including optional features (Cosmos DB, knowledge base, conversation intelligence). Copy it to `getting_started/examples/.env` and fill in your values — all examples load from that shared file.
+See [`getting_started/examples/.env.example`](https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/getting_started/examples/.env.example) for the full list including optional features (Cosmos DB, knowledge base, conversation intelligence). Copy it to `getting_started/examples/.env` and fill in your values — all examples load from that shared file.
 
 ## Quick Start
 
@@ -122,7 +122,7 @@ from tac_microsoft.agent_framework_tools import create_memory_tool
 
 ## Examples
 
-Full examples available in [`getting_started/examples/`](getting_started/examples/):
+Full examples available in [`getting_started/examples/`](https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/getting_started/examples):
 
 - **`agent_framework/basic.py`** - Minimal Agent Framework setup (~30 lines)
 - **`agent_framework/advanced.py`** - Full feature set (channel-aware prompts, tools, hooks, session persistence)
@@ -155,12 +155,12 @@ uv sync --all-extras
 
 ### Getting Started
 
-See [`getting_started/README.md`](getting_started/README.md) for the full setup and deployment guide.
+See [`getting_started/README.md`](https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/getting_started/README.md) for the full setup and deployment guide.
 
 ## Dependencies
 
 TAC Microsoft depends on:
-- **twilio-agent-connect** - Core [Twilio Agent Connect](https://github.com/twilio/twilio-agent-connect-python) framework (installed from GitHub)
+- **twilio-agent-connect** - Core [Twilio Agent Connect](https://pypi.org/project/twilio-agent-connect/) framework (installed from PyPI)
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
 - **agent-framework** (optional) - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **websockets** (optional) - For Voice Live connector
@@ -172,4 +172,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/LICENSE) file for details.

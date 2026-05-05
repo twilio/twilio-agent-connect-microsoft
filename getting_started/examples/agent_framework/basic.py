@@ -75,7 +75,7 @@ connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     # Auto retrieve Twilio memory and inject into user message passed to AI agent for SMS
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
+    sms_config=SMSChannelConfig(memory_mode="always"),
 )
 
 server = TACFastAPIServer(

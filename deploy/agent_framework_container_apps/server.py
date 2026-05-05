@@ -71,7 +71,7 @@ connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     session_store=session_store,
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
+    sms_config=SMSChannelConfig(memory_mode="always"),
 )
 
 server = TACFastAPIServer(
