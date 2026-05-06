@@ -1,6 +1,6 @@
 [project]
 name = "twilio-agent-connect-microsoft"
-version = "1.0.0"
+version = "1.0.1"
 description = "Azure integrations for Twilio Agent Connect (TAC) - connectors for Azure AI agent services"
 readme = "README.md"
 requires-python = ">=3.10"
