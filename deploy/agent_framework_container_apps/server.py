@@ -17,12 +17,12 @@ from azure.identity.aio import DefaultAzureCredential
 
 from tac_microsoft import (
     TAC,
+    AgentFrameworkConnector,
+    ConversationSession,
+    CosmosDBAgentSessionStore,
+    SMSChannelConfig,
     TACConfig,
     TACFastAPIServer,
-    AgentFrameworkConnector,
-    CosmosDBAgentSessionStore,
-    ConversationSession,
-    SMSChannelConfig,
 )
 
 # ---------------------------------------------------------------------------

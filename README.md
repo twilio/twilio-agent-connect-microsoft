@@ -14,6 +14,7 @@
   <div align="center">
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
+    <a href="https://github.com/twilio/twilio-agent-connect-microsoft/actions/workflows/ci.yml"><img alt="CI Status" src="https://github.com/twilio/twilio-agent-connect-microsoft/actions/workflows/ci.yml/badge.svg"/></a>
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/getting_started/examples"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
   </div>
   

@@ -312,7 +312,6 @@ class VoiceLiveSession:
             return {"api-key": self._config.api_key}
 
         if self._config.credential:
-
             token = self._config.credential.get_token(
                 "https://cognitiveservices.azure.com/.default"
             )
