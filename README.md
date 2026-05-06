@@ -8,7 +8,7 @@
   </h1>
 
   <h2>
-    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents to Twilio's channels and conversation context.
+    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents to Twilio's channels, memory, and context.
   </h2>
 
   <div align="center">
