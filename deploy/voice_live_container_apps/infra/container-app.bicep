@@ -10,8 +10,11 @@ param containerImageName string
 @description('ACR login server (e.g. myacr.azurecr.io).')
 param acrLoginServer string
 
-@description('ACR resource name for credential pull.')
-param acrName string
+@description('Whether the container image lives in ACR (wires up MI pull). Leave false on the first deploy — the placeholder public image does not need ACR auth, and declaring the registries block before the AcrPull role exists causes the first revision to hang on 401 retries.')
+param usePrivateRegistry bool = false
+
+@description('Tags applied to every provisioned resource.')
+param tags object = {}
 
 // ---------------------------------------------------------------------------
 // Twilio secrets
@@ -72,6 +75,7 @@ param twilioLogLevel string = 'INFO'
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${environmentName}-logs'
   location: location
+  tags: tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -87,6 +91,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
   name: '${environmentName}-env'
   location: location
+  tags: tags
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
@@ -99,37 +104,34 @@ resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-10-02-preview'
 }
 
 // ---------------------------------------------------------------------------
-// ACR credentials
-// ---------------------------------------------------------------------------
-
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-  name: acrName
-}
-
-// ---------------------------------------------------------------------------
 // Container App
 // ---------------------------------------------------------------------------
 
 resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: '${environmentName}-app'
   location: location
+  tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     managedEnvironmentId: containerAppsEnv.id
     configuration: {
+      activeRevisionsMode: 'Single'
       ingress: {
         external: true
         targetPort: 8000
         transport: 'auto'
-        // Note: stickySessions must be enabled post-deploy via Azure Portal or CLI:
-        //   az containerapp ingress sticky-sessions set -n <app> -g <rg> --affinity sticky
+        stickySessions: {
+          affinity: 'sticky'
+        }
       }
-      registries: [
+      registries: usePrivateRegistry ? [
         {
           server: acrLoginServer
-          username: acr.listCredentials().username
-          passwordSecretRef: 'acr-password'
+          identity: 'system'
         }
-      ]
+      ] : []
       secrets: [
         {
           name: 'twilio-auth-token'
@@ -142,10 +144,6 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
         {
           name: 'azure-voice-live-api-key'
           value: azureVoiceLiveApiKey
-        }
-        {
-          name: 'acr-password'
-          value: acr.listCredentials().passwords[0].value
         }
       ]
     }
@@ -213,6 +211,16 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
       scale: {
         minReplicas: 1
         maxReplicas: 3
+        rules: [
+          {
+            name: 'websocket-concurrency'
+            tcp: {
+              metadata: {
+                concurrentConnections: '50'
+              }
+            }
+          }
+        ]
       }
     }
   }
@@ -223,4 +231,5 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
 // ---------------------------------------------------------------------------
 
 output fqdn string = containerApp.properties.configuration.ingress.fqdn
+output principalId string = containerApp.identity.principalId
 output name string = containerApp.name

@@ -4,17 +4,10 @@ FROM python:3.13-slim AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy wheel files for private dependencies
-COPY agent_framework_container_apps/wheels/*.whl /app/wheels/
-
 # Copy requirements file
 COPY agent_framework_container_apps/requirements.txt /app/requirements.txt
 
-# Install the locally built tac_microsoft wheel first (without dependencies —
-# twilio-agent-connect is pulled from PyPI via requirements.txt)
-RUN pip install --no-cache-dir --no-deps /app/wheels/tac_microsoft-*.whl
-
-# Install all other dependencies
+# Install dependencies (twilio-agent-connect-microsoft from PyPI, pulls in twilio-agent-connect transitively)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage

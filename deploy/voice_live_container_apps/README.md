@@ -115,10 +115,9 @@ can resolve every Bicep parameter without prompting. Omit it only if you're
 happy answering the prompts on first run.
 
 This automatically:
-1. Builds a Python wheel for `twilio-agent-connect-microsoft` from GitHub
-3. Deploys all Azure infrastructure (Container Registry, Container App)
-4. Builds and pushes the Docker image to ACR
-5. Configures the Container App with the image and FQDN
+1. Deploys all Azure infrastructure (Container Registry, Container App)
+2. Builds and pushes the Docker image to ACR (dependencies installed from PyPI)
+3. Configures the Container App with the image and FQDN
 
 ### Step 3: Configure Twilio Webhooks
 
@@ -169,15 +168,6 @@ azd down --purge
 <summary><strong>Manual Deployment (without azd)</strong></summary>
 
 ### Step 0: Build Docker Image
-
-**1. Build wheels:**
-
-```bash
-cd deploy/voice_live_container_apps
-./build-wheels.sh
-```
-
-**2. Build Docker image:**
 
 ```bash
 # Run from the deploy/ directory (parent of voice_live_container_apps)
