@@ -10,6 +10,12 @@ param containerImageName string
 @description('ACR login server (e.g. myacr.azurecr.io).')
 param acrLoginServer string
 
+@description('Whether the container image lives in ACR (wires up MI pull). Leave false on the first deploy — the placeholder public image does not need ACR auth, and declaring the registries block before the AcrPull role exists causes the first revision to hang on 401 retries.')
+param usePrivateRegistry bool = false
+
+@description('Tags applied to every provisioned resource.')
+param tags object = {}
+
 // ---------------------------------------------------------------------------
 // Twilio secrets
 // ---------------------------------------------------------------------------
@@ -75,6 +81,7 @@ param twilioLogLevel string = 'INFO'
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${environmentName}-logs'
   location: location
+  tags: tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -90,6 +97,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-10-02-preview' = {
   name: '${environmentName}-env'
   location: location
+  tags: tags
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'
@@ -108,6 +116,7 @@ resource containerAppsEnv 'Microsoft.App/managedEnvironments@2024-10-02-preview'
 resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
   name: '${environmentName}-app'
   location: location
+  tags: tags
   identity: {
     type: 'SystemAssigned'
   }
@@ -123,12 +132,12 @@ resource containerApp 'Microsoft.App/containerApps@2024-10-02-preview' = {
           affinity: 'sticky'
         }
       }
-      registries: [
+      registries: usePrivateRegistry ? [
         {
           server: acrLoginServer
           identity: 'system'
         }
-      ]
+      ] : []
       secrets: [
         {
           name: 'twilio-auth-token'
