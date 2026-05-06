@@ -129,10 +129,9 @@ can resolve every Bicep parameter without prompting. Omit it only if you're
 happy answering the prompts on first run.
 
 This automatically:
-1. Builds Python wheels for private dependencies
-2. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
-3. Builds and pushes the Docker image to ACR
-4. Configures the Container App with the image and FQDN
+1. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
+2. Builds and pushes the Docker image to ACR (dependencies installed from PyPI)
+3. Configures the Container App with the image and FQDN
 
 ### Step 3: Configure Twilio Webhooks
 
@@ -188,15 +187,6 @@ azd down --purge
 <summary><strong>Manual Deployment (without azd)</strong></summary>
 
 ### Step 0: Build Docker Image
-
-**1. Build wheels:**
-
-```bash
-cd deploy/agent_framework_container_apps
-./build-wheels.sh
-```
-
-**2. Build Docker image:**
 
 ```bash
 # Run from the deploy/ directory (parent of agent_framework_container_apps)

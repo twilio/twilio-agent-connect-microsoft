@@ -4,16 +4,10 @@ FROM python:3.13-slim AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy wheel files for private dependencies
-COPY voice_live_container_apps/wheels/*.whl /app/wheels/
-
 # Copy requirements file
 COPY voice_live_container_apps/requirements.txt /app/requirements.txt
 
-# Install the git-sourced packages from wheels first (without dependencies)
-RUN pip install --no-cache-dir --no-deps /app/wheels/twilio_agent_connect-*.whl /app/wheels/tac_azure-*.whl
-
-# Install all other dependencies
+# Install dependencies (twilio-agent-connect-microsoft from PyPI, pulls in twilio-agent-connect transitively)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage

@@ -15,7 +15,7 @@ import os
 from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 
-from tac_azure import (
+from tac_microsoft import (
     TAC,
     TACConfig,
     TACFastAPIServer,
@@ -71,7 +71,7 @@ connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     session_store=session_store,
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
+    sms_config=SMSChannelConfig(memory_mode="always"),
 )
 
 server = TACFastAPIServer(

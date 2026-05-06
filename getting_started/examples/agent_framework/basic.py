@@ -6,21 +6,22 @@ Azure OpenAI Responses API.  Voice and SMS share a single system prompt.
 
 # Fix SSL certificate verification on macOS (must be before other imports)
 import truststore
+
 truststore.inject_into_ssl()
 
 import os
+from pathlib import Path
 
 from agent_framework.openai import OpenAIChatClient
 from dotenv import load_dotenv
-from pathlib import Path
 
-from tac_azure import (
+from tac_microsoft import (
     TAC,
-    TACConfig,
-    SMSChannelConfig,
-    TACFastAPIServer,
     AgentFrameworkConnector,
     ConversationSession,
+    SMSChannelConfig,
+    TACConfig,
+    TACFastAPIServer,
 )
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -50,6 +51,7 @@ tac = TAC(config=TACConfig.from_env())
 SYSTEM_PROMPT = """You are Owl Internet's customer service assistant.
 Keep responses clear and concise."""
 
+
 def create_agent(session: ConversationSession):
     """Return an Agent Framework agent for this conversation.
 
@@ -73,7 +75,7 @@ connector = AgentFrameworkConnector(
     tac=tac,
     create_agent=create_agent,
     # Auto retrieve Twilio memory and inject into user message passed to AI agent for SMS
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True)
+    sms_config=SMSChannelConfig(memory_mode="always"),
 )
 
 server = TACFastAPIServer(

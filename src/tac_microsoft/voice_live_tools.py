@@ -5,7 +5,7 @@ to :class:`VoiceLiveConfig` — no conversion step needed.
 
 Usage::
 
-    from tac_azure.voice_live_tools import (
+    from tac_microsoft.voice_live_tools import (
         create_memory_tool,
         create_knowledge_tool,
     )
@@ -44,6 +44,7 @@ __all__ = [
 # Tool factories (return TACTool)
 # ------------------------------------------------------------------
 
+
 def create_memory_tool(
     tac: TAC,
     session: ConversationSession,
@@ -56,7 +57,10 @@ def create_memory_tool(
     Returns ``None`` if prerequisites are not met.
     """
     return _tool_factories.create_memory_tool(
-        tac, session, name=name, description=description,
+        tac,
+        session,
+        name=name,
+        description=description,
     )
 
 

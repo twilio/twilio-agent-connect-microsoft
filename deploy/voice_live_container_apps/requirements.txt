@@ -1,9 +1,11 @@
 # Pinned dependencies for Voice Live deployment
-# Generated from project venv — excludes git-sourced packages (installed from wheels)
+# Generated from project venv.
 #
 # Includes extras: [server], [voice-live]
 #
-# Regenerate: install tac-azure[server,voice-live] in a clean venv, then pip freeze
+# Regenerate: install twilio-agent-connect-microsoft[server,voice-live] in a clean venv, then pip freeze
+
+twilio-agent-connect-microsoft>=1.0.0,<2
 
 aiohappyeyeballs==2.6.1
 aiohttp==3.13.5
@@ -35,6 +37,7 @@ requests==2.33.1
 starlette==1.0.0
 truststore==0.10.4
 twilio==9.10.5
+twilio-agent-connect==1.0.0
 typing-extensions==4.15.0
 typing-inspection==0.4.2
 urllib3==2.6.3

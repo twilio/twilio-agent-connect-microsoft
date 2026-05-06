@@ -30,7 +30,7 @@ from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 from tac.session import ThreadSafeSessionManager
 
-from ._version import __version__ as _tac_azure_version
+from ._version import __version__ as _tac_microsoft_version
 from .utils import format_memory_context
 from .voice_live_session import VoiceLiveSession
 from .voice_live_types import VoiceLiveConfig
@@ -79,7 +79,9 @@ class VoiceLiveConnector:
         voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
     ):
         self.tac = tac
-        self.tac.register_partner_connector(PartnerConnector.AZURE_VOICE_LIVE, _tac_azure_version)
+        self.tac.register_partner_connector(
+            PartnerConnector.AZURE_VOICE_LIVE, _tac_microsoft_version
+        )
         self.config = config
         self.on_message = on_message
         self.on_error = on_error

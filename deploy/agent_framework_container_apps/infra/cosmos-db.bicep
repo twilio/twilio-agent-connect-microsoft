@@ -10,6 +10,9 @@ param databaseName string = 'tac'
 @description('Container name.')
 param containerName string = 'sessions'
 
+@description('Tags applied to the Cosmos DB account.')
+param tags object = {}
+
 // ---------------------------------------------------------------------------
 // Cosmos DB Account — NoSQL API, Serverless
 // ---------------------------------------------------------------------------
@@ -17,6 +20,7 @@ param containerName string = 'sessions'
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-11-15' = {
   name: accountName
   location: location
+  tags: tags
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'

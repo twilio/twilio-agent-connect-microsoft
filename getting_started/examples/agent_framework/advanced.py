@@ -16,6 +16,7 @@ from __future__ import annotations
 
 # Fix SSL certificate verification on macOS (must be before other imports)
 import truststore
+
 truststore.inject_into_ssl()
 
 import asyncio
@@ -27,18 +28,21 @@ from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
-from tac_azure import (
+from tac_microsoft import (
     TAC,
+    AgentFrameworkConnector,
+    ConversationSession,
+    FileAgentSessionStore,
+    SMSChannelConfig,
     TACConfig,
     TACFastAPIServer,
-    AgentFrameworkConnector,
-    FileAgentSessionStore,
-    ConversationSession,
     VoiceChannelConfig,
-    SMSChannelConfig,
     format_memory_context,
 )
-from tac_azure.agent_framework_tools import create_knowledge_tool, create_memory_tool
+from tac_microsoft.agent_framework_tools import (
+    create_knowledge_tool,
+    create_memory_tool,
+)
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -86,11 +90,13 @@ knowledge_base_id = os.environ.get("TWILIO_KNOWLEDGE_BASE_ID")
 
 # Build the knowledge tool once at startup — it doesn't depend on session state.
 knowledge_tool = (
-    asyncio.run(create_knowledge_tool(
-        tac,
-        knowledge_base_id,
-        description="Search the knowledge base for relevant information.",
-    ))
+    asyncio.run(
+        create_knowledge_tool(
+            tac,
+            knowledge_base_id,
+            description="Search the knowledge base for relevant information.",
+        )
+    )
     if knowledge_base_id
     else None
 )
@@ -119,7 +125,7 @@ def create_agent(session: ConversationSession):
 session_store = FileAgentSessionStore()
 
 # To use CosmosDB instead (for horizontal scaling), uncomment below:
-# from tac_azure import CosmosDBAgentSessionStore
+# from tac_microsoft import CosmosDBAgentSessionStore
 # session_store = CosmosDBAgentSessionStore(
 #     endpoint=os.environ["AZURE_COSMOS_ENDPOINT"],
 #     credential=os.environ["AZURE_COSMOS_KEY"],
@@ -157,8 +163,10 @@ connector = AgentFrameworkConnector(
     create_agent=create_agent,
     on_message=on_message,
     on_error=on_error,
-    voice_config=VoiceChannelConfig(auto_retrieve_memory=False), # Disabling auto memeory for best latency. Agent can use memory tool when needed.
-    sms_config=SMSChannelConfig(auto_retrieve_memory=True),
+    voice_config=VoiceChannelConfig(
+        memory_mode="never"
+    ),  # Disabling auto memory for best latency. Agent can use memory tool when needed.
+    sms_config=SMSChannelConfig(memory_mode="always"),
     session_store=session_store,
 )
 

@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from agent_framework import AgentSession
 
-from tac_azure.agent_framework_connector import AgentFrameworkConnector
-from tac_azure.stores.in_memory import InMemoryAgentSessionStore
+from tac_microsoft.agent_framework_connector import AgentFrameworkConnector
+from tac_microsoft.stores.in_memory import InMemoryAgentSessionStore
 
 
 # All connector construction patches the three channels so we don't reach
@@ -16,7 +16,7 @@ from tac_azure.stores.in_memory import InMemoryAgentSessionStore
 def _patched_connector(**kwargs):
     """Build an AgentFrameworkConnector with Voice/SMS/Chat channels mocked."""
     return patch.multiple(
-        "tac_azure.agent_framework_connector",
+        "tac_microsoft.agent_framework_connector",
         VoiceChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
         SMSChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
         ChatChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
@@ -170,9 +170,7 @@ class TestMessagingChannelSelection:
 
         assert connector._get_messaging_channel("chat") is connector.chat_channel
 
-    def test_unknown_raises(
-        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
-    ) -> None:
+    def test_unknown_raises(self, mock_tac: MagicMock, mock_agent_factory: MagicMock) -> None:
         with _patched_connector():
             connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
 
@@ -319,7 +317,7 @@ class TestOnMessageHook:
             connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
 
         with patch(
-            "tac_azure.agent_framework_connector.format_memory_context",
+            "tac_microsoft.agent_framework_connector.format_memory_context",
             return_value="formatted",
         ) as fmt:
             result = connector._build_message("hello", mock_sms_session, mock_memory_response)

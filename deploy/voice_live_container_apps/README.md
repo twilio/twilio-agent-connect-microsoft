@@ -20,7 +20,7 @@ This deployment runs a voice-only AI agent using:
 
 Voice Live manages conversation state server-side. The TAC server acts as a bridge between Twilio's ConversationRelay and Voice Live's WebSocket API, operating in text-only mode (`modalities: ["text"]`) because ConversationRelay handles STT/TTS.
 
-Memory retrieval is **opt-in** — the sample `voice_live/basic.py` does not enable it. Set `VoiceChannelConfig(auto_retrieve_memory=True)` to have TAC pull from the Conversation Memory (with fallback to Conversation Orchestrator) before each utterance.
+Memory retrieval is **opt-in** — the sample `voice_live/basic.py` does not enable it. Set `VoiceChannelConfig(memory_mode="always")` to have TAC pull from the Conversation Memory (with fallback to Conversation Orchestrator) before each utterance.
 
 ---
 
@@ -52,7 +52,7 @@ graph LR
 **Flow:**
 - Twilio Phone receives call → `POST /twiml` → response TwiML contains `<ConversationRelay>` → ConversationRelay handles STT/TTS and opens a WebSocket to `/ws` for bidirectional text.
 - TAC opens a Voice Live WebSocket (text-only mode) per call; Voice Live manages conversation state server-side.
-- Memory retrieval is **opt-in** (`VoiceChannelConfig(auto_retrieve_memory=True)`); disabled in the sample.
+- Memory retrieval is **opt-in** (`VoiceChannelConfig(memory_mode="always")`); disabled in the sample.
 
 ---
 
@@ -115,10 +115,9 @@ can resolve every Bicep parameter without prompting. Omit it only if you're
 happy answering the prompts on first run.
 
 This automatically:
-1. Builds Python wheels for private dependencies
-3. Deploys all Azure infrastructure (Container Registry, Container App)
-4. Builds and pushes the Docker image to ACR
-5. Configures the Container App with the image and FQDN
+1. Deploys all Azure infrastructure (Container Registry, Container App)
+2. Builds and pushes the Docker image to ACR (dependencies installed from PyPI)
+3. Configures the Container App with the image and FQDN
 
 ### Step 3: Configure Twilio Webhooks
 
@@ -169,15 +168,6 @@ azd down --purge
 <summary><strong>Manual Deployment (without azd)</strong></summary>
 
 ### Step 0: Build Docker Image
-
-**1. Build wheels:**
-
-```bash
-cd deploy/voice_live_container_apps
-./build-wheels.sh
-```
-
-**2. Build Docker image:**
 
 ```bash
 # Run from the deploy/ directory (parent of voice_live_container_apps)

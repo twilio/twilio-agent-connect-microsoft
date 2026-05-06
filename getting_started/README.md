@@ -1,6 +1,6 @@
-# Getting Started with TAC Azure
+# Getting Started with TAC Microsoft
 
-Quick start guide for using TAC Azure with Microsoft Agent Framework or Azure AI Foundry Voice Live.
+Quick start guide for using TAC Microsoft with Microsoft Agent Framework or Azure AI Foundry Voice Live.
 
 ## Prerequisites
 
@@ -11,20 +11,20 @@ Before running any examples, you need to create and configure the required Twili
 ### With Agent Framework
 
 ```bash
-pip install tac-azure[agent-framework,server]
+pip install twilio-agent-connect-microsoft[agent-framework,server]
 ```
 
 ### With Voice Live
 
 ```bash
-pip install tac-azure[voice-live,server]
+pip install twilio-agent-connect-microsoft[voice-live,server]
 ```
 
 ### Development (from source)
 
 ```bash
-git clone https://github.com/twilio/azure-twilio-agent-connect-python.git
-cd azure-twilio-agent-connect-python
+git clone https://github.com/twilio/twilio-agent-connect-microsoft.git
+cd twilio-agent-connect-microsoft
 uv sync --all-extras
 ```
 
@@ -128,7 +128,7 @@ from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
-from tac_azure import (
+from tac_microsoft import (
     TAC, TACConfig, TACFastAPIServer,
     AgentFrameworkConnector, ConversationSession,
 )

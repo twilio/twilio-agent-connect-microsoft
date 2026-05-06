@@ -1,6 +1,6 @@
-# TAC Azure Deployment Guide
+# TAC Microsoft Deployment Guide
 
-Production deployment options for TAC Azure connectors.
+Production deployment options for TAC Microsoft connectors.
 
 ## Available Deployments
 
@@ -47,7 +47,7 @@ TAC Server runs on Container Apps and streams text to Azure AI Foundry Voice Liv
 
 ## Quick Deploy with Azure Developer CLI (azd)
 
-Each deployment variant supports [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for one-command provisioning. This automates wheel builds, infrastructure deployment, Docker image build/push, and container app configuration.
+Each deployment variant supports [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for one-command provisioning. This automates infrastructure deployment, Docker image build/push, and container app configuration.
 
 **Prerequisites:** `azd` v1.18.0+, Azure CLI (`az`), Docker, Python 3.10+
 

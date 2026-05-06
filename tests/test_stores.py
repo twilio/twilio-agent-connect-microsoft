@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from agent_framework import AgentSession
 
-from tac_azure.stores.file import FileAgentSessionStore
-from tac_azure.stores.in_memory import InMemoryAgentSessionStore
+from tac_microsoft.stores.file import FileAgentSessionStore
+from tac_microsoft.stores.in_memory import InMemoryAgentSessionStore
 
 
 class TestInMemoryAgentSessionStore:
@@ -100,7 +100,7 @@ class TestFileAgentSessionStore:
 @pytest.mark.asyncio
 async def test_in_memory_store_satisfies_protocol() -> None:
     """InMemory store implements the AgentSessionStore protocol surface."""
-    from tac_azure.agent_framework_types import AgentSessionStore
+    from tac_microsoft.agent_framework_types import AgentSessionStore
 
     store: AgentSessionStore = InMemoryAgentSessionStore()
     assert hasattr(store, "load")
@@ -109,7 +109,7 @@ async def test_in_memory_store_satisfies_protocol() -> None:
 
 @pytest.mark.asyncio
 async def test_file_store_satisfies_protocol(tmp_path: Path) -> None:
-    from tac_azure.agent_framework_types import AgentSessionStore
+    from tac_microsoft.agent_framework_types import AgentSessionStore
 
     store: AgentSessionStore = FileAgentSessionStore(storage_dir=tmp_path)
     assert hasattr(store, "load")

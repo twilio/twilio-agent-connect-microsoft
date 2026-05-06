@@ -11,8 +11,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tac_azure import agent_framework_tools, voice_live_tools
-from tac_azure._tool_factories import (
+from tac_microsoft import agent_framework_tools, voice_live_tools
+from tac_microsoft._tool_factories import (
     create_handoff_tool,
     create_knowledge_tool,
     create_memory_tool,
@@ -40,7 +40,9 @@ class TestCreateMemoryTool:
     def test_delegates_to_core_with_client_and_session(
         self, mock_tac: MagicMock, mock_sms_session: MagicMock
     ) -> None:
-        with patch("tac_azure._tool_factories._core_create_memory_tool") as core:
+        with patch(
+            "tac_microsoft._tool_factories._core_create_memory_tool"
+        ) as core:
             core.return_value = MagicMock(name="tac_tool")
 
             result = create_memory_tool(mock_tac, mock_sms_session)
@@ -56,7 +58,9 @@ class TestCreateMemoryTool:
     def test_forwards_name_and_description(
         self, mock_tac: MagicMock, mock_sms_session: MagicMock
     ) -> None:
-        with patch("tac_azure._tool_factories._core_create_memory_tool") as core:
+        with patch(
+            "tac_microsoft._tool_factories._core_create_memory_tool"
+        ) as core:
             create_memory_tool(
                 mock_tac,
                 mock_sms_session,
@@ -84,7 +88,7 @@ class TestCreateKnowledgeTool:
 
     async def test_delegates_to_core(self, mock_tac: MagicMock) -> None:
         with patch(
-            "tac_azure._tool_factories._core_create_knowledge_tool",
+            "tac_microsoft._tool_factories._core_create_knowledge_tool",
             new_callable=AsyncMock,
         ) as core:
             core.return_value = MagicMock(name="tac_tool")
@@ -110,10 +114,10 @@ class TestCreateKnowledgeTool:
 class TestCreateHandoffTool:
     """Wraps ``tac.tools.create_studio_handoff_tool``."""
 
-    def test_delegates_to_core(
-        self, mock_tac: MagicMock, mock_sms_session: MagicMock
-    ) -> None:
-        with patch("tac_azure._tool_factories._core_create_studio_handoff_tool") as core:
+    def test_delegates_to_core(self, mock_tac: MagicMock, mock_sms_session: MagicMock) -> None:
+        with patch(
+            "tac_microsoft._tool_factories._core_create_studio_handoff_tool"
+        ) as core:
             core.return_value = MagicMock(name="tac_tool")
             attributes = {"department": "billing"}
 
@@ -125,7 +129,9 @@ class TestCreateHandoffTool:
     def test_passes_none_attributes_through(
         self, mock_tac: MagicMock, mock_sms_session: MagicMock
     ) -> None:
-        with patch("tac_azure._tool_factories._core_create_studio_handoff_tool") as core:
+        with patch(
+            "tac_microsoft._tool_factories._core_create_studio_handoff_tool"
+        ) as core:
             create_handoff_tool(mock_tac, mock_sms_session)
 
             core.assert_called_once_with(mock_tac, mock_sms_session, None)
@@ -171,7 +177,10 @@ class TestAgentFrameworkToolsAdapter:
         tac_tool = MagicMock()
         tac_tool.implementation = MagicMock(name="plain_callable")
 
-        with patch("tac_azure._tool_factories._core_create_memory_tool", return_value=tac_tool):
+        with patch(
+            "tac_microsoft._tool_factories._core_create_memory_tool",
+            return_value=tac_tool,
+        ):
             result = agent_framework_tools.create_memory_tool(mock_tac, mock_sms_session)
 
         assert result is tac_tool.implementation
@@ -188,7 +197,7 @@ class TestAgentFrameworkToolsAdapter:
         tac_tool.implementation = MagicMock(name="plain_callable")
 
         with patch(
-            "tac_azure._tool_factories._core_create_knowledge_tool",
+            "tac_microsoft._tool_factories._core_create_knowledge_tool",
             new_callable=AsyncMock,
             return_value=tac_tool,
         ):
@@ -205,7 +214,10 @@ class TestVoiceLiveToolsAdapter:
     ) -> None:
         tac_tool = MagicMock(name="tac_tool")
 
-        with patch("tac_azure._tool_factories._core_create_memory_tool", return_value=tac_tool):
+        with patch(
+            "tac_microsoft._tool_factories._core_create_memory_tool",
+            return_value=tac_tool,
+        ):
             result = voice_live_tools.create_memory_tool(mock_tac, mock_sms_session)
 
         assert result is tac_tool
@@ -214,7 +226,7 @@ class TestVoiceLiveToolsAdapter:
         tac_tool = MagicMock(name="tac_tool")
 
         with patch(
-            "tac_azure._tool_factories._core_create_knowledge_tool",
+            "tac_microsoft._tool_factories._core_create_knowledge_tool",
             new_callable=AsyncMock,
             return_value=tac_tool,
         ):
