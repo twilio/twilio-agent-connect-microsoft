@@ -24,9 +24,11 @@ import logging
 import os
 from pathlib import Path
 
+from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
+from tac.models import TACMemoryResponse
 
 from tac_microsoft import (
     TAC,
@@ -106,7 +108,7 @@ knowledge_tool = (
 # ---------------------------------------------------------------------------
 
 
-def create_agent(session: ConversationSession):
+def create_agent(session: ConversationSession) -> Agent:
     prompt = VOICE_SYSTEM_PROMPT if session.channel == "voice" else SMS_SYSTEM_PROMPT
 
     tools = [create_memory_tool(tac, session), look_up_outage_tool, knowledge_tool]
@@ -132,13 +134,17 @@ session_store = FileAgentSessionStore()
 # )
 
 
-def on_message(user_message, context, memory_response):
+def on_message(
+    user_message: str,
+    context: ConversationSession,
+    memory_response: TACMemoryResponse | None,
+) -> str:
     """Customize the user message with context before sending it to the agent."""
     prefix = f"[Customer: {context.author_info.address if context.author_info else 'unknown'}]\n"
     return prefix + format_memory_context(memory_response, user_message)
 
 
-def on_error(error, context):
+def on_error(error: Exception, context: ConversationSession) -> str:
     """Return a channel-appropriate error message."""
     logger.error("Agent error", extra={"conversation_id": context.conversation_id}, exc_info=error)
     if context.channel == "voice":

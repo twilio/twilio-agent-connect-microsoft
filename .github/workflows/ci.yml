@@ -68,7 +68,7 @@ jobs:
         run: |
           . .venv/bin/activate
           echo "Type checking: src/tac_microsoft getting_started deploy"
-          MYPYPATH=src uv run mypy src/tac_microsoft getting_started deploy
+          MYPYPATH=src uv run mypy --explicit-package-bases src/tac_microsoft getting_started deploy
 
   test:
     name: Test - Python ${{ matrix.python-version }}

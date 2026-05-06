@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 
+from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 
@@ -48,7 +49,7 @@ Keep responses clear and concise."""
 # ---------------------------------------------------------------------------
 
 
-def create_agent(session: ConversationSession):
+def create_agent(session: ConversationSession) -> Agent:
     return client.as_agent(
         name="Agent",
         instructions=SYSTEM_PROMPT,

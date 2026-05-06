@@ -285,7 +285,8 @@ class VoiceLiveSession:
         if not self._ws:
             raise VoiceLiveError("WebSocket not connected")
         raw = await self._ws.recv()
-        return json.loads(raw)
+        event: dict[str, Any] = json.loads(raw)
+        return event
 
     @staticmethod
     def _normalize_tool(tool: dict[str, Any]) -> dict[str, Any]:
