@@ -1,4 +1,4 @@
-# TAC Microsoft Deployment Guide
+# Twilio Agent Connect for Microsoft — Deployment Guide
 
 Production deployment options for TAC Microsoft connectors.
 
