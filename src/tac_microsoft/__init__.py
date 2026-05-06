@@ -6,6 +6,8 @@ import from a single namespace::
     from tac_microsoft import TAC, TACConfig, TACFastAPIServer, AgentFrameworkConnector
 """
 
+from typing import TYPE_CHECKING
+
 # Re-export all public symbols from core TAC. Kept explicit (no star import) so
 # the public surface is statically visible to linters, IDEs, and type checkers.
 # If core TAC adds a new top-level export, add it here too.
@@ -25,6 +27,18 @@ from .utils import format_memory_context
 
 # Lazy imports for symbols that require optional extras.
 # This lets `import tac_microsoft` succeed even when only core deps are installed.
+# The TYPE_CHECKING block below is evaluated only by type checkers (mypy, IDEs)
+# and mirrors what `__getattr__` resolves at runtime.
+if TYPE_CHECKING:
+    from tac.server import TACFastAPIServer
+
+    from .agent_framework_connector import AgentFrameworkConnector
+    from .agent_framework_types import AgentSessionStore
+    from .stores.cosmos import CosmosDBAgentSessionStore
+    from .stores.file import FileAgentSessionStore
+    from .stores.in_memory import InMemoryAgentSessionStore
+    from .voice_live_connector import VoiceLiveConnector
+    from .voice_live_types import VoiceLiveConfig, VoiceLiveError
 
 
 def __getattr__(name: str) -> object:

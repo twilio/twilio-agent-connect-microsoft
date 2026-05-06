@@ -22,16 +22,17 @@ dev-setup: sync
 
 format:
 	@echo "Formatting code with ruff..."
-	uv run ruff format src/tac_microsoft getting_started tests
-	uv run ruff check --fix src/tac_microsoft getting_started tests
+	uv run ruff format src getting_started tests deploy
+	uv run ruff check --fix src getting_started tests deploy
 
 lint:
 	@echo "Running lint checks..."
-	uv run ruff check src/tac_microsoft getting_started tests
+	uv run ruff check src getting_started tests deploy
+	uv run ruff format --check src getting_started tests deploy
 
 type-check:
 	@echo "Running mypy type checking..."
-	MYPYPATH=src uv run mypy src/tac_microsoft
+	MYPYPATH=src uv run mypy --explicit-package-bases src/tac_microsoft getting_started deploy
 
 test:
 	@echo "Running tests..."

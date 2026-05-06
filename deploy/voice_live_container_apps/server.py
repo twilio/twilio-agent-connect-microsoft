@@ -15,8 +15,8 @@ from tac_microsoft import (
     TAC,
     TACConfig,
     TACFastAPIServer,
-    VoiceLiveConnector,
     VoiceLiveConfig,
+    VoiceLiveConnector,
 )
 
 # ---------------------------------------------------------------------------

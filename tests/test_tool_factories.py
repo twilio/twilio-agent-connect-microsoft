@@ -40,9 +40,7 @@ class TestCreateMemoryTool:
     def test_delegates_to_core_with_client_and_session(
         self, mock_tac: MagicMock, mock_sms_session: MagicMock
     ) -> None:
-        with patch(
-            "tac_microsoft._tool_factories._core_create_memory_tool"
-        ) as core:
+        with patch("tac_microsoft._tool_factories._core_create_memory_tool") as core:
             core.return_value = MagicMock(name="tac_tool")
 
             result = create_memory_tool(mock_tac, mock_sms_session)
@@ -58,9 +56,7 @@ class TestCreateMemoryTool:
     def test_forwards_name_and_description(
         self, mock_tac: MagicMock, mock_sms_session: MagicMock
     ) -> None:
-        with patch(
-            "tac_microsoft._tool_factories._core_create_memory_tool"
-        ) as core:
+        with patch("tac_microsoft._tool_factories._core_create_memory_tool") as core:
             create_memory_tool(
                 mock_tac,
                 mock_sms_session,
@@ -115,9 +111,7 @@ class TestCreateHandoffTool:
     """Wraps ``tac.tools.create_studio_handoff_tool``."""
 
     def test_delegates_to_core(self, mock_tac: MagicMock, mock_sms_session: MagicMock) -> None:
-        with patch(
-            "tac_microsoft._tool_factories._core_create_studio_handoff_tool"
-        ) as core:
+        with patch("tac_microsoft._tool_factories._core_create_studio_handoff_tool") as core:
             core.return_value = MagicMock(name="tac_tool")
             attributes = {"department": "billing"}
 
@@ -129,9 +123,7 @@ class TestCreateHandoffTool:
     def test_passes_none_attributes_through(
         self, mock_tac: MagicMock, mock_sms_session: MagicMock
     ) -> None:
-        with patch(
-            "tac_microsoft._tool_factories._core_create_studio_handoff_tool"
-        ) as core:
+        with patch("tac_microsoft._tool_factories._core_create_studio_handoff_tool") as core:
             create_handoff_tool(mock_tac, mock_sms_session)
 
             core.assert_called_once_with(mock_tac, mock_sms_session, None)

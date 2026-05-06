@@ -1,19 +1,20 @@
 <div align="center">
   <div>
-    <img src="https://raw.githubusercontent.com/twilio/twilio-agent-connect-microsoft/main/logo.svg" alt="TAC Microsoft Logo" width="120" height="120">
+    <img src="logo.svg" alt="Twilio Agent Connect for Microsoft Logo" width="120" height="120">
   </div>
 
   <h1>
-    TAC Microsoft
+    Twilio Agent Connect for Microsoft
   </h1>
 
   <h2>
-    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents to Twilio's communication channels.
+    Azure integrations for Twilio Agent Connect — connect Microsoft Foundry agents to Twilio's channels, memory, and context.
   </h2>
 
   <div align="center">
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft"><img alt="Python SDK" src="https://img.shields.io/badge/Python-3.10+-3776AB.svg"/></a>
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-green.svg"/></a>
+    <a href="https://github.com/twilio/twilio-agent-connect-microsoft/actions/workflows/ci.yml"><img alt="CI Status" src="https://github.com/twilio/twilio-agent-connect-microsoft/actions/workflows/ci.yml/badge.svg"/></a>
     <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/getting_started/examples"><img alt="Getting Started" src="https://img.shields.io/badge/Getting%20Started-Examples-F22F46.svg"/></a>
   </div>
   
@@ -25,7 +26,7 @@
   </p>
 </div>
 
-Azure-specific connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), enabling seamless integration with [Microsoft Foundry](https://learn.microsoft.com/en-us/azure/foundry/what-is-foundry) — including [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) and the [Voice Live API](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live).
+Ships [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) and [Azure AI Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), plus [production Azure deployments](./deploy) for each.
 
 ---
 

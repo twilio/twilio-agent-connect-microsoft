@@ -12,6 +12,7 @@ truststore.inject_into_ssl()
 import os
 from pathlib import Path
 
+from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
 from dotenv import load_dotenv
 
@@ -52,7 +53,7 @@ SYSTEM_PROMPT = """You are Owl Internet's customer service assistant.
 Keep responses clear and concise."""
 
 
-def create_agent(session: ConversationSession):
+def create_agent(session: ConversationSession) -> Agent:
     """Return an Agent Framework agent for this conversation.
 
     Called once at the start of a voice call, and on every incoming

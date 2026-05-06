@@ -285,7 +285,8 @@ class VoiceLiveSession:
         if not self._ws:
             raise VoiceLiveError("WebSocket not connected")
         raw = await self._ws.recv()
-        return json.loads(raw)
+        event: dict[str, Any] = json.loads(raw)
+        return event
 
     @staticmethod
     def _normalize_tool(tool: dict[str, Any]) -> dict[str, Any]:
@@ -312,7 +313,6 @@ class VoiceLiveSession:
             return {"api-key": self._config.api_key}
 
         if self._config.credential:
-
             token = self._config.credential.get_token(
                 "https://cognitiveservices.azure.com/.default"
             )

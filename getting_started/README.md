@@ -1,6 +1,6 @@
-# Getting Started with TAC Microsoft
+# Getting Started with Twilio Agent Connect for Microsoft
 
-Quick start guide for using TAC Microsoft with Microsoft Agent Framework or Azure AI Foundry Voice Live.
+Quick start guide for using Twilio Agent Connect for Microsoft with Microsoft Agent Framework or Azure AI Foundry Voice Live.
 
 ## Prerequisites
 
