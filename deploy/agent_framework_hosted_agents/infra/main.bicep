@@ -1,33 +1,21 @@
 // APIM gateway in front of Azure AI Foundry Hosted Agents.
 //
-// This template provisions:
-//   - APIM service (BasicV2+ — Consumption is excluded because it
-//     does NOT support WebSocket APIs, which the voice path requires)
-//   - System-assigned managed identity on APIM
-//   - (Optional) Key Vault with the Twilio Auth Token secret
-//   - APIM MI granted Key Vault Secrets User on the (new or existing) vault
-//   - Named value referencing the Twilio Auth Token in Key Vault
+// Provisions:
+//   - APIM service with system-assigned MI
+//   - Key Vault holding the Twilio Auth Token (Mode A creates one, Mode
+//     B references an existing vault — see param descriptions below)
+//   - APIM MI granted Key Vault Secrets User on the chosen vault
 //   - Backend pointing at the Foundry Hosted Agents account
 //   - Three operations + policies:
 //       * POST /twilio/webhook  → /invocations (Conversation Orchestrator SMS)
 //       * POST /twilio/twiml    → /invocations (Twilio voice form webhook)
 //       * WSS  /twilio/ws       → /invocations_ws (Conversation Relay stream)
 //
-// Key Vault — two modes:
-//   1. Bicep creates one (default): leave `existingKeyVaultName` empty
-//      and pass the Twilio auth token via the `twilioAuthToken`
-//      @secure() param. Bicep creates the vault, seeds the secret, and
-//      grants APIM the Secrets User role.
-//   2. BYO: set `existingKeyVaultName` (and optionally
-//      `existingKeyVaultResourceGroup` if it lives elsewhere). Bicep
-//      will reference the existing vault and grant APIM the role on it,
-//      but does NOT create the secret — you must seed `TwilioAuthToken`
-//      yourself.
-//
-// Pre-reqs (NOT created here):
-//   - APIM's MI granted `Azure AI User` on the Foundry account
-//     (the Foundry account commonly lives in a different subscription
-//     or RG, so we don't try to do this in-template)
+// Not created here:
+//   - APIM's MI granted `Foundry User` on the Foundry account. The
+//     account commonly lives outside this RG (and sometimes outside
+//     this subscription), so the role assignment is left to the
+//     deployer — see README step 3.
 //
 // Deploy:
 //   az deployment group create \
@@ -46,7 +34,7 @@ param publisherEmail string
 @description('Publisher name for APIM.')
 param publisherName string = 'Twilio Agent'
 
-@description('APIM SKU. v2 tiers are recommended (faster provisioning + WSS support).')
+@description('APIM SKU. Consumption is excluded — it does not host WebSocket APIs, which the voice path requires.')
 @allowed([
   'Developer'
   'BasicV2'
@@ -55,7 +43,7 @@ param publisherName string = 'Twilio Agent'
 ])
 param apimSku string = 'BasicV2'
 
-@description('Hosted Agents Foundry account URL (e.g. https://<account>.services.ai.azure.com).')
+@description('Hosted Agents Foundry account URL plus the agent path. Format: https://<account>.services.ai.azure.com/api/projects/<project>/agents/<agent>/endpoint/protocols. The SMS/voice-twiml policies append `/invocations`; the WS API serviceUrl uses just the host.')
 param hostedAgentsUrl string
 
 @description('Foundry project name (set as ?project_name= on the WSS upgrade).')
@@ -84,14 +72,13 @@ param existingKeyVaultResourceGroup string = resourceGroup().name
 @description('Skip the APIM-MI Key Vault Secrets User role assignment. Set to true when reusing a vault where the role is already granted (Azure rejects duplicate (principal, role, scope) triples even with different role-assignment GUIDs).')
 param skipKeyVaultRoleAssignment bool = false
 
-@description('Enable purge protection on the Key Vault when creating one (Mode A). Required by some tenant policies. Once enabled, this is IRREVERSIBLE — the vault gets the full 90-day soft-delete retention and cannot be purged early.')
+@description('Enable purge protection on a newly-created Key Vault. Required by some tenant policies. Once enabled, this is IRREVERSIBLE — the vault gets the full 90-day soft-delete retention and cannot be purged early.')
 param keyVaultPurgeProtection bool = true
 
 // ---- Tags ----------------------------------------------------------------
 
-@description('Tags applied to created resources (tenant policy commonly requires created_by).')
+@description('Tags applied to created resources.')
 param tags object = {
-  created_by: publisherEmail
   project: 'tac-hosted-agents'
 }
 
@@ -107,8 +94,7 @@ var effectiveKeyVaultName = createKeyVault ? newKeyVaultName : existingKeyVaultN
 // Bare host extracted from hostedAgentsUrl for the WSS API serviceUrl.
 var hostedAgentsAccountHost = split(hostedAgentsUrl, '/')[2]
 
-// Built-in role definition: Key Vault Secrets User
-// (4633458b-17de-408a-b874-0445c86b69e6).
+// Built-in role: Key Vault Secrets User.
 var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
 
 // ---------------------------------------------------------------------------
@@ -144,22 +130,21 @@ resource newKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' = if (createKeyVault
       name: 'standard'
     }
     tenantId: subscription().tenantId
-    // RBAC mode (not access policies). APIM's MI gets a role assignment below.
     enableRbacAuthorization: true
     enableSoftDelete: true
-    // When purge protection is on, soft-delete retention has a 90-day
-    // floor enforced by Azure; setting it to 7 below would error.
+    // Purge protection forces a 90-day soft-delete retention floor;
+    // setting retention to 7 below would error.
     softDeleteRetentionInDays: keyVaultPurgeProtection ? 90 : 7
-    // ``null`` means "leave at tenant default", which works for tenants
-    // that don't enforce purge protection. Some tenants reject
-    // explicit ``false``, so we only emit ``true`` or omit.
+    // ``null`` means "leave at tenant default". Some tenants reject an
+    // explicit ``false`` via Azure Policy, so we only emit ``true`` or
+    // omit the property.
     enablePurgeProtection: keyVaultPurgeProtection ? true : null
     publicNetworkAccess: 'Enabled'
   }
 }
 
-// Seed the Twilio Auth Token secret only when creating the vault.
-// Reusing an existing vault → assume the secret is already present.
+// Seed the Twilio Auth Token only when creating the vault. Reusing an
+// existing vault → the secret is assumed to already be there.
 resource newKeyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (createKeyVault) {
   parent: newKeyVault
   name: 'TwilioAuthToken'
@@ -168,30 +153,23 @@ resource newKeyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (
   }
 }
 
-// Reference whichever vault is in use (new or existing) so APIM's named
-// value can resolve via vaultUri, and the role assignment can be scoped
-// to the right resource. The `existing` keyword is needed even when
-// the vault was just declared above, because Bicep doesn't allow scoping
-// a role assignment to a conditional resource expression directly.
+// `existing` reference for mode B. Bicep doesn't allow scoping a role
+// assignment to a conditional resource, so we reference both the new and
+// existing vault paths explicitly and pick at the variable level below.
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = if (!createKeyVault) {
   name: effectiveKeyVaultName
   scope: resourceGroup(existingKeyVaultResourceGroup)
 }
 
-// Compute the URI for both modes — `newKeyVault.properties.vaultUri`
-// for mode A, `keyVault.properties.vaultUri` for mode B.
-// The two `?` accessors silence BCP318: only one of the resources is
-// declared in any given deployment (the other is `null`), and the
-// ternary on `createKeyVault` reliably picks the live one.
+// The `?` accessors silence BCP318: only one of the two resources is
+// declared in any given deployment; the ternary picks the live one.
 var effectiveKeyVaultUri = createKeyVault ? newKeyVault!.properties.vaultUri : keyVault!.properties.vaultUri
 
 // ---------------------------------------------------------------------------
 // APIM MI → Key Vault Secrets User
 // ---------------------------------------------------------------------------
-// When reusing a vault in another RG, the role assignment has to be
-// scoped there. Bicep doesn't let us pick the scope dynamically with a
-// single resource declaration, so we split into two conditional
-// assignments (one for each mode). They never both fire.
+// Two conditional declarations because Bicep can't pick a role-assignment
+// scope dynamically. Only one fires per deployment.
 
 resource apimKeyVaultRoleAssignmentNew 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createKeyVault && !skipKeyVaultRoleAssignment) {
   name: guid(newKeyVault.id, apim.id, kvSecretsUserRoleId)
@@ -206,11 +184,11 @@ resource apimKeyVaultRoleAssignmentNew 'Microsoft.Authorization/roleAssignments@
   }
 }
 
-// For an existing vault, the assignment must be deployed at the vault's
-// own resource group (which may differ from this deployment's RG). We
-// need a separate module for cross-RG scoping.
+// For an existing vault that may live in another RG, the assignment
+// must be scoped to that RG. Module wraps a cross-RG deployment so the
+// `scope:` expression is statically resolvable.
 module apimKeyVaultRoleAssignmentExisting './kv-role-assignment.bicep' = if (!createKeyVault && !skipKeyVaultRoleAssignment) {
-  name: 'apim-kv-role-existing'
+  name: 'apim-kv-role-${uniqueString(apim.id, effectiveKeyVaultName)}'
   scope: resourceGroup(existingKeyVaultResourceGroup)
   params: {
     keyVaultName: effectiveKeyVaultName
@@ -229,14 +207,13 @@ resource twilioAuthTokenNamedValue 'Microsoft.ApiManagement/service/namedValues@
     displayName: 'TwilioAuthToken'
     secret: true
     keyVault: {
-      // The secret must be named exactly `TwilioAuthToken` in Key Vault.
       secretIdentifier: '${effectiveKeyVaultUri}secrets/TwilioAuthToken'
     }
   }
   dependsOn: [
-    // Make sure the role assignment exists before APIM tries to
-    // resolve the named value (otherwise the resolution fails with 403
-    // and APIM can't fetch the secret).
+    // Block named-value resolution until the role assignment exists,
+    // otherwise APIM tries the secret-fetch before RBAC has propagated
+    // and gets a 403.
     apimKeyVaultRoleAssignmentNew
     apimKeyVaultRoleAssignmentExisting
     newKeyVaultSecret
@@ -244,8 +221,12 @@ resource twilioAuthTokenNamedValue 'Microsoft.ApiManagement/service/namedValues@
 }
 
 // ---------------------------------------------------------------------------
-// Backend — Foundry account root
+// Backend — Foundry account
 // ---------------------------------------------------------------------------
+// Both HTTP policies route to this named backend via
+// `<set-backend-service backend-id="hosted-agents-backend" />`. The
+// WebSocket API skips this and uses its own `serviceUrl` because APIM
+// models WSS APIs differently.
 resource hostedAgentsBackend 'Microsoft.ApiManagement/service/backends@2023-05-01-preview' = {
   parent: apim
   name: 'hosted-agents-backend'
@@ -258,6 +239,9 @@ resource hostedAgentsBackend 'Microsoft.ApiManagement/service/backends@2023-05-0
 // ---------------------------------------------------------------------------
 // HTTP API — /twilio/webhook (SMS) + /twilio/twiml (voice TwiML)
 // ---------------------------------------------------------------------------
+// No `serviceUrl` here — the policies pick the backend explicitly via
+// `set-backend-service`. Keeping the routing in one place (the policy)
+// avoids a dual-source-of-truth bug if the backend URL ever changes.
 resource twilioApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apim
   name: 'twilio-tac'
@@ -267,7 +251,6 @@ resource twilioApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
     protocols: [ 'https' ]
     // Twilio cannot attach APIM subscription keys.
     subscriptionRequired: false
-    serviceUrl: hostedAgentsUrl
   }
 }
 
@@ -343,19 +326,15 @@ resource voiceTwimlPolicy 'Microsoft.ApiManagement/service/apis/operations/polic
 // ---------------------------------------------------------------------------
 // WebSocket API — /twilio/ws (Conversation Relay)
 // ---------------------------------------------------------------------------
-// Separate API resource because APIM models WebSocket APIs distinctly
-// (type: 'websocket'). serviceUrl is just the host (no path) so the
-// policy's rewrite-uri can set the full path on the backend.
-//
 // Path is `/ws` to match TACServerConfig.websocket_path default — the
-// server emits `wss://{public_domain}/ws?agent_session_id=...` and
-// this API receives those upgrades.
+// server emits `wss://{public_domain}/ws?agent_session_id=...` and this
+// API receives those upgrades. serviceUrl is just the host so the
+// policy's `rewrite-uri` can set the full Foundry path on the upgrade.
 resource voiceWsApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apim
   name: 'twilio-tac-voice-ws'
   properties: {
     displayName: 'Twilio TAC voice (WebSocket) → Hosted Agents'
-    // Public path is /twilio/ws — uniqueness is enforced across all APIs.
     path: 'twilio/ws'
     protocols: [ 'wss' ]
     type: 'websocket'
@@ -364,8 +343,8 @@ resource voiceWsApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = 
   }
 }
 
-// WebSocket APIs disallow API-scope policies — must attach to the
-// auto-created, unremovable `onHandshake` operation.
+// WebSocket APIs disallow API-scope policies; policy must attach to the
+// auto-created `onHandshake` operation.
 resource voiceWsOnHandshake 'Microsoft.ApiManagement/service/apis/operations@2023-05-01-preview' existing = {
   parent: voiceWsApi
   name: 'onHandshake'
@@ -376,8 +355,8 @@ resource voiceWsPolicy 'Microsoft.ApiManagement/service/apis/operations/policies
   name: 'policy'
   properties: {
     format: 'xml'
-    // Inject project_name and agent_name as substitutions because policy
-    // XML can't reference Bicep params at runtime.
+    // project_name + agent_name get injected at deploy time because
+    // policy XML can't reference Bicep params at runtime.
     value: replace(
       replace(
         loadTextContent('./policies/voice-ws-policy.xml'),
@@ -390,7 +369,6 @@ resource voiceWsPolicy 'Microsoft.ApiManagement/service/apis/operations/policies
   }
   dependsOn: [
     twilioAuthTokenNamedValue
-    hostedAgentsBackend
   ]
 }
 
@@ -401,9 +379,9 @@ output apimGatewayUrl string = apim.properties.gatewayUrl
 output apimPrincipalId string = apim.identity.principalId
 output keyVaultName string = effectiveKeyVaultName
 output keyVaultUri string = effectiveKeyVaultUri
-// Configure these in your Twilio console / TAC config:
+// Configure these in your Twilio console:
 output twilioSmsWebhookUrl string = '${apim.properties.gatewayUrl}/twilio/webhook'
 output twilioVoiceTwimlUrl string = '${apim.properties.gatewayUrl}/twilio/twiml'
 output twilioVoiceWssUrl string = 'wss://${apim.name}.azure-api.net/twilio/ws'
-// Set this as TWILIO_VOICE_PUBLIC_DOMAIN on the agent (no scheme/slash):
+// Set on the agent as TWILIO_VOICE_PUBLIC_DOMAIN (no scheme/slash):
 output voicePublicDomain string = '${apim.name}.azure-api.net/twilio'

@@ -1,17 +1,15 @@
 <!--
-  APIM policy — Twilio Conversation Orchestrator → Hosted Agents /invocations.
+  Twilio Conversation Orchestrator → Hosted Agents /invocations.
 
   Inbound:
-    1. Validate X-Twilio-Signature over URL + empty-body. CO webhooks
-       are JSON, so Twilio computes HMAC-SHA1 over the full request URL
-       with no body concatenation. Secret: TwilioAuthToken (Key Vault
-       named value).
-    2. Parse JSON, extract data.conversationId (positively identifies a
-       CO webhook) and project it onto the agent_session_id query param
-       Hosted Agents requires for sandbox affinity.
-    3. Inject an Entra bearer for the Hosted Agents control plane via
-       APIM's system-assigned managed identity.
-    4. Strip X-Twilio-Signature (no longer valid post-rewrite); preserve
+    1. HMAC-validate X-Twilio-Signature against the request URL (CO
+       webhooks are JSON; Twilio signs URL only, no body). Secret comes
+       from the TwilioAuthToken named value (Key Vault reference).
+    2. Lift data.conversationId from the body onto ?agent_session_id=
+       so Hosted Agents pins this request and its retries to one sandbox.
+    3. Inject an Entra bearer via APIM's system-assigned managed
+       identity (resource = https://ai.azure.com).
+    4. Strip X-Twilio-Signature (invalid after rewrite); preserve
        i-twilio-idempotency-token (the agent uses it for dedup).
 -->
 <policies>
@@ -43,10 +41,9 @@
       <when condition="@((string)context.Variables[&quot;twilioComputedSig&quot;] != (string)context.Variables[&quot;twilioSignatureHeader&quot;])">
         <return-response>
           <set-status code="401" reason="Invalid X-Twilio-Signature" />
-          <!-- Debug headers fire only on failed HMAC (i.e. attacks or
-               genuine config breakage). The leak is small (a computed
-               signature without the secret) and they have already paid
-               for themselves once during HMAC config debugging. -->
+          <!-- Debug headers fire only on rejected requests (attacks or
+               genuine config breakage), so the leak surface is small.
+               They've earned their keep diagnosing HMAC mismatches. -->
           <set-header name="X-Debug-Computed-Sig" exists-action="override">
             <value>@((string)context.Variables["twilioComputedSig"])</value>
           </set-header>
@@ -79,7 +76,7 @@
       <value>@((string)context.Variables["conversationId"])</value>
     </set-query-parameter>
     <set-query-parameter name="api-version" exists-action="override">
-      <value>2025-05-15-preview</value>
+      <value>2025-11-15-preview</value>
     </set-query-parameter>
 
     <!-- 3. Inject Entra bearer for Hosted Agents -->

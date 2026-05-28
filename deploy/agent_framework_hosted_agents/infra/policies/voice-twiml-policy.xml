@@ -1,30 +1,29 @@
 <!--
-  APIM policy — Twilio voice TwiML webhook → Hosted Agents /invocations.
+  Twilio voice TwiML webhook → Hosted Agents /invocations.
 
   Twilio sends voice webhooks as application/x-www-form-urlencoded;
-  Foundry's invocations endpoint only accepts application/json. We
-  convert form → JSON manually here (APIM's AsFormUrlEncodedContent()
-  helper rejects keys with empty values, which Twilio always includes).
+  Foundry's /invocations only accepts application/json. We hand-roll
+  the form → JSON conversion because APIM's AsFormUrlEncodedContent()
+  helper rejects keys with empty values, which Twilio always includes.
 
-  We also lift CallSid from the form and set it as the
-  ?agent_session_id= query parameter so this TwiML POST and the
-  subsequent WSS upgrade land on the same Foundry sandbox. Without
-  pinned affinity, two cold starts compound and Twilio CR may give up
-  before the agent is ready to receive the `setup` frame.
+  We also lift CallSid from the form into ?agent_session_id= so this
+  TwiML POST and the subsequent WSS upgrade share a sandbox. Without
+  affinity, two cold starts compound and Twilio CR can give up before
+  the agent is ready for the `setup` frame.
 
   HMAC validation is deferred to the agent layer (TAC's
-  validate_twilio_webhook); APIM's expression sandbox is too restricted
-  to robustly reimplement Twilio's form-encoded HMAC.
+  validate_twilio_webhook). APIM's expression sandbox is too
+  restricted to reimplement Twilio's form-encoded HMAC robustly.
 
-  The two-pass form parse (one set-variable for CallSid, one set-body
-  for full conversion) is necessary — APIM's expression sandbox can't
-  return Dictionary from set-variable.
+  Two passes over the body are needed because APIM's expression
+  sandbox can't return a Dictionary from set-variable: one
+  set-variable to capture CallSid, one set-body to rewrite the body.
 -->
 <policies>
   <inbound>
     <base />
 
-    <!-- 1a. Capture CallSid before we replace the body. -->
+    <!-- Capture CallSid before set-body replaces the body. -->
     <set-variable name="callSid" value="@{
         var raw = context.Request.Body.As&lt;string&gt;(preserveContent: true) ?? string.Empty;
         foreach (var seg in raw.Split('&amp;')) {
@@ -40,7 +39,7 @@
         return string.Empty;
     }" />
 
-    <!-- 1b. Convert the form body to JSON for Foundry. -->
+    <!-- Rewrite the form body as a flat JSON object for Foundry. -->
     <set-body>@{
         var raw = context.Request.Body.As&lt;string&gt;(preserveContent: false) ?? string.Empty;
         var dq = ((char)34).ToString();
@@ -89,10 +88,10 @@
       <value>@((string)context.Variables["callSid"])</value>
     </set-query-parameter>
     <set-query-parameter name="api-version" exists-action="override">
-      <value>2025-05-15-preview</value>
+      <value>2025-11-15-preview</value>
     </set-query-parameter>
 
-    <!-- 2. Inject Foundry Entra bearer + rewrite. -->
+    <!-- Inject Foundry Entra bearer + rewrite to /invocations. -->
     <authentication-managed-identity resource="https://ai.azure.com" />
     <set-backend-service backend-id="hosted-agents-backend" />
     <rewrite-uri template="/invocations" />
