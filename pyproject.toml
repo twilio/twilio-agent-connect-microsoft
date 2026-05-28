@@ -46,12 +46,9 @@ voice-live = [
 ]
 
 # Azure AI Foundry Hosted Agents server
-# NOTE: ``azure-ai-agentserver-invocations`` is not yet on PyPI. Deployers
-# install it from the vendored wheel under
-# ``deploy/agent_framework_hosted_agents/wheels/`` (pip install --no-deps).
-# Pinning core to 2.0.0b3 because the invocations wheel breaks against b4+.
 hosted-agents = [
-    "azure-ai-agentserver-core==2.0.0b3",
+    "azure-ai-agentserver-invocations>=1.0.0b4,<2",
+    "azure-ai-agentserver-core>=2.0.0b4,<3",
     "starlette",
 ]
 
@@ -69,10 +66,9 @@ dev = [
     "websockets>=13.0",
     # Server dependencies (via TAC core)
     "twilio-agent-connect[server]>=1.0.0,<2",
-    # Hosted Agents server (core only — invocations wheel is vendored
-    # under deploy/agent_framework_hosted_agents/wheels/ and isn't needed
-    # for unit tests, which mock InvocationAgentServerHost).
-    "azure-ai-agentserver-core==2.0.0b3",
+    # Hosted Agents server.
+    "azure-ai-agentserver-invocations>=1.0.0b4,<2",
+    "azure-ai-agentserver-core>=2.0.0b4,<3",
     "starlette",
     # Dev tools
     "ruff>=0.8.0,<1",

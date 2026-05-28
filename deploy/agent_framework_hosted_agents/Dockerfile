@@ -1,10 +1,9 @@
 # Azure Hosted Agents image for TAC + Agent Framework (SMS + voice).
 #
-# wheels/ ships the pre-release azure-ai-agentserver-invocations wheel
-# (b4 is the first version that exposes /invocations_ws, required for
-# Conversation Relay). It's not on PyPI yet, so we vendor it here.
-# Once it's published we can drop the wheel and add the dep to
-# requirements.txt.
+# The `[hosted-agents]` extra pulls azure-ai-agentserver-invocations and
+# azure-ai-agentserver-core from PyPI. The local SDK wheel under
+# wheels/ is still vendored because TACHostedAgentsServer hasn't shipped
+# to PyPI yet (the README's setup step builds it via `uv build`).
 FROM python:3.13-slim
 
 WORKDIR /app
@@ -16,20 +15,9 @@ WORKDIR /app
 COPY wheels/ /app/wheels/
 COPY requirements.txt /app/requirements.txt
 
-# Install order matters:
-#   1. Pin azure-ai-agentserver-core to 2.0.0b3 FIRST. The invocations
-#      b4 wheel declares core>=2.0.0b3 but its code uses request_span(),
-#      which was REMOVED in core 2.0.0b4. Pinning to b3 keeps the API
-#      contract intact.
-#   2. Install the invocations wheel WITHOUT deps so pip doesn't try to
-#      upgrade core back to >=2.0.0b3 (which lands b4 again).
-#   3. Install requirements.txt — pulls TAC, the Microsoft connector,
-#      and Agent Framework from PyPI.
-RUN pip install --no-cache-dir --pre azure-ai-agentserver-core==2.0.0b3 \
- && pip install --no-cache-dir --no-deps /app/wheels/azure_ai_agentserver_invocations-*.whl \
- && pip install --no-cache-dir --pre -r /app/requirements.txt \
+RUN pip install --no-cache-dir --pre -r /app/requirements.txt \
  && WHEEL=$(ls /app/wheels/twilio_agent_connect_microsoft-*.whl) \
- && pip install --no-cache-dir "${WHEEL}[hosted-agents,agent-framework]"
+ && pip install --no-cache-dir --pre "${WHEEL}[hosted-agents,agent-framework]"
 
 COPY server.py /app/server.py
 

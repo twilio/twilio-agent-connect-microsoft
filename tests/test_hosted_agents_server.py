@@ -22,7 +22,10 @@ from tac_microsoft.hosted_agents_server import (
 )
 
 
-# Patch target for lazy invocation host import.
+# A stand-in for InvocationAgentServerHost that records decorator calls
+# so tests can introspect what handlers got registered. We patch the
+# import in hosted_agents_server.py rather than installing the real one
+# (it boots a Starlette ASGI app that we don't need for unit tests).
 class _FakeInvocationHost:
     def __init__(self) -> None:
         self.invoke_handler_func: Any = None
@@ -50,8 +53,8 @@ def _build_server(
     fake_host = _FakeInvocationHost()
     cfg = TACServerConfig(public_domain=public_domain)
     with patch(
-        "tac_microsoft.hosted_agents_server._import_invocation_host",
-        return_value=lambda: fake_host,
+        "tac_microsoft.hosted_agents_server.InvocationAgentServerHost",
+        return_value=fake_host,
     ):
         server = TACHostedAgentsServer(
             tac=MagicMock(),

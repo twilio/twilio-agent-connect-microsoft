@@ -148,7 +148,7 @@ dependencies = [
 - `agent-framework` — Microsoft Agent Framework + Azure AI + azure-identity
 - `voice-live` — websockets client for Azure AI Foundry Voice Live
 - `cosmos` — Azure Cosmos DB client for `CosmosDBAgentSessionStore`
-- `hosted-agents` — Azure AI Foundry Hosted Agents server (`TACHostedAgentsServer`). Note: `azure-ai-agentserver-invocations` (the wheel that supplies `InvocationAgentServerHost`) is not yet on PyPI — the deployment under `deploy/agent_framework_hosted_agents/wheels/` vendors it.
+- `hosted-agents` — Azure AI Foundry Hosted Agents server (`TACHostedAgentsServer`). Pulls `azure-ai-agentserver-invocations` and `azure-ai-agentserver-core` (both pre-release betas as of writing) from PyPI.
 - `dev` — All of the above plus ruff, mypy
 
 ## Key Concepts

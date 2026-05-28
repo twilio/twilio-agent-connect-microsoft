@@ -51,33 +51,15 @@ if TYPE_CHECKING:
     from tac.channels.voice import VoiceChannel
 
 try:
+    from azure.ai.agentserver.invocations import InvocationAgentServerHost
     from starlette.requests import Request
     from starlette.responses import JSONResponse, Response
     from starlette.websockets import WebSocket, WebSocketDisconnect
 except ImportError as e:
     raise ImportError(
-        "TACHostedAgentsServer requires Starlette. Install with: "
+        "TACHostedAgentsServer requires the hosted-agents extra. Install with: "
         "pip install twilio-agent-connect-microsoft[hosted-agents]"
     ) from e
-
-
-def _import_invocation_host() -> Any:
-    """Import ``InvocationAgentServerHost`` lazily.
-
-    The wheel that supplies it (``azure-ai-agentserver-invocations``) is
-    not yet on PyPI; deployers install it from the vendored wheel under
-    ``deploy/agent_framework_hosted_agents/wheels/``. Importing it lazily
-    lets unit tests patch it without needing the wheel installed.
-    """
-    try:
-        from azure.ai.agentserver.invocations import InvocationAgentServerHost
-    except ImportError as e:
-        raise ImportError(
-            "TACHostedAgentsServer requires azure-ai-agentserver-invocations. "
-            "It is not yet on PyPI — install from the vendored wheel under "
-            "deploy/agent_framework_hosted_agents/wheels/."
-        ) from e
-    return InvocationAgentServerHost
 
 
 logger = get_logger(__name__)
@@ -202,8 +184,7 @@ class TACHostedAgentsServer:
 
         self._idempotency = _IdempotencyCache(capacity=idempotency_cache_size)
 
-        invocation_host_cls = _import_invocation_host()
-        self.app = invocation_host_cls()
+        self.app = InvocationAgentServerHost()
         self._register_handlers(self.app)
 
     @staticmethod
@@ -246,7 +227,7 @@ class TACHostedAgentsServer:
             return None
         return f"https://{self.config.public_domain}{self.config.conversation_relay_callback_path}"
 
-    def _register_handlers(self, app: Any) -> None:
+    def _register_handlers(self, app: InvocationAgentServerHost) -> None:
         @app.invoke_handler
         async def handle_invoke(request: Request) -> Response:
             return await self._dispatch_invoke(request)
