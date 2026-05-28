@@ -19,7 +19,7 @@
   </div>
   
   <p>
-    <a href="https://www.twilio.com/docs/platform/tac/overview">Documentation</a>
+    <a href="https://www.twilio.com/docs/conversations/agent-connect">Documentation</a>
     ◆ <a href="https://github.com/twilio/twilio-agent-connect-python">Python SDK</a>
     ◆ <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/getting_started/examples">Examples</a>
     ◆ <a href="https://github.com/twilio/twilio-agent-connect-microsoft/tree/main/deploy">Deployment</a>
@@ -71,7 +71,7 @@ uv sync --all-extras
 
 ## Prerequisites
 
-Before running any examples, you need to create and configure the required Twilio services (Conversation Configuration, phone number, etc.). Follow the [TAC Quickstart guide](https://www.twilio.com/docs/platform/tac/quickstart) to set these up.
+Before running any examples, you need to create and configure the required Twilio services (Conversation Configuration, phone number, etc.). Follow the [TAC Quickstart guide](https://www.twilio.com/docs/conversations/agent-connect/quickstart) to set these up.
 
 ## Configuration
 
