@@ -55,8 +55,8 @@ graph LR
   `TACHostedAgentsServer` dispatcher fans the body out to all
   registered messaging channels.
 - **Voice:** Twilio posts a form to `https://<apim>/twilio/twiml`. APIM
-  converts form → JSON (TAC's HMAC validator runs at the agent layer)
-  and forwards to `/invocations`. The server returns TwiML containing
+  validates the form-encoded HMAC, converts form → JSON, and forwards
+  to `/invocations`. The server returns TwiML containing
   `<Connect><ConversationRelay url="wss://<apim>/twilio/ws?agent_session_id=<CallSid>"/>`.
 - **Voice WS:** Twilio dials the WSS URL. APIM validates HMAC on the
   upgrade, requires `agent_session_id` on the query, injects the

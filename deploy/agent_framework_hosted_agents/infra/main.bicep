@@ -77,8 +77,9 @@ param keyVaultPurgeProtection bool = true
 
 // ---- Tags ----------------------------------------------------------------
 
-@description('Tags applied to created resources.')
+@description('Tags applied to created resources. The default includes `created_by` because many tenants enforce it via Azure Policy (an update that strips this tag is rejected with RequestDisallowedByPolicy). Override or extend as your tenant requires.')
 param tags object = {
+  created_by: publisherEmail
   project: 'tac-hosted-agents'
 }
 

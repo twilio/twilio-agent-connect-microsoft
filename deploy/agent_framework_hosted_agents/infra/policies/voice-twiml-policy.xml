@@ -11,19 +11,116 @@
   affinity, two cold starts compound and Twilio CR can give up before
   the agent is ready for the `setup` frame.
 
-  HMAC validation is deferred to the agent layer (TAC's
-  validate_twilio_webhook). APIM's expression sandbox is too
-  restricted to reimplement Twilio's form-encoded HMAC robustly.
+  HMAC validation runs here at APIM (not at the agent layer) so the
+  rewrite to /invocations and the form→JSON conversion only happen
+  on requests Twilio actually signed. Form-encoded HMAC is the URL
+  followed by sorted (key+value) pairs from the form body, HMAC-SHA1
+  with the auth token, base64-encoded — see Twilio's "Validating
+  Signatures from Twilio" docs.
 
-  Two passes over the body are needed because APIM's expression
-  sandbox can't return a Dictionary from set-variable: one
-  set-variable to capture CallSid, one set-body to rewrite the body.
+  Three passes over the body are needed because APIM's expression
+  sandbox can't return a Dictionary from set-variable: one to compute
+  the HMAC over (URL + sorted form pairs), one to capture CallSid,
+  and one set-body to rewrite the body to JSON.
+
+  APIM allow-listed types: List<T>, Dictionary, HashSet, Queue, Stack
+  — but NOT SortedDictionary or SortedSet. We sort by packing pairs
+  with a U+0001 separator and using List.Sort() (ordinal).
 -->
 <policies>
   <inbound>
     <base />
 
-    <!-- Capture CallSid before set-body replaces the body. -->
+    <!-- 1. Twilio signature validation (form-encoded HMAC).
+         Concatenates the original URL with sorted (key+value) form
+         pairs, HMAC-SHA1 with the auth token, base64. Reads the form
+         body with preserveContent:true so subsequent set-body still
+         sees the original. -->
+    <set-variable name="twilioSignatureHeader" value="@(context.Request.Headers.GetValueOrDefault(&quot;X-Twilio-Signature&quot;, &quot;&quot;))" />
+    <choose>
+      <when condition="@(string.IsNullOrEmpty((string)context.Variables[&quot;twilioSignatureHeader&quot;]))">
+        <return-response>
+          <set-status code="401" reason="Missing X-Twilio-Signature" />
+        </return-response>
+      </when>
+    </choose>
+    <set-variable name="twilioFullUrl" value="@{
+        var u = context.Request.OriginalUrl;
+        var qs = u.QueryString ?? &quot;&quot;;
+        return u.Scheme + &quot;://&quot; + u.Host + u.Path + qs;
+    }" />
+    <set-variable name="twilioSignedString" value="@{
+        /* Mirrors twilio-python RequestValidator.compute_signature:
+           for each (key, value) pair in sorted order, s += key + value.
+           Pairs are packed as key + SOH + value so a plain List.Sort()
+           gives ordinal order on (k, v). The SOH separator (U+0001)
+           never appears in URL-decoded Twilio form data. */
+        var raw = context.Request.Body.As&lt;string&gt;(preserveContent: true) ?? string.Empty;
+        /* SOH (U+0001) packs key+value into one string for sorting.
+           Use the char overload of IndexOf — string.IndexOf(string)
+           uses CurrentCulture collation which treats control chars
+           as ignorable and returns 0, eating the first character. */
+        char sepChar = (char)1;
+        var pairs = new System.Collections.Generic.List&lt;string&gt;();
+        foreach (var seg in raw.Split('&amp;')) {
+            if (!string.IsNullOrEmpty(seg)) {
+                var eq = seg.IndexOf('=');
+                string k;
+                string v;
+                if (eq &gt;= 0) {
+                    k = System.Net.WebUtility.UrlDecode(seg.Substring(0, eq));
+                    v = System.Net.WebUtility.UrlDecode(seg.Substring(eq + 1));
+                } else {
+                    k = System.Net.WebUtility.UrlDecode(seg);
+                    v = string.Empty;
+                }
+                pairs.Add(k + sepChar + v);
+            }
+        }
+        /* Sort with ordinal comparer — List.Sort() default is
+           CurrentCulture, which would also misorder our SOH-packed
+           pairs. */
+        pairs.Sort(System.StringComparer.Ordinal);
+        var sb = new System.Text.StringBuilder();
+        sb.Append((string)context.Variables[&quot;twilioFullUrl&quot;]);
+        string prev = null;
+        foreach (var p in pairs) {
+            if (p != prev) {
+                var idx = p.IndexOf(sepChar);
+                sb.Append(p.Substring(0, idx));
+                sb.Append(p.Substring(idx + 1));
+                prev = p;
+            }
+        }
+        return sb.ToString();
+    }" />
+    <set-variable name="twilioComputedSig" value="@{
+        var key = System.Text.Encoding.UTF8.GetBytes(&quot;{{TwilioAuthToken}}&quot;);
+        using (var hmac = new System.Security.Cryptography.HMACSHA1(key)) {
+            var bytes = System.Text.Encoding.UTF8.GetBytes((string)context.Variables[&quot;twilioSignedString&quot;]);
+            return Convert.ToBase64String(hmac.ComputeHash(bytes));
+        }
+    }" />
+    <choose>
+      <when condition="@((string)context.Variables[&quot;twilioComputedSig&quot;] != (string)context.Variables[&quot;twilioSignatureHeader&quot;])">
+        <return-response>
+          <set-status code="401" reason="Invalid X-Twilio-Signature" />
+          <!-- Debug headers fire only on rejected requests (attacks or
+               genuine config breakage), so the leak surface is small. -->
+          <set-header name="X-Debug-Computed-Sig" exists-action="override">
+            <value>@((string)context.Variables["twilioComputedSig"])</value>
+          </set-header>
+          <set-header name="X-Debug-Expected-Sig" exists-action="override">
+            <value>@((string)context.Variables["twilioSignatureHeader"])</value>
+          </set-header>
+          <set-header name="X-Debug-Url" exists-action="override">
+            <value>@((string)context.Variables["twilioFullUrl"])</value>
+          </set-header>
+        </return-response>
+      </when>
+    </choose>
+
+    <!-- 2. Capture CallSid before set-body replaces the body. -->
     <set-variable name="callSid" value="@{
         var raw = context.Request.Body.As&lt;string&gt;(preserveContent: true) ?? string.Empty;
         foreach (var seg in raw.Split('&amp;')) {
@@ -39,7 +136,7 @@
         return string.Empty;
     }" />
 
-    <!-- Rewrite the form body as a flat JSON object for Foundry. -->
+    <!-- 3. Rewrite the form body as a flat JSON object for Foundry. -->
     <set-body>@{
         var raw = context.Request.Body.As&lt;string&gt;(preserveContent: false) ?? string.Empty;
         var dq = ((char)34).ToString();
@@ -91,8 +188,10 @@
       <value>2025-11-15-preview</value>
     </set-query-parameter>
 
-    <!-- Inject Foundry Entra bearer + rewrite to /invocations. -->
+    <!-- Inject Foundry Entra bearer + rewrite to /invocations.
+         Strip X-Twilio-Signature (no longer valid after URL rewrite). -->
     <authentication-managed-identity resource="https://ai.azure.com" />
+    <set-header name="X-Twilio-Signature" exists-action="delete" />
     <set-backend-service backend-id="hosted-agents-backend" />
     <rewrite-uri template="/invocations" />
   </inbound>
