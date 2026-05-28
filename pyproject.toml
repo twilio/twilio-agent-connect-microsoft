@@ -45,6 +45,16 @@ voice-live = [
     "websockets>=13.0",
 ]
 
+# Azure AI Foundry Hosted Agents server
+# NOTE: ``azure-ai-agentserver-invocations`` is not yet on PyPI. Deployers
+# install it from the vendored wheel under
+# ``deploy/agent_framework_hosted_agents/wheels/`` (pip install --no-deps).
+# Pinning core to 2.0.0b3 because the invocations wheel breaks against b4+.
+hosted-agents = [
+    "azure-ai-agentserver-core==2.0.0b3",
+    "starlette",
+]
+
 # CosmosDB session store
 cosmos = [
     "azure-cosmos>=4.7.0",
@@ -59,6 +69,11 @@ dev = [
     "websockets>=13.0",
     # Server dependencies (via TAC core)
     "twilio-agent-connect[server]>=1.0.0,<2",
+    # Hosted Agents server (core only — invocations wheel is vendored
+    # under deploy/agent_framework_hosted_agents/wheels/ and isn't needed
+    # for unit tests, which mock InvocationAgentServerHost).
+    "azure-ai-agentserver-core==2.0.0b3",
+    "starlette",
     # Dev tools
     "ruff>=0.8.0,<1",
     "mypy>=1.0.0,<2",
@@ -133,4 +148,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = "azure.cosmos.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "azure.ai.agentserver.*"
 ignore_missing_imports = true

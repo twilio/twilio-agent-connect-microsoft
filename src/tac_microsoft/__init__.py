@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 
     from .agent_framework_connector import AgentFrameworkConnector
     from .agent_framework_types import AgentSessionStore
+    from .hosted_agents_server import StarletteWebSocketAdapter, TACHostedAgentsServer
     from .stores.cosmos import CosmosDBAgentSessionStore
     from .stores.file import FileAgentSessionStore
     from .stores.in_memory import InMemoryAgentSessionStore
@@ -72,6 +73,15 @@ def __getattr__(name: str) -> object:
 
         return CosmosDBAgentSessionStore
 
+    # Hosted Agents server — requires twilio-agent-connect-microsoft[hosted-agents] extra
+    if name in ("TACHostedAgentsServer", "StarletteWebSocketAdapter"):
+        from .hosted_agents_server import StarletteWebSocketAdapter, TACHostedAgentsServer
+
+        return {
+            "TACHostedAgentsServer": TACHostedAgentsServer,
+            "StarletteWebSocketAdapter": StarletteWebSocketAdapter,
+        }[name]
+
     # Voice Live connector — requires twilio-agent-connect-microsoft[voice-live] extra
     if name in ("VoiceLiveConnector", "VoiceLiveConfig", "VoiceLiveError"):
         from .voice_live_connector import VoiceLiveConnector
@@ -103,6 +113,9 @@ __all__ = [
     "VoiceLiveConnector",
     "VoiceLiveConfig",
     "VoiceLiveError",
+    # Hosted Agents server
+    "TACHostedAgentsServer",
+    "StarletteWebSocketAdapter",
     # Session stores
     "AgentSessionStore",
     "InMemoryAgentSessionStore",

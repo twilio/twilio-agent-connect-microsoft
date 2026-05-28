@@ -1,0 +1,73 @@
+# Pinned dependencies for the Hosted Agents deployment.
+#
+# Installs twilio-agent-connect-microsoft[hosted-agents,agent-framework]
+# plus the Azure OpenAI provider for Agent Framework. We intentionally
+# avoid the `agent-framework` metapackage (it pulls every provider via
+# agent-framework-core[all] and roughly triples the image size).
+#
+# To switch providers, swap `agent-framework-azure` for the relevant
+# `agent-framework-<provider>` wheel and update server.py.
+#
+# Regenerate: in a clean venv, install the top-level requirements below
+# and ``pip freeze``.
+
+# Top-level requirements.
+#
+# NOTE: twilio-agent-connect-microsoft is installed from the vendored
+# wheel under wheels/ (see Dockerfile), NOT from PyPI. The published
+# 1.0.1 doesn't yet include TACHostedAgentsServer. Once the next minor
+# version ships to PyPI, swap to:
+#   twilio-agent-connect-microsoft[hosted-agents,agent-framework]>=1.X,<2
+twilio-agent-connect>=1.0.0,<2
+agent-framework-core==1.2.2
+agent-framework-openai==1.2.2
+azure-identity
+
+# Resolved transitive dependencies — keep in sync with the
+# container_apps deploy where overlap exists.
+aiohappyeyeballs==2.6.1
+aiohttp==3.13.5
+aiohttp-retry==2.9.1
+aiosignal==1.4.0
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.13.0
+attrs==26.1.0
+azure-core==1.40.0
+certifi==2026.4.22
+cffi==2.0.0
+charset-normalizer==3.4.7
+click==8.3.3
+cryptography==48.0.0
+distro==1.9.0
+frozenlist==1.8.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.13
+importlib-metadata==8.7.1
+jiter==0.14.0
+msal==1.36.0
+msal-extensions==1.3.1
+multidict==6.7.1
+openai==2.34.0
+opentelemetry-api==1.41.1
+propcache==0.4.1
+pycparser==3.0
+pydantic==2.13.3
+pydantic-core==2.46.3
+pyjwt==2.12.1
+python-dotenv==1.2.2
+pyyaml==6.0.3
+requests==2.33.1
+sniffio==1.3.1
+starlette==1.0.0
+tqdm==4.67.3
+truststore==0.10.4
+twilio==9.10.5
+twilio-agent-connect==1.0.0
+typing-extensions==4.15.0
+typing-inspection==0.4.2
+urllib3==2.6.3
+yarl==1.23.0
+zipp==3.23.1

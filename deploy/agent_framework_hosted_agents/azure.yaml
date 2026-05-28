@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: tac-agent-framework-hosted-agents
+services:
+    tac-agent-framework:
+        project: .
+        host: azure.ai.agent
+        language: python
+        config:
+            container:
+                resources:
+                    cpu: "0.5"
+                    memory: 1Gi
+hooks:
+    preprovision:
+        posix:
+            name: preprovision
+            kind: sh
+            shell: sh
+            run: |
+                # Import .env file into azd environment if it exists
+                if [ -f .env ]; then
+                  echo "==> Importing .env into azd environment..."
+                  while IFS='=' read -r key value; do
+                    case "$key" in \#*|"") continue ;; esac
+                    value=$(echo "$value" | sed 's/^["'"'"']//;s/["'"'"']$//')
+                    if [ -n "$value" ]; then
+                      azd env set "$key" "$value"
+                    fi
+                  done < .env
+                fi

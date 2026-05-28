@@ -25,6 +25,11 @@ venv/
 # Azure Developer CLI
 .azure/
 
+# Locally-built SDK wheel for the hosted-agents deployment.
+# Vendored at deploy time; rebuilt with `uv build` per the README.
+# Don't commit — would force every contributor to bump it on every release.
+deploy/agent_framework_hosted_agents/wheels/twilio_agent_connect_microsoft-*.whl
+
 # OS
 .DS_Store
 Thumbs.db
