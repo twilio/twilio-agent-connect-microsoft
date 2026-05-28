@@ -15,9 +15,15 @@ WORKDIR /app
 COPY wheels/ /app/wheels/
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir --pre -r /app/requirements.txt \
+# NOTE: only the [hosted-agents] extra is installed here. The
+# [agent-framework] extra would pull the full `agent-framework`
+# metapackage, which transitively installs every provider (Anthropic,
+# Bedrock, Ollama, etc.) and ~triples the image size. requirements.txt
+# already pins `agent-framework-openai` (the only provider this server
+# uses) so the [agent-framework] extra is unnecessary here.
+RUN pip install --no-cache-dir -r /app/requirements.txt \
  && WHEEL=$(ls /app/wheels/twilio_agent_connect_microsoft-*.whl) \
- && pip install --no-cache-dir --pre "${WHEEL}[hosted-agents,agent-framework]"
+ && pip install --no-cache-dir "${WHEEL}[hosted-agents]"
 
 COPY server.py /app/server.py
 

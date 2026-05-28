@@ -45,11 +45,17 @@ voice-live = [
     "websockets>=13.0",
 ]
 
-# Azure AI Foundry Hosted Agents server
+# Azure AI Foundry Hosted Agents server.
+#
+# Pulls tac[server] for TACServerConfig — the same config class
+# TACFastAPIServer uses, but reused here to avoid duplicating the
+# public_domain / websocket_path config surface. That transitively
+# installs FastAPI/uvicorn (small overhead — ~10MB — for the win of
+# config parity across the two server classes).
 hosted-agents = [
+    "twilio-agent-connect[server]>=1.0.0,<2",
     "azure-ai-agentserver-invocations>=1.0.0b4,<2",
     "azure-ai-agentserver-core>=2.0.0b4,<3",
-    "starlette",
 ]
 
 # CosmosDB session store
@@ -66,10 +72,9 @@ dev = [
     "websockets>=13.0",
     # Server dependencies (via TAC core)
     "twilio-agent-connect[server]>=1.0.0,<2",
-    # Hosted Agents server.
+    # Hosted Agents server (tac[server] is already pulled in above).
     "azure-ai-agentserver-invocations>=1.0.0b4,<2",
     "azure-ai-agentserver-core>=2.0.0b4,<3",
-    "starlette",
     # Dev tools
     "ruff>=0.8.0,<1",
     "mypy>=1.0.0,<2",
