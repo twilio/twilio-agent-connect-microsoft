@@ -1,4 +1,4 @@
-"""TAC Server with Agent Framework — Azure Hosted Agents deployment.
+"""TAC Server with Agent Framework — Foundry Hosted Agents deployment.
 
 Runs inside Azure AI Foundry's Hosted Agents runtime
 (``InvocationAgentServerHost``), behind APIM. APIM handles HMAC validation,
@@ -29,7 +29,7 @@ from tac_microsoft import (
     FileAgentSessionStore,
     SMSChannelConfig,
     TACConfig,
-    TACHostedAgentsServer,
+    TACHostedAgentsApp,
 )
 
 # ---------------------------------------------------------------------------
@@ -83,7 +83,7 @@ connector = AgentFrameworkConnector(
     sms_config=SMSChannelConfig(memory_mode="always"),
 )
 
-server = TACHostedAgentsServer(
+server = TACHostedAgentsApp(
     tac=tac,
     voice_channel=connector.voice_channel,
     messaging_channels=[connector.sms_channel],

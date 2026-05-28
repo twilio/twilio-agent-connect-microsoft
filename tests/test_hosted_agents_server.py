@@ -1,4 +1,4 @@
-"""Tests for TACHostedAgentsServer.
+"""Tests for TACHostedAgentsApp.
 
 These tests exercise the dispatch logic without booting a real
 ``InvocationAgentServerHost`` — we patch the lazy host import so the
@@ -17,7 +17,7 @@ from tac.server.config import TACServerConfig
 
 from tac_microsoft.hosted_agents_server import (
     StarletteWebSocketAdapter,
-    TACHostedAgentsServer,
+    TACHostedAgentsApp,
     _IdempotencyCache,
 )
 
@@ -49,14 +49,14 @@ def _build_server(
     voice_channel: MagicMock | None = None,
     messaging_channels: list[MagicMock] | None = None,
     public_domain: str = "test.example.com/twilio",
-) -> tuple[TACHostedAgentsServer, _FakeInvocationHost]:
+) -> tuple[TACHostedAgentsApp, _FakeInvocationHost]:
     fake_host = _FakeInvocationHost()
     cfg = TACServerConfig(public_domain=public_domain)
     with patch(
         "tac_microsoft.hosted_agents_server.InvocationAgentServerHost",
         return_value=fake_host,
     ):
-        server = TACHostedAgentsServer(
+        server = TACHostedAgentsApp(
             tac=MagicMock(),
             voice_channel=voice_channel,
             messaging_channels=messaging_channels or [],

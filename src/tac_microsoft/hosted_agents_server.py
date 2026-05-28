@@ -1,4 +1,4 @@
-"""TACHostedAgentsServer: TAC server for Azure AI Foundry Hosted Agents.
+"""TACHostedAgentsApp: TAC server for Azure AI Foundry Hosted Agents.
 
 Hosted Agents (the Azure AI Foundry runtime under
 ``azure-ai-agentserver-invocations``) exposes exactly two endpoints —
@@ -57,7 +57,7 @@ try:
     from starlette.websockets import WebSocket, WebSocketDisconnect
 except ImportError as e:
     raise ImportError(
-        "TACHostedAgentsServer requires the hosted-agents extra. Install with: "
+        "TACHostedAgentsApp requires the hosted-agents extra. Install with: "
         "pip install twilio-agent-connect-microsoft[hosted-agents]"
     ) from e
 
@@ -134,14 +134,14 @@ class _IdempotencyCache:
         return True
 
 
-class TACHostedAgentsServer:
+class TACHostedAgentsApp:
     """TAC server hosted inside Azure AI Foundry Hosted Agents.
 
     Mirrors the public surface of ``TACFastAPIServer`` so it's a drop-in
     peer for users deploying to Foundry instead of Container Apps::
 
         connector = AgentFrameworkConnector(tac=tac, create_agent=...)
-        server = TACHostedAgentsServer(
+        server = TACHostedAgentsApp(
             tac=tac,
             voice_channel=connector.voice_channel,
             messaging_channels=[connector.sms_channel],

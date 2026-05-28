@@ -1,4 +1,4 @@
-# TAC Agent Framework — Azure Hosted Agents Deployment
+# TAC Agent Framework — Foundry Hosted Agents Deployment
 
 Run TAC + Microsoft Agent Framework directly inside Azure AI Foundry's
 **Hosted Agents** runtime, with APIM in front for HMAC validation,
@@ -6,20 +6,6 @@ form-to-JSON conversion, and sandbox affinity.
 
 This is the SMS + voice path; for the Container Apps equivalent, see
 [`../agent_framework_container_apps`](../agent_framework_container_apps).
-
-## When to use this over Container Apps
-
-| | Container Apps | Hosted Agents |
-|---|---|---|
-| Cost at low volume | Always-on container | Scales to zero per sandbox |
-| Cold-start latency | ~1s | Higher on first request |
-| Session storage | Cosmos DB recommended | `$HOME/tac_sessions` (sandbox-pinned) |
-| Auth surface | Twilio HMAC at the app | Twilio HMAC at APIM |
-| WebSocket support | Direct | Bridged via APIM WSS API |
-
-Use Hosted Agents when traffic is bursty enough that paying for an
-always-on Container App is wasteful, and when you're already in the
-Foundry ecosystem.
 
 ## Architecture
 
@@ -52,7 +38,7 @@ graph LR
 - **SMS:** Twilio CO posts JSON to `https://<apim>/twilio/webhook`.
   APIM validates HMAC, lifts `data.conversationId` onto
   `?agent_session_id=...`, and forwards to `/invocations`. The
-  `TACHostedAgentsServer` dispatcher fans the body out to all
+  `TACHostedAgentsApp` dispatcher fans the body out to all
   registered messaging channels.
 - **Voice:** Twilio posts a form to `https://<apim>/twilio/twiml`. APIM
   validates the form-encoded HMAC, converts form → JSON, and forwards
@@ -61,6 +47,40 @@ graph LR
 - **Voice WS:** Twilio dials the WSS URL. APIM validates HMAC on the
   upgrade, requires `agent_session_id` on the query, injects the
   Foundry auth + feature flag, and rewrites to `/invocations_ws`.
+
+## Security: HMAC validation is APIM-only
+
+**Twilio HMAC validation runs at APIM, not in `TACHostedAgentsApp`.** The
+agent layer does not re-check `X-Twilio-Signature`. APIM strips the
+header before forwarding to Foundry — by that point the URL has been
+rewritten (`/twiml` → `/invocations`) and, for voice, the form body has
+been transformed to JSON, so the signature is no longer reproducible
+downstream.
+
+Implication: **APIM is the only authentication boundary in front of
+your agent.** Any caller that can reach the Foundry `/invocations`
+endpoint directly bypasses HMAC validation entirely. Two things make
+that hard in practice:
+
+1. The Foundry endpoint is not public — it requires an Entra bearer
+   token issued for `https://ai.azure.com`, and only APIM's
+   system-assigned managed identity holds the `Foundry User` role on
+   the account.
+2. APIM injects that bearer via `<authentication-managed-identity
+   resource="https://ai.azure.com" />` in each policy.
+
+So in this topology, "reach the agent" means "compromise APIM's MI" —
+not "send a request to a public URL." If you change the Foundry
+auth model (e.g. enable a public endpoint or a shared key), revisit
+this assumption: you'd need to add code-level HMAC validation to
+`TACHostedAgentsApp`, which would require APIM to also forward the
+original signed URL and the original form body so the signature can
+be reconstructed.
+
+If you want defense-in-depth without changing Foundry's auth model,
+the smallest addition is APIM signing its own request to the agent
+(shared-secret or HMAC over body+timestamp via Key Vault). That's not
+implemented today.
 
 ## Prerequisites
 
@@ -94,14 +114,14 @@ cp .env.template .env
 # fill in .env with your values — see "Required env vars" below
 
 # The Dockerfile installs the SDK from a vendored wheel under wheels/
-# (because TACHostedAgentsServer isn't on PyPI yet). Build it from the
+# (because TACHostedAgentsApp isn't on PyPI yet). Build it from the
 # repo root:
 ( cd ../.. && uv build && \
   cp dist/twilio_agent_connect_microsoft-*-py3-none-any.whl \
      deploy/agent_framework_hosted_agents/wheels/ )
 ```
 
-Once the SDK is published to PyPI with `TACHostedAgentsServer`, this
+Once the SDK is published to PyPI with `TACHostedAgentsApp`, this
 wheel can be removed and `requirements.txt` can install the package
 from PyPI directly.
 
@@ -182,24 +202,19 @@ forward requests to agents under that account.)
 
 ### 4. Configure Twilio
 
-The Bicep outputs three URLs (see `azd env get-values | grep -i twilio`):
+Bicep emits the URLs you'll need (see `azd env get-values | grep -i twilio`):
 
-- **Phone Number → Voice URL:** the value of `twilioVoiceTwimlUrl`
-  (POST)
-- **Conversation Orchestrator → Webhook URL:** the value of
-  `twilioSmsWebhookUrl` (POST)
+- **Phone Number → Voice URL** (POST): use `twilioVoiceTwimlUrl`.
+- **Conversation Orchestrator → Webhook URL** (POST): use `twilioSmsWebhookUrl`.
 
-After APIM is up, set `TWILIO_VOICE_PUBLIC_DOMAIN` in `.env` to the
-value of `voicePublicDomain` and re-run `azd up` so the agent can
-build the correct TwiML WSS URL.
+Then set `TWILIO_VOICE_PUBLIC_DOMAIN` in `.env` to the value of
+`voicePublicDomain` and re-run `azd up` so the agent emits the correct
+TwiML WSS URL.
 
 ### 5. Test
 
-Make a call or send an SMS to your Twilio number. Watch logs:
-
-```bash
-az ai agent logs --agent <agent-name> --project <project-name> --follow
-```
+Make a call or send an SMS to your Twilio number, then watch the agent
+logs in the Azure AI Foundry portal (Agents → your agent → Logs).
 
 ## Teardown
 
@@ -258,8 +273,6 @@ az group delete --name <rg> --yes --no-wait   # APIM resource group
 - **`Caller is not authorized to perform action ... getSecret/action`
   during the first provision** — APIM tried to read the secret before
   the `Key Vault Secrets User` role assignment finished propagating.
-  Re-run `azd provision --no-state`; the second attempt succeeds. Most
-  Azure samples accept this as a known propagation issue.
+  Re-run `azd provision --no-state`; the second attempt succeeds.
 - **`az role assignment create ... ERROR: Role 'Azure AI User' doesn't
-  exist`** — the correct role name is `Foundry User` (the previous
-  README had the wrong name). See step 3 above.
+  exist`** — the correct role name is `Foundry User`. See step 3 above.

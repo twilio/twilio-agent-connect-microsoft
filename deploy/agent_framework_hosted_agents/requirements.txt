@@ -13,7 +13,7 @@
 #
 # NOTE: twilio-agent-connect-microsoft is installed from the vendored
 # wheel under wheels/ (see the Dockerfile), NOT from PyPI. The published
-# 1.0.1 doesn't yet include TACHostedAgentsServer. Once the next minor
+# 1.0.1 doesn't yet include TACHostedAgentsApp. Once the next minor
 # version ships to PyPI, drop the vendored wheel + its install step in
 # the Dockerfile and add this line here:
 #   twilio-agent-connect-microsoft[hosted-agents,agent-framework]>=1.X,<2

@@ -5,12 +5,12 @@
 # (WebSocket, Conversation Relay) protocols are required.
 #
 # IMPORTANT — secret management:
-#   Hosted Agents resolves ${VAR} against the caller's local env at
-#   ``azd up`` time. For secrets that must live in Azure, prefer:
+#   Hosted Agents resolves ${VAR} against the azd environment at
+#   ``azd up`` time. ``.env`` (loaded via ``azd env set --file .env``)
+#   is fine for development; for production secrets, prefer:
 #     - Azure Key Vault references (set on the workspace)
 #     - azd secrets (``azd env set-secret``), which inject as env vars
-#   Do NOT commit real values to this file. The .env at the deploy dir
-#   root is only for local ``azd ai agent invoke --local`` runs.
+#   Do NOT commit real values to this file or to ``.env``.
 kind: hosted
 name: tac-agent-framework
 protocols:

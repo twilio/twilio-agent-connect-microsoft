@@ -2,7 +2,7 @@
 #
 # The `[hosted-agents]` extra pulls azure-ai-agentserver-invocations and
 # azure-ai-agentserver-core from PyPI. The local SDK wheel under
-# wheels/ is still vendored because TACHostedAgentsServer hasn't shipped
+# wheels/ is still vendored because TACHostedAgentsApp hasn't shipped
 # to PyPI yet (the README's setup step builds it via `uv build`).
 FROM python:3.13-slim
 
