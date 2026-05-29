@@ -15,8 +15,8 @@ graph LR
     Customer([Customer])
 
     subgraph Twilio
-        CRelay[Twilio ConversationRelay (voice)]
-        CO[Twilio Conversation Orchestrator (messaging)]
+        CRelay["Twilio ConversationRelay (voice)"]
+        CO["Twilio Conversation Orchestrator (messaging)"]
         Memory[Twilio Conversation Memory]
     end
 
