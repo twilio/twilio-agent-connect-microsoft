@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt \
  && WHEEL=$(ls /app/wheels/twilio_agent_connect_microsoft-*.whl) \
  && pip install --no-cache-dir "${WHEEL}[hosted-agents]"
 
-COPY server.py /app/server.py
+COPY agent.py /app/agent.py
 
 # Hosted Agents contract: listen on 0.0.0.0:8088
 EXPOSE 8088
@@ -33,4 +33,4 @@ EXPOSE 8088
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-CMD ["python", "server.py"]
+CMD ["python", "agent.py"]
