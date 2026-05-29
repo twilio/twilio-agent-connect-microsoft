@@ -1,11 +1,11 @@
-// APIM gateway in front of Azure AI Foundry Hosted Agents.
+// APIM gateway in front of Hosted Agents in Foundry Agent Service.
 //
 // Provisions:
 //   - APIM service with system-assigned MI
 //   - Key Vault holding the Twilio Auth Token (Mode A creates one, Mode
 //     B references an existing vault — see param descriptions below)
 //   - APIM MI granted Key Vault Secrets User on the chosen vault
-//   - Backend pointing at the Foundry Hosted Agents account
+//   - Backend pointing at the Hosted Agents account
 //   - Three operations + policies:
 //       * POST /twilio/webhook  → /invocations (Conversation Orchestrator SMS)
 //       * POST /twilio/twiml    → /invocations (Twilio voice form webhook)

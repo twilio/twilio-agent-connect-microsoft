@@ -1,4 +1,4 @@
-# TAC Agent Framework on Foundry Hosted Agents
+# TAC Agent Framework on Hosted Agents in Foundry Agent Service
 
 Run TAC + Microsoft Agent Framework directly inside **Hosted Agents in
 Foundry Agent Service**, with APIM in front for Twilio request signature
@@ -114,31 +114,15 @@ from PyPI directly.
 
 #### Required env vars (the non-obvious ones)
 
-These four are the most common failure points if missed:
+`.env.template` documents every variable inline — fill it in there.
+These four cause the most deploy failures when wrong or missing:
 
-- **`HOSTED_AGENTS_URL`** must end at `/endpoint/protocols`, NOT the
-  account root. The SMS policy rewrites incoming requests to
-  `<HOSTED_AGENTS_URL>/invocations`, so the value here has to be the
-  agent path:
-  ```
-  https://<account>.services.ai.azure.com/api/projects/<project>/agents/<agent>/endpoint/protocols
-  ```
-  Setting it to just the account root will produce 404s on every SMS
-  webhook.
-
-- **`AZURE_AI_PROJECT_ID`** — full resource ID of the Foundry project,
-  e.g.
-  `/subscriptions/<sub>/resourceGroups/<rg>/providers/Microsoft.CognitiveServices/accounts/<account>/projects/<project>`.
-  azd needs this to know where to register the agent.
-
-- **`FOUNDRY_PROJECT_ENDPOINT`** — the project's REST endpoint, e.g.
-  `https://<account>.services.ai.azure.com/api/projects/<project>`.
-
-- **`AZURE_CONTAINER_REGISTRY_ENDPOINT`** — the ACR the Foundry account
-  uses for agent images, e.g. `<account>acr.azurecr.io`.
-
-These last three aren't auto-discovered by `azd` for `host:
-azure.ai.agent`; without them, `azd deploy` fails partway through.
+- **`HOSTED_AGENTS_URL`** must end at `/endpoint/protocols`, not the
+  account root — anything else 404s every SMS webhook.
+- **`AZURE_AI_PROJECT_ID`**, **`FOUNDRY_PROJECT_ENDPOINT`**, and
+  **`AZURE_CONTAINER_REGISTRY_ENDPOINT`** aren't auto-discovered by
+  `azd` for `host: azure.ai.agent`; without them `azd deploy` fails
+  partway through.
 
 ### 2. Run `azd up`
 
@@ -222,10 +206,9 @@ az group delete --name <rg> --yes --no-wait   # APIM resource group
   the agent emitted a TwiML wss URL without the query param. Confirm
   the agent log shows `?agent_session_id=...` in the generated TwiML.
 - **APIM returns 200 but Foundry returns 404** — `HOSTED_AGENTS_URL`
-  is set to the account root instead of the agent's
-  `/endpoint/protocols` path. See "Required env vars" above. Fix the
-  `.env`, run `azd provision --no-state` (without `--no-state`, azd
-  caches the previous parameters and skips the redeploy).
+  is set to the account root, not the agent's `/endpoint/protocols`
+  path (see "Required env vars"). Fix `.env`, then
+  `azd provision --no-state`.
 - **Foundry returns 502 / 504** on `/invocations` — sandbox hasn't
   finished its readiness probe. Try again after a few seconds; if
   persistent, check that `azd up` completed without errors.
@@ -233,34 +216,19 @@ az group delete --name <rg> --yes --no-wait   # APIM resource group
   isn't reaching `/invocations_ws`. Check the WS API's `serviceUrl` and
   `rewrite-uri` template in the policy.
 - **Bicep error `RoleAssignmentExists`** — the APIM-MI → KV role is
-  already granted (e.g. from a prior deploy or manual `az role
-  assignment create`). Set `SKIP_KEY_VAULT_ROLE_ASSIGNMENT=true` in
-  `.env` and redeploy. Azure rejects duplicate `(principal, role,
-  scope)` triples even with different role-assignment GUIDs, so this
-  is the only reliable way to make Bicep idempotent across deploy
-  modes.
+  already granted (prior deploy, or a manual `az role assignment
+  create`). Set `SKIP_KEY_VAULT_ROLE_ASSIGNMENT=true` in `.env` and
+  redeploy.
 - **`azd deploy` fails with `AZURE_AI_PROJECT_ID is not set`** /
   `FOUNDRY_PROJECT_ENDPOINT is required` /
-  `could not determine container registry endpoint` — these are the
-  three azd-required envs Hosted Agents doesn't auto-discover. See
-  "Required env vars" above and add them to `.env`.
+  `could not determine container registry endpoint` — add the three
+  azd-required envs to `.env` (see "Required env vars").
 - **`azd provision` reports "no changes" after editing `.env`** — azd
   caches the deployment plan. Force a rerun with
   `azd provision --no-state`.
-- **Phone numbers in the agent env appear without their leading `+`**
-  — `azd env get-values` strips `+` characters in display output, but
-  the underlying `.azure/<env>/.env` file stores them correctly and
-  azd substitutes them faithfully into `agent.yaml`. This is cosmetic.
-- **`azd up --no-prompt` errors with "N required inputs are missing"
-  on first run** — `azd up` validates Bicep parameters before the
-  preprovision hook gets a chance to import `.env`. Run
-  `azd env set --file .env` BEFORE `azd up`, as documented above.
+- **Phone numbers in the agent env appear without their leading `+`** —
+  cosmetic: `azd env get-values` strips `+` from display output, but the
+  underlying `.azure/<env>/.env` stores and substitutes them correctly.
 - **Bicep error `enablePurgeProtection cannot be set to false`** —
   your tenant requires purge protection on Key Vaults. Leave
   `KEY_VAULT_PURGE_PROTECTION=true` in `.env` (the default).
-- **`Caller is not authorized to perform action ... getSecret/action`
-  during the first provision** — APIM tried to read the secret before
-  the `Key Vault Secrets User` role assignment finished propagating.
-  Re-run `azd provision --no-state`; the second attempt succeeds.
-- **`az role assignment create ... ERROR: Role 'Azure AI User' doesn't
-  exist`** — the correct role name is `Foundry User`. See step 3 above.

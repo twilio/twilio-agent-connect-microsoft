@@ -1,6 +1,6 @@
-"""TACHostedAgentsApp: TAC server for Azure AI Foundry Hosted Agents.
+"""TACHostedAgentsApp: TAC server for Hosted Agents in Foundry Agent Service.
 
-Hosted Agents (the Azure AI Foundry runtime under
+Hosted Agents (the Foundry Agent Service runtime under
 ``azure-ai-agentserver-invocations``) exposes exactly two endpoints —
 ``POST /invocations`` and ``WS /invocations_ws`` — bound to a fixed port,
 with sandbox affinity keyed on an ``agent_session_id`` query parameter set
@@ -135,7 +135,7 @@ class _IdempotencyCache:
 
 
 class TACHostedAgentsApp:
-    """TAC server hosted inside Azure AI Foundry Hosted Agents.
+    """TAC server hosted inside Hosted Agents in Foundry Agent Service.
 
     Mirrors the public surface of ``TACFastAPIServer`` so it's a drop-in
     peer for users deploying to Foundry instead of Container Apps::
@@ -265,10 +265,8 @@ class TACHostedAgentsApp:
         call_sid = flat["CallSid"]
         try:
             websocket_url = self._build_voice_websocket_url(call_sid)
-            # ``conversation_configuration`` is set by the voice channel itself
-            # from ``TACConfig.conversation_configuration_id`` — pass None here
-            # to satisfy mypy without the pydantic plugin (the value gets
-            # overwritten in handle_incoming_call regardless).
+            # Set by the voice channel from ``TACConfig``; ``None`` here is
+            # overwritten in ``handle_incoming_call``.
             twiml_xml = await self.voice_channel.handle_incoming_call(
                 options=TwiMLOptions(
                     websocket_url=websocket_url,

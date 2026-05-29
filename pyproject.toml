@@ -45,7 +45,7 @@ voice-live = [
     "websockets>=13.0",
 ]
 
-# Azure AI Foundry Hosted Agents server.
+# Hosted Agents in Foundry Agent Service server.
 #
 # Pulls tac[server] for TACServerConfig — the same config class
 # TACFastAPIServer uses, but reused here to avoid duplicating the

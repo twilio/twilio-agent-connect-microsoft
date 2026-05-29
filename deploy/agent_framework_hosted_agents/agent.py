@@ -1,6 +1,6 @@
-"""TAC Server with Agent Framework — Foundry Hosted Agents deployment.
+"""TAC Server with Agent Framework — Hosted Agents in Foundry Agent Service.
 
-Runs inside Azure AI Foundry's Hosted Agents runtime
+Runs inside the Hosted Agents runtime
 (``InvocationAgentServerHost``), behind APIM. APIM handles HMAC validation,
 form → JSON transformation, and ``agent_session_id`` injection so the
 sandbox-affinity contract works for Twilio retries and Conversation Relay

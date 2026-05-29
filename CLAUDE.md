@@ -96,7 +96,7 @@ src/tac_microsoft/
 ├── agent_framework_connector.py        # AgentFrameworkConnector (voice + SMS + chat)
 ├── agent_framework_tools.py            # Tool factories returning plain async callables
 ├── agent_framework_types.py            # AgentSessionStore protocol
-├── hosted_agents_server.py             # TACHostedAgentsApp (Azure AI Foundry Hosted Agents)
+├── hosted_agents_server.py             # TACHostedAgentsApp (Hosted Agents in Foundry Agent Service)
 ├── voice_live_connector.py             # VoiceLiveConnector (voice only)
 ├── voice_live_session.py               # Voice Live WebSocket session wrapper
 ├── voice_live_tools.py                 # Tool factories returning TACTool instances
@@ -116,7 +116,7 @@ getting_started/
 
 deploy/
 ├── agent_framework_container_apps/     # Agent Framework on Azure Container Apps (Bicep + azd)
-├── agent_framework_hosted_agents/      # Agent Framework on Azure AI Foundry Hosted Agents (APIM + Bicep + azd)
+├── agent_framework_hosted_agents/      # Agent Framework on Hosted Agents in Foundry Agent Service (APIM + Bicep + azd)
 └── voice_live_container_apps/          # Voice Live on Azure Container Apps (Bicep + azd)
 
 tests/                                  # pytest suite (native asyncio mode)
@@ -148,7 +148,7 @@ dependencies = [
 - `agent-framework` — Microsoft Agent Framework + Azure AI + azure-identity
 - `voice-live` — websockets client for Azure AI Foundry Voice Live
 - `cosmos` — Azure Cosmos DB client for `CosmosDBAgentSessionStore`
-- `hosted-agents` — Azure AI Foundry Hosted Agents server (`TACHostedAgentsApp`). Pulls `azure-ai-agentserver-invocations` and `azure-ai-agentserver-core` (both pre-release betas as of writing) from PyPI.
+- `hosted-agents` — Hosted Agents in Foundry Agent Service server (`TACHostedAgentsApp`). Pulls `azure-ai-agentserver-invocations` and `azure-ai-agentserver-core` (both pre-release betas as of writing) from PyPI.
 - `dev` — All of the above plus ruff, mypy
 
 ## Key Concepts
@@ -202,7 +202,7 @@ Two export variants:
 TAC Microsoft ships two server classes that both plug into the same connector channels:
 
 - **`TACFastAPIServer`** (re-exported from `tac.server`) — FastAPI/uvicorn, runs on Container Apps or any general HTTP host. Five routes: `/webhook`, `/twiml`, `/ws`, `/conversation-relay-callback`, optional `/ci-webhook`.
-- **`TACHostedAgentsApp`** (`tac_microsoft.hosted_agents_server`) — wraps `InvocationAgentServerHost` for Azure AI Foundry's Hosted Agents runtime. Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`, so this server overloads the HTTP route and dispatches by payload shape (Conversation Orchestrator JSON envelope vs. Twilio voice TwiML form). APIM in front handles HMAC validation (the only auth boundary — agent does not re-validate `X-Twilio-Signature`), form→JSON conversion, and `agent_session_id` injection.
+- **`TACHostedAgentsApp`** (`tac_microsoft.hosted_agents_server`) — wraps `InvocationAgentServerHost` for the Hosted Agents in Foundry Agent Service runtime. Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`, so this server overloads the HTTP route and dispatches by payload shape (Conversation Orchestrator JSON envelope vs. Twilio voice TwiML form). APIM in front handles HMAC validation (the only auth boundary — agent does not re-validate `X-Twilio-Signature`), form→JSON conversion, and `agent_session_id` injection.
 
 ```python
 # Container Apps / general HTTP
@@ -212,7 +212,7 @@ server = TACFastAPIServer(
     messaging_channels=[connector.sms_channel, connector.chat_channel],
 )
 
-# Azure Foundry Hosted Agents
+# Hosted Agents in Foundry Agent Service
 server = TACHostedAgentsApp(
     tac=tac,
     voice_channel=connector.voice_channel,
