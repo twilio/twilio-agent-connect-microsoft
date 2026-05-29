@@ -1,8 +1,9 @@
-# TAC Agent Framework — Foundry Hosted Agents Deployment
+# TAC Agent Framework — Hosted Agents in Foundry Agent Service
 
-Run TAC + Microsoft Agent Framework directly inside Azure AI Foundry's
-**Hosted Agents** runtime, with APIM in front for HMAC validation,
-form-to-JSON conversion, and sandbox affinity.
+Run TAC + Microsoft Agent Framework directly inside **Hosted Agents in
+Foundry Agent Service**, with APIM in front for Twilio request signature
+validation, form-to-JSON conversion, and per-conversation sandbox
+affinity.
 
 This is the SMS + voice path; for the Container Apps equivalent, see
 [`../agent_framework_container_apps`](../agent_framework_container_apps).
@@ -14,14 +15,14 @@ graph LR
     Customer([Customer])
 
     subgraph Twilio
-        CRelay[ConversationRelay]
-        CO[Conversation Orchestrator]
-        Memory[Conversation Memory]
+        CRelay[Twilio ConversationRelay]
+        CO[Twilio Conversation Orchestrator]
+        Memory[Twilio Conversation Memory]
     end
 
     subgraph Azure
-        APIM[APIM<br/>HMAC + form→JSON + auth]
-        Foundry[Foundry Hosted Agent<br/>TAC + Agent Framework]
+        APIM[APIM<br/>signature check + form→JSON + auth]
+        Foundry[Hosted Agent<br/>TAC + Agent Framework]
         AOAI[Azure OpenAI]
     end
 
@@ -36,51 +37,37 @@ graph LR
 
 **Flow:**
 - **SMS:** Twilio CO posts JSON to `https://<apim>/twilio/webhook`.
-  APIM validates HMAC, lifts `data.conversationId` onto
+  APIM verifies the Twilio signature, lifts `data.conversationId` onto
   `?agent_session_id=...`, and forwards to `/invocations`. The
   `TACHostedAgentsApp` dispatcher fans the body out to all
   registered messaging channels.
 - **Voice:** Twilio posts a form to `https://<apim>/twilio/twiml`. APIM
-  validates the form-encoded HMAC, converts form → JSON, and forwards
-  to `/invocations`. The server returns TwiML containing
+  verifies the signature, converts form → JSON, and forwards to
+  `/invocations`. The server returns TwiML containing
   `<Connect><ConversationRelay url="wss://<apim>/twilio/ws?agent_session_id=<CallSid>"/>`.
-- **Voice WS:** Twilio dials the WSS URL. APIM validates HMAC on the
-  upgrade, requires `agent_session_id` on the query, injects the
+- **Voice WS:** Twilio dials the WSS URL. APIM verifies the signature on
+  the upgrade, requires `agent_session_id` on the query, injects the
   Foundry auth + feature flag, and rewrites to `/invocations_ws`.
 
-## Security: HMAC validation is APIM-only
+## Security
 
-**Twilio HMAC validation runs at APIM, not in `TACHostedAgentsApp`.** The
-agent layer does not re-check `X-Twilio-Signature`. APIM strips the
-header before forwarding to Foundry — by that point the URL has been
-rewritten (`/twiml` → `/invocations`) and, for voice, the form body has
-been transformed to JSON, so the signature is no longer reproducible
-downstream.
+APIM is the only authentication boundary in front of your agent, and it
+does two things:
 
-Implication: **APIM is the only authentication boundary in front of
-your agent.** Any caller that can reach the Foundry `/invocations`
-endpoint directly bypasses HMAC validation entirely. Two things make
-that hard in practice:
+1. **Verifies the Twilio request signature** (the `X-Twilio-Signature`
+   header) so only requests Twilio actually sent reach the agent. The
+   agent layer does not re-check it — APIM strips the header after
+   rewriting the URL and (for voice) the body, so the signature can no
+   longer be reproduced downstream.
+2. **Authenticates to the Hosted Agent.** The Foundry endpoint is not
+   public; it requires an Entra bearer token, and only APIM's managed
+   identity holds the `Foundry User` role. So reaching the agent means
+   compromising APIM's identity, not just hitting a URL.
 
-1. The Foundry endpoint is not public — it requires an Entra bearer
-   token issued for `https://ai.azure.com`, and only APIM's
-   system-assigned managed identity holds the `Foundry User` role on
-   the account.
-2. APIM injects that bearer via `<authentication-managed-identity
-   resource="https://ai.azure.com" />` in each policy.
-
-So in this topology, "reach the agent" means "compromise APIM's MI" —
-not "send a request to a public URL." If you change the Foundry
-auth model (e.g. enable a public endpoint or a shared key), revisit
-this assumption: you'd need to add code-level HMAC validation to
-`TACHostedAgentsApp`, which would require APIM to also forward the
-original signed URL and the original form body so the signature can
-be reconstructed.
-
-If you want defense-in-depth without changing Foundry's auth model,
-the smallest addition is APIM signing its own request to the agent
-(shared-secret or HMAC over body+timestamp via Key Vault). That's not
-implemented today.
+If you ever expose the Foundry endpoint publicly or with a shared key,
+you'd need to move signature validation into `TACHostedAgentsApp`
+itself — which means having APIM forward the original signed URL and
+body so the signature stays reproducible.
 
 ## Prerequisites
 
@@ -225,8 +212,9 @@ az group delete --name <rg> --yes --no-wait   # APIM resource group
 
 ## Troubleshooting
 
-- **APIM returns 401 with `X-Debug-*` headers** — HMAC mismatch. The
-  debug headers show the URL APIM signed and the signature it computed.
+- **APIM returns 401 with `X-Debug-*` headers** — signature mismatch.
+  The debug headers show the URL APIM signed and the signature it
+  computed.
   Common causes: `public_domain` env on the agent doesn't match what
   Twilio is dialing; secret in Key Vault is stale; APIM's MI doesn't
   have `Key Vault Secrets User` on the vault.
