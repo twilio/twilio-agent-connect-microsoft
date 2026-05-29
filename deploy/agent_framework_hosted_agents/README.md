@@ -1,4 +1,4 @@
-# TAC Agent Framework — Hosted Agents in Foundry Agent Service
+# TAC Agent Framework on Foundry Hosted Agents
 
 Run TAC + Microsoft Agent Framework directly inside **Hosted Agents in
 Foundry Agent Service**, with APIM in front for Twilio request signature
