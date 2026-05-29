@@ -33,4 +33,11 @@ EXPOSE 8088
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
+# Run as non-root. --create-home gives appuser a writable $HOME, which the
+# agent uses for FileAgentSessionStore (see agent.py) — Hosted Agents
+# preserves $HOME across idle eviction.
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 CMD ["python", "agent.py"]
