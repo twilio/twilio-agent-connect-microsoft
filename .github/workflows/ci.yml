@@ -96,17 +96,10 @@ jobs:
           . .venv/bin/activate
           uv sync --all-extras
 
-      - name: Run tests with coverage
+      - name: Run tests
         run: |
           . .venv/bin/activate
-          uv run pytest --cov=src/tac_microsoft --cov-report=term-missing --cov-report=xml
-
-      - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.10'
-        uses: codecov/codecov-action@v6
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
+          uv run pytest
 
   build:
     name: Build Package
