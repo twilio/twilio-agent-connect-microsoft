@@ -2,7 +2,7 @@
 
 Run TAC + Microsoft Agent Framework directly inside **Hosted Agents in
 Foundry Agent Service**, with APIM in front for Twilio request signature
-validation, form-to-JSON conversion, and per-conversation sandbox
+validation, websocket passthrough, and per-conversation sandbox
 affinity.
 
 This is the SMS + voice path; for the Container Apps equivalent, see
@@ -15,13 +15,13 @@ graph LR
     Customer([Customer])
 
     subgraph Twilio
-        CRelay[Twilio ConversationRelay]
-        CO[Twilio Conversation Orchestrator]
+        CRelay[Twilio ConversationRelay (voice)]
+        CO[Twilio Conversation Orchestrator (messaging)]
         Memory[Twilio Conversation Memory]
     end
 
     subgraph Azure
-        APIM[APIM<br/>signature check + form→JSON + auth]
+        APIM[APIM<br/>signature check + websocket passthrough + auth]
         Foundry[Hosted Agent<br/>TAC + Agent Framework]
         AOAI[Azure OpenAI]
     end
