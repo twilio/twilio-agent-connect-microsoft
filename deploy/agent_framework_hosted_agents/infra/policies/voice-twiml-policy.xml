@@ -97,19 +97,13 @@
     }" />
     <choose>
       <when condition="@((string)context.Variables[&quot;twilioComputedSig&quot;] != (string)context.Variables[&quot;twilioSignatureHeader&quot;])">
+        <!-- To debug a signature mismatch, inspect twilioComputedSig /
+             twilioSignedString / twilioFullUrl via the APIM trace console
+             (Ocp-Apim-Trace) or App Insights — never echo the computed
+             HMAC back to the caller (the form-encoded HMAC covers
+             attacker-controlled body input, so that's an HMAC oracle). -->
         <return-response>
           <set-status code="401" reason="Invalid X-Twilio-Signature" />
-          <!-- Debug headers fire only on rejected requests (attacks or
-               genuine config breakage), so the leak surface is small. -->
-          <set-header name="X-Debug-Computed-Sig" exists-action="override">
-            <value>@((string)context.Variables["twilioComputedSig"])</value>
-          </set-header>
-          <set-header name="X-Debug-Expected-Sig" exists-action="override">
-            <value>@((string)context.Variables["twilioSignatureHeader"])</value>
-          </set-header>
-          <set-header name="X-Debug-Url" exists-action="override">
-            <value>@((string)context.Variables["twilioFullUrl"])</value>
-          </set-header>
         </return-response>
       </when>
     </choose>

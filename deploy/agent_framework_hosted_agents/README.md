@@ -21,7 +21,7 @@ graph LR
     end
 
     subgraph Azure
-        APIM[APIM<br/>signature check + websocket passthrough + auth]
+        APIM[APIM<br/>signature check + form→JSON + auth]
         Foundry[Hosted Agent<br/>TAC + Agent Framework]
         AOAI[Azure OpenAI]
     end
@@ -48,6 +48,30 @@ graph LR
 - **Voice WS:** Twilio dials the WSS URL. APIM verifies the signature on
   the upgrade, requires `agent_session_id` on the query, injects the
   Foundry auth + feature flag, and rewrites to `/invocations_ws`.
+
+## What APIM does
+
+Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`,
+so APIM sits in front and adapts every Twilio request to that shape. Per
+request, the policies:
+
+1. **Validate `X-Twilio-Signature`** (HMAC-SHA1, auth token from Key
+   Vault). SMS and voice-WS sign the URL only; voice TwiML signs URL +
+   sorted form pairs. Mismatch → 401.
+2. **Pin a sandbox** by lifting the Twilio ID onto
+   `?agent_session_id=` — `data.conversationId` for SMS,
+   `CallSid` for voice. Keeps a call's TwiML POST and WSS upgrade (and
+   any retries) on one sandbox.
+3. **Inject an Entra bearer** via APIM's managed identity
+   (`resource=https://ai.azure.com`) — the Foundry endpoint isn't
+   public.
+4. **Convert form → JSON** (voice TwiML only; `set-body`). SMS is
+   already JSON; the WS upgrade has no body.
+5. **Rewrite to the Foundry route** (`/invocations` or
+   `/invocations_ws`) and strip `X-Twilio-Signature` (no longer valid
+   after the rewrite). The WS upgrade also requires `agent_session_id`
+   on the query and injects `project_name` / `agent_name` /
+   `Foundry-Features`.
 
 ## Security
 
@@ -131,9 +155,9 @@ azd env new my-tac-agent --location eastus2 --subscription <sub-id>
 azd env set AZURE_RESOURCE_GROUP <rg>
 
 # IMPORTANT: load .env into the azd environment BEFORE running azd up.
-# `azd up` validates Bicep parameters before invoking the preprovision
-# hook, so leaving this to the hook causes "missing required inputs"
-# errors on the first run.
+# There's no automatic import — azd only substitutes variables that are
+# in its environment, so skipping this causes "missing required inputs"
+# errors. Re-run it after editing .env.
 azd env set --file .env
 
 azd up
@@ -173,14 +197,20 @@ forward requests to agents under that account.)
 
 ### 4. Configure Twilio
 
-Bicep emits the URLs you'll need (see `azd env get-values | grep -i twilio`):
+`azd up` prints these URLs at the end of provisioning (the
+`postprovision` hook in `azure.yaml`). To see them again later, run
+`azd env get-values | grep -i twilio`.
 
 - **Phone Number → Voice URL** (POST): use `twilioVoiceTwimlUrl`.
 - **Conversation Orchestrator → Webhook URL** (POST): use `twilioSmsWebhookUrl`.
 
+(`twilioVoiceWssUrl` is informational — the agent emits the WSS URL
+itself from `TWILIO_VOICE_PUBLIC_DOMAIN`, so you don't enter it in
+Twilio.)
+
 Then set `TWILIO_VOICE_PUBLIC_DOMAIN` in `.env` to the value of
-`voicePublicDomain` and re-run `azd up` so the agent emits the correct
-TwiML WSS URL.
+`voicePublicDomain` (also printed by the hook) and re-run `azd up` so
+the agent emits the correct TwiML WSS URL.
 
 ### 5. Test
 
@@ -196,9 +226,11 @@ az group delete --name <rg> --yes --no-wait   # APIM resource group
 
 ## Troubleshooting
 
-- **APIM returns 401 with `X-Debug-*` headers** — signature mismatch.
-  The debug headers show the URL APIM signed and the signature it
-  computed.
+- **APIM returns 401 "Invalid X-Twilio-Signature"** — signature
+  mismatch. To see the URL APIM signed and the HMAC it computed, enable
+  the APIM trace console (`Ocp-Apim-Trace` header, or the portal Test
+  tab) and inspect the `twilioFullUrl` / `twilioComputedSig` variables —
+  the policy deliberately does not echo these on the wire.
   Common causes: `public_domain` env on the agent doesn't match what
   Twilio is dialing; secret in Key Vault is stale; APIM's MI doesn't
   have `Key Vault Secrets User` on the vault.

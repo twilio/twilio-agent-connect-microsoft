@@ -11,3 +11,37 @@ services:
                 resources:
                     cpu: "0.5"
                     memory: 1Gi
+
+# Print the Twilio-facing URLs after provisioning. Unlike the
+# container_apps template, host: azure.ai.agent builds + registers the
+# agent itself, so this hook is print-only — no docker build / re-deploy.
+# Values come from infra/main.bicep outputs (azd lowercases the keys).
+hooks:
+  postprovision:
+    posix:
+      shell: sh
+      run: |
+        VOICE_URL=$(azd env get-value twilioVoiceTwimlUrl 2>/dev/null || echo "")
+        SMS_URL=$(azd env get-value twilioSmsWebhookUrl 2>/dev/null || echo "")
+        WSS_URL=$(azd env get-value twilioVoiceWssUrl 2>/dev/null || echo "")
+        PUBLIC_DOMAIN=$(azd env get-value voicePublicDomain 2>/dev/null || echo "")
+        APIM_PRINCIPAL_ID=$(azd env get-value apimPrincipalId 2>/dev/null || echo "")
+
+        echo ""
+        echo "==> APIM provisioned. Configure Twilio with these URLs:"
+        echo "    Phone Number -> Voice URL (POST):       $VOICE_URL"
+        echo "    Conversation Orchestrator -> Webhook:   $SMS_URL"
+        echo ""
+        echo "    Voice WSS (informational — the agent emits this from"
+        echo "    TWILIO_VOICE_PUBLIC_DOMAIN, you don't paste it in Twilio):"
+        echo "        $WSS_URL"
+        echo ""
+        echo "==> Set TWILIO_VOICE_PUBLIC_DOMAIN in .env, then re-run azd up:"
+        echo "        $PUBLIC_DOMAIN"
+        echo ""
+        echo "==> Still required (see README step 3): grant APIM's identity"
+        echo "    the 'Foundry User' role on the Foundry account."
+        echo "        APIM principalId: $APIM_PRINCIPAL_ID"
+        echo ""
+      interactive: false
+      continueOnError: true
