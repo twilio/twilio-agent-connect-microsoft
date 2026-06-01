@@ -74,7 +74,7 @@
                 pairs.Add(k + sepChar + v);
             }
         }
-        pairs.Sort(System.StringComparer.Ordinal);  // ordinal, not the CurrentCulture default
+        pairs.Sort(System.StringComparer.Ordinal);  /* ordinal, not the CurrentCulture default */
         var sb = new System.Text.StringBuilder();
         sb.Append((string)context.Variables[&quot;twilioFullUrl&quot;]);
         string prev = null;

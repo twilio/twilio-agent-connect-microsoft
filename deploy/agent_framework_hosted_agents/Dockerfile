@@ -33,11 +33,20 @@ EXPOSE 8088
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Run as non-root. --create-home gives appuser a writable $HOME, which the
-# agent uses for FileAgentSessionStore (see agent.py) — Hosted Agents
-# preserves $HOME across idle eviction.
-RUN useradd --create-home --shell /bin/bash appuser && \
-    chown -R appuser:appuser /app
-USER appuser
-
+# This container intentionally runs as root — see the nosemgrep below.
+#
+# Unlike the Container Apps images (which run as a non-root `appuser`),
+# the Hosted Agents runtime mounts the per-session persisted filesystem
+# at $HOME=/home/session owned by root:root mode 0755. That mount is the
+# ONLY path the platform preserves across the 15-minute idle eviction
+# (Foundry docs: "$HOME and /files content are persisted across turns and
+# across idle periods"), and it's what FileAgentSessionStore writes to
+# (see agent.py: $HOME/tac_sessions). A non-root user cannot write or
+# mkdir under that mount, and the mount shadows any build-time chown — so
+# a non-root container cannot persist session state at all. Running as
+# root is required to use the platform's persisted store without an
+# external store (Cosmos, etc.). The sandbox is per-session VM-isolated by
+# the platform, so the in-container privilege surface is already bounded.
+#
+# nosemgrep: dockerfile.security.missing-user.missing-user
 CMD ["python", "agent.py"]
