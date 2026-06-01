@@ -4,6 +4,12 @@ on:
   release:
     types: [published]
 
+# Supply-chain hardening: refuse to resolve any package version uploaded to
+# PyPI within the last 2 days, quarantining freshly-published (potentially
+# compromised) releases. Applies to every `uv` invocation in all jobs.
+env:
+  UV_EXCLUDE_NEWER: "2 days"
+
 jobs:
   test:
     name: Test - Python ${{ matrix.python-version }}
