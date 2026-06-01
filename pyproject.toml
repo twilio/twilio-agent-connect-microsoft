@@ -92,6 +92,18 @@ exclude = [
     "tests",
 ]
 
+[tool.uv]
+# Allow prereleases: the agent-framework chain pins prerelease-only deps
+# (e.g. azure-search-documents==11.7.0b2), so the lock can only be resolved
+# with prereleases enabled. Recording it here makes uv.lock reproducible.
+prerelease = "allow"
+# Supply-chain hardening: refuse to resolve any package version uploaded to
+# PyPI within the last 2 days, quarantining freshly-published (potentially
+# compromised) releases. Recorded in uv.lock, so `uv sync --frozen` installs
+# the vetted locked versions without re-resolving; the cooldown only gates
+# `uv lock` / `uv add` (i.e. intentional dependency updates).
+exclude-newer = "2 days"
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
