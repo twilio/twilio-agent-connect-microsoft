@@ -4,14 +4,6 @@ on:
   release:
     types: [published]
 
-# Supply-chain hardening: refuse to resolve any package version uploaded to
-# PyPI within the last 2 days, quarantining freshly-published (potentially
-# compromised) releases. Only gates *re-resolution* (e.g. `uv lock`,
-# `uv add`); the test job uses `uv sync --frozen` below, which installs the
-# already-vetted versions pinned in uv.lock and never re-resolves.
-env:
-  UV_EXCLUDE_NEWER: "2 days"
-
 jobs:
   test:
     name: Test - Python ${{ matrix.python-version }}
