@@ -139,8 +139,11 @@ from PyPI directly.
 #### Required env vars (the non-obvious ones)
 
 `.env.template` documents every variable inline — fill it in there.
-These four cause the most deploy failures when wrong or missing:
+These cause the most deploy failures when wrong or missing:
 
+- **Agent name** is set by `azure.yaml`/`agent.yaml`, not by
+  `HOSTED_AGENTS_AGENT_NAME`/`HOSTED_AGENTS_URL` — those must match the
+  registered name (a mismatch reads as "APIM 200 / Foundry 404").
 - **`HOSTED_AGENTS_URL`** must end at `/endpoint/protocols`, not the
   account root — anything else 404s every SMS webhook.
 - **`AZURE_AI_PROJECT_ID`**, **`FOUNDRY_PROJECT_ENDPOINT`**, and
@@ -237,10 +240,10 @@ az group delete --name <rg> --yes --no-wait   # APIM resource group
 - **APIM returns 400 "Missing agent_session_id"** on a WSS upgrade —
   the agent emitted a TwiML wss URL without the query param. Confirm
   the agent log shows `?agent_session_id=...` in the generated TwiML.
-- **APIM returns 200 but Foundry returns 404** — `HOSTED_AGENTS_URL`
-  is set to the account root, not the agent's `/endpoint/protocols`
-  path (see "Required env vars"). Fix `.env`, then
-  `azd provision --no-state`.
+- **APIM returns 200 but Foundry returns 404** — `HOSTED_AGENTS_URL` is
+  the account root (not the agent's `/endpoint/protocols` path) or names
+  an agent azd didn't register (see "Required env vars"). Fix `.env`,
+  then `azd provision --no-state`.
 - **Foundry returns 502 / 504** on `/invocations` — sandbox hasn't
   finished its readiness probe. Try again after a few seconds; if
   persistent, check that `azd up` completed without errors.
