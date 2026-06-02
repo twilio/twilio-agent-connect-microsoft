@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: tac-agent-framework-hosted-agents
+services:
+    tac-agent-framework:
+        project: .
+        host: azure.ai.agent
+        language: python
+        config:
+            container:
+                resources:
+                    cpu: "0.5"
+                    memory: 1Gi
+hooks:
+    postprovision:
+        posix:
+            name: postprovision
+            kind: sh
+            shell: sh
+            run: |
+                VOICE_URL=$(azd env get-value twilioVoiceTwimlUrl 2>/dev/null || echo "")
+                SMS_URL=$(azd env get-value twilioSmsWebhookUrl 2>/dev/null || echo "")
+                WSS_URL=$(azd env get-value twilioVoiceWssUrl 2>/dev/null || echo "")
+                PUBLIC_DOMAIN=$(azd env get-value voicePublicDomain 2>/dev/null || echo "")
+                APIM_PRINCIPAL_ID=$(azd env get-value apimPrincipalId 2>/dev/null || echo "")
+
+                echo ""
+                echo "==> APIM provisioned. Configure Twilio with these URLs:"
+                echo "    Phone Number -> Voice URL (POST):       $VOICE_URL"
+                echo "    Conversation Orchestrator -> Webhook:   $SMS_URL"
+                echo ""
+                echo "    Voice WSS (informational — the agent emits this from"
+                echo "    TWILIO_VOICE_PUBLIC_DOMAIN, you don't paste it in Twilio):"
+                echo "        $WSS_URL"
+                echo ""
+                echo "==> Set TWILIO_VOICE_PUBLIC_DOMAIN in .env, then re-run azd up:"
+                echo "        $PUBLIC_DOMAIN"
+                echo ""
+                echo "==> Still required (see README step 3): grant APIM's identity"
+                echo "    the 'Foundry User' role on the Foundry account."
+                echo "        APIM principalId: $APIM_PRINCIPAL_ID"
+                echo ""
+            continueOnError: true

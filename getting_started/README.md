@@ -4,7 +4,7 @@ Quick start guide for using Twilio Agent Connect for Microsoft with Microsoft Ag
 
 ## Prerequisites
 
-Before running any examples, you need to create and configure the required Twilio services (Conversation Configuration, phone number, etc.). Follow the [TAC Quickstart guide](https://www.twilio.com/docs/platform/tac/quickstart) to set these up.
+Before running any examples, you need to create and configure the required Twilio services (Conversation Configuration, phone number, etc.). Follow the [TAC Quickstart guide](https://www.twilio.com/docs/conversations/agent-connect/quickstart) to set these up.
 
 ## Installation
 

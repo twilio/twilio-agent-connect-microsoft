@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apimName": { "value": "${APIM_NAME}" },
+    "publisherEmail": { "value": "${APIM_PUBLISHER_EMAIL}" },
+    "publisherName": { "value": "${APIM_PUBLISHER_NAME=Twilio Agent}" },
+    "apimSku": { "value": "${APIM_SKU=BasicV2}" },
+    "hostedAgentsUrl": { "value": "${HOSTED_AGENTS_URL}" },
+    "projectName": { "value": "${HOSTED_AGENTS_PROJECT_NAME}" },
+    "agentName": { "value": "${HOSTED_AGENTS_AGENT_NAME}" },
+
+    "keyVaultName": { "value": "${KEY_VAULT_NAME=}" },
+    "twilioAuthToken": { "value": "${TWILIO_AUTH_TOKEN=}" },
+    "existingKeyVaultName": { "value": "${EXISTING_KEY_VAULT_NAME=}" },
+    "existingKeyVaultResourceGroup": { "value": "${EXISTING_KEY_VAULT_RESOURCE_GROUP=${AZURE_RESOURCE_GROUP}}" },
+    "skipKeyVaultRoleAssignment": { "value": "${SKIP_KEY_VAULT_ROLE_ASSIGNMENT=false}" },
+    "keyVaultPurgeProtection": { "value": "${KEY_VAULT_PURGE_PROTECTION=true}" }
+  }
+}

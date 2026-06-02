@@ -3,5 +3,5 @@ contact_links:
     url: https://twilio.com/help/contact
     about: Get Support
   - name: Documentation
-    url: https://www.twilio.com/docs/platform/tac
+    url: https://www.twilio.com/docs/conversations/agent-connect
     about: View TAC Documentation
