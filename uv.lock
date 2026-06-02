@@ -12,7 +12,7 @@ resolution-markers = [
 
 [options]
 prerelease-mode = "allow"
-exclude-newer = "2026-05-30T22:22:49.937232Z"
+exclude-newer = "2026-05-31T15:15:54.207056Z"
 exclude-newer-span = "P2D"
 
 [[package]]
@@ -4576,7 +4576,7 @@ server = [
 
 [[package]]
 name = "twilio-agent-connect-microsoft"
-version = "1.0.1"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
