@@ -78,7 +78,7 @@ dev = [
     # Dev tools
     "ruff>=0.8.0,<1",
     "mypy>=1.0.0,<2",
-    "pytest>=7.0.0,<8",
+    "pytest>=7.0.0,<10",
     "pytest-asyncio>=0.23.0,<1",
     "pytest-cov>=5.0.0,<6",
 ]
