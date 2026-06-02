@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/microsoft/AgentSchema/refs/heads/main/schemas/v1.0/ContainerAgent.yaml
+#
+# Hosted Agents deployment descriptor for TAC + Agent Framework.
+# Both `invocations` (HTTP, SMS + voice TwiML) and `invocations_ws`
+# (WebSocket, Conversation Relay) protocols are required.
+#
+# IMPORTANT — secret management:
+#   Hosted Agents resolves ${VAR} against the azd environment at
+#   ``azd up`` time. ``.env`` (loaded via ``azd env set --file .env``)
+#   is fine for development; for production secrets, prefer:
+#     - Azure Key Vault references (set on the workspace)
+#     - azd secrets (``azd env set-secret``), which inject as env vars
+#   Do NOT commit real values to this file or to ``.env``.
+kind: hosted
+name: tac-agent-framework
+protocols:
+  - protocol: invocations
+    version: 1.0.0
+  - protocol: invocations_ws
+    version: 1.0.0
+resources:
+  cpu: "0.5"
+  memory: 1Gi
+environment_variables:
+  # ---- Azure OpenAI ------------------------------------------------------
+  - name: AZURE_OPENAI_ENDPOINT
+    value: ${AZURE_OPENAI_ENDPOINT}
+  - name: AZURE_OPENAI_API_KEY
+    value: ${AZURE_OPENAI_API_KEY}                  # secret
+  - name: AZURE_OPENAI_DEPLOYMENT_NAME
+    value: ${AZURE_OPENAI_DEPLOYMENT_NAME}
+
+  # ---- TAC / Twilio (TAC 1.0+ canonical names) --------------------------
+  # TWILIO_AUTH_TOKEN is shared with APIM, which uses it to HMAC-validate
+  # incoming Twilio webhooks before they reach this sandbox.
+  - name: TWILIO_ACCOUNT_SID
+    value: ${TWILIO_ACCOUNT_SID}
+  - name: TWILIO_AUTH_TOKEN
+    value: ${TWILIO_AUTH_TOKEN}                     # secret
+  - name: TWILIO_API_KEY
+    value: ${TWILIO_API_KEY}
+  - name: TWILIO_API_SECRET
+    value: ${TWILIO_API_SECRET}                     # secret
+  - name: TWILIO_PHONE_NUMBER
+    value: ${TWILIO_PHONE_NUMBER}
+  - name: TWILIO_CONVERSATION_CONFIGURATION_ID
+    value: ${TWILIO_CONVERSATION_CONFIGURATION_ID}
+  - name: TWILIO_LOG_LEVEL
+    value: INFO
+
+  # ---- Voice (Conversation Relay) ----------------------------------------
+  # Public domain (no scheme, no trailing slash) where APIM exposes the
+  # Twilio voice WSS endpoint, e.g.
+  # "my-tac-apim.azure-api.net/twilio". The server emits this in TwiML
+  # as wss://<domain>/ws?agent_session_id=<callSid>; APIM rewrites that
+  # to /invocations_ws on the Foundry backend.
+  - name: TWILIO_VOICE_PUBLIC_DOMAIN
+    value: ${TWILIO_VOICE_PUBLIC_DOMAIN}
+
+  # ---- Optional ----------------------------------------------------------
+  - name: TWILIO_KNOWLEDGE_BASE_ID
+    value: ${TWILIO_KNOWLEDGE_BASE_ID}

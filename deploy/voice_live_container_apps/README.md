@@ -1,4 +1,4 @@
-# TAC Voice Live Server — Azure Container Apps Deployment
+# TAC Voice Live on Azure Container Apps
 
 Complete guide for deploying Twilio Agent Connect (TAC) with Azure AI Foundry Voice Live on Azure Container Apps.
 

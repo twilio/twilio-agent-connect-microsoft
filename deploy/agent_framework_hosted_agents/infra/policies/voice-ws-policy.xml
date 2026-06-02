@@ -1,0 +1,125 @@
+<!--
+  Twilio Conversation Relay WSS upgrade → Hosted Agents /invocations_ws.
+
+  Per the CR onboarding docs, Twilio sends X-Twilio-Signature on the
+  initial WebSocket handshake. The HMAC is URL-only (no body), same
+  algorithm as a JSON POST.
+
+    1. HMAC-validate X-Twilio-Signature. APIM sees scheme=https on the
+       upgrade (TLS termination), but Twilio signs the wss:// URL it
+       dialed, so we rewrite https → wss before computing the HMAC.
+    2. Require agent_session_id on the upgrade query. The agent put it
+       there in the TwiML wss URL emitted by /twiml; if it's missing,
+       APIM routing or the TwiML is broken.
+    3. Inject project_name, agent_name, api-version=v1 (Foundry's WSS
+       endpoint takes these as query params, not in the path) and the
+       Foundry-Features feature flag. project/agent names are baked in
+       at Bicep deploy time via __PROJECT_NAME__ / __AGENT_NAME__.
+    4. Strip X-Twilio-Signature; rewrite path to the Foundry
+       /invocations_ws route.
+
+  WebSocket APIs require the policy to attach to the auto-created
+  `onHandshake` operation (not the API scope) — see main.bicep.
+-->
+<policies>
+  <inbound>
+    <base />
+
+    <!-- HMAC validation. URL-only, with scheme normalized to wss. -->
+    <set-variable name="twilioSignatureHeader" value="@(context.Request.Headers.GetValueOrDefault(&quot;X-Twilio-Signature&quot;, &quot;&quot;))" />
+    <choose>
+      <when condition="@(string.IsNullOrEmpty((string)context.Variables[&quot;twilioSignatureHeader&quot;]))">
+        <return-response>
+          <set-status code="401" reason="Missing X-Twilio-Signature" />
+        </return-response>
+      </when>
+    </choose>
+    <set-variable name="twilioFullUrl" value="@{
+        var u = context.Request.OriginalUrl;
+        var qs = u.QueryString ?? &quot;&quot;;
+        var scheme = (u.Scheme == &quot;https&quot;) ? &quot;wss&quot; : ((u.Scheme == &quot;http&quot;) ? &quot;ws&quot; : u.Scheme);
+        return scheme + &quot;://&quot; + u.Host + u.Path + qs;
+    }" />
+    <set-variable name="twilioComputedSig" value="@{
+        var key = System.Text.Encoding.UTF8.GetBytes(&quot;{{TwilioAuthToken}}&quot;);
+        using (var hmac = new System.Security.Cryptography.HMACSHA1(key)) {
+            var bytes = System.Text.Encoding.UTF8.GetBytes((string)context.Variables[&quot;twilioFullUrl&quot;]);
+            return Convert.ToBase64String(hmac.ComputeHash(bytes));
+        }
+    }" />
+    <choose>
+      <when condition="@((string)context.Variables[&quot;twilioComputedSig&quot;] != (string)context.Variables[&quot;twilioSignatureHeader&quot;])">
+        <!-- To debug a signature mismatch, inspect twilioComputedSig /
+             twilioFullUrl via the APIM trace console (Ocp-Apim-Trace) or
+             App Insights — never echo the computed HMAC back to the caller. -->
+        <return-response>
+          <set-status code="401" reason="Invalid X-Twilio-Signature" />
+        </return-response>
+      </when>
+    </choose>
+
+    <!-- agent_session_id must be on the upgrade URL.
+         NOTE: GetValueOrDefault on context.Request.Url.Query returns
+         empty for the WS onHandshake operation even when the query is
+         present. We parse QueryString manually as a workaround. -->
+    <set-variable name="agentSessionId" value="@{
+        var qs = context.Request.OriginalUrl.QueryString ?? string.Empty;
+        if (qs.StartsWith(&quot;?&quot;)) {
+            qs = qs.Substring(1);
+        }
+        foreach (var seg in qs.Split('&amp;')) {
+            var eq = seg.IndexOf('=');
+            if (eq &lt; 0) {
+                continue;
+            }
+            var k = seg.Substring(0, eq);
+            if (k == &quot;agent_session_id&quot;) {
+                return System.Net.WebUtility.UrlDecode(seg.Substring(eq + 1));
+            }
+        }
+        return string.Empty;
+    }" />
+    <choose>
+      <when condition="@(string.IsNullOrEmpty((string)context.Variables[&quot;agentSessionId&quot;]))">
+        <return-response>
+          <set-status code="400" reason="Missing agent_session_id query parameter" />
+        </return-response>
+      </when>
+    </choose>
+
+    <!-- Foundry's WSS endpoint takes project/agent/api-version as query
+         params (the HTTP /invocations endpoint encodes them in the
+         path instead). api-version here is `v1`, not a dated preview. -->
+    <set-query-parameter name="project_name" exists-action="override">
+      <value>__PROJECT_NAME__</value>
+    </set-query-parameter>
+    <set-query-parameter name="agent_name" exists-action="override">
+      <value>__AGENT_NAME__</value>
+    </set-query-parameter>
+    <set-query-parameter name="api-version" exists-action="override">
+      <value>v1</value>
+    </set-query-parameter>
+
+    <!-- Inject Entra bearer + feature flag for the upgrade. -->
+    <authentication-managed-identity resource="https://ai.azure.com" />
+    <set-header name="Foundry-Features" exists-action="override">
+      <value>HostedAgents=V1Preview</value>
+    </set-header>
+
+    <!-- Strip Twilio signature; rewrite to Foundry's WSS route. -->
+    <set-header name="X-Twilio-Signature" exists-action="delete" />
+    <rewrite-uri template="/api/projects/agents/endpoint/protocols/invocations_ws" />
+  </inbound>
+
+  <backend>
+    <base />
+  </backend>
+
+  <outbound>
+    <base />
+  </outbound>
+
+  <on-error>
+    <base />
+  </on-error>
+</policies>
