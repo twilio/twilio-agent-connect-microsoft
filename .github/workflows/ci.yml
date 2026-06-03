@@ -147,12 +147,6 @@ jobs:
           pip install dist/*.whl
           python -c "import tac_microsoft; print('Successfully imported tac_microsoft')"
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: dist
-          path: dist/
-
   all-checks:
     name: All Checks Passed
     needs: [lint, type-check, test, build]

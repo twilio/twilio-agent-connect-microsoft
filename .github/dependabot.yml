@@ -12,6 +12,8 @@ updates:
 
   - package-ecosystem: "pip"
     directories:
-      - "/deploy/*"
+      - "/deploy/agent_framework_container_apps"
+      - "/deploy/agent_framework_hosted_agents"
+      - "/deploy/voice_live_container_apps"
     schedule:
       interval: "weekly"
