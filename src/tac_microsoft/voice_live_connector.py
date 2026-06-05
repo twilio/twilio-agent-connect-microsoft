@@ -211,11 +211,13 @@ class VoiceLiveConnector:
         conv_id = context.conversation_id
         message = self._build_message(user_message, context, memory_response)
 
-        prompt_preview = message[:100] + "..." if len(message) > 100 else message
+        # Log metadata only — message content (and the memory context folded
+        # into it) is PII and must not be written to logs.
         logger.info(
-            f"USER MESSAGE | {prompt_preview}",
+            "Processing voice message",
             conversation_id=conv_id,
             channel="voice",
+            message_length=len(message),
         )
 
         session = await self._get_or_create_voice_session(conv_id)
@@ -227,13 +229,12 @@ class VoiceLiveConnector:
                 yield chunk
 
             response_text = "".join(full_response)
-            response_preview = (
-                response_text[:100] + "..." if len(response_text) > 100 else response_text
-            )
+            # Metadata only — response text is PII.
             logger.info(
-                f"AI RESPONSE | {response_preview}",
+                "Voice response complete",
                 conversation_id=conv_id,
                 channel="voice",
+                response_length=len(response_text),
             )
         except GeneratorExit:
             logger.info("Stream interrupted", conversation_id=conv_id)

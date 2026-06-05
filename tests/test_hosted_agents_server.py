@@ -213,6 +213,21 @@ class TestCoWebhookDispatch:
         sms.process_webhook.assert_awaited_once()
 
     @pytest.mark.asyncio
+    async def test_accepts_conversation_created_as_noop(self) -> None:
+        # CONVERSATION_CREATED is the first event CO fires for a new
+        # conversation. It must be accepted (200) and forwarded — not
+        # rejected with a 400 — even though channels treat it as a no-op.
+        sms = _make_messaging_channel()
+        server, _ = _build_server(messaging_channels=[sms])
+
+        body = {"eventType": "CONVERSATION_CREATED", "data": {"id": "conv_new"}}
+        request = _make_request(body, session_id="conv_new")
+        response = await server._dispatch_invoke(request)
+
+        assert response.status_code == 200
+        sms.process_webhook.assert_awaited_once()
+
+    @pytest.mark.asyncio
     async def test_dedups_by_idempotency_token(self) -> None:
         sms = _make_messaging_channel()
         server, _ = _build_server(messaging_channels=[sms])

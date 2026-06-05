@@ -65,7 +65,14 @@ except ImportError as e:
 logger = get_logger(__name__)
 
 # Twilio Conversation Orchestrator event types accepted on /invocations.
-_CO_EVENT_TYPES = {"PARTICIPANT_ADDED", "COMMUNICATION_CREATED", "CONVERSATION_UPDATED"}
+# COMMUNICATION_CREATED and CONVERSATION_UPDATED drive behavior; the others
+# are accepted as no-ops (200, not 400) since CO can deliver them.
+_CO_EVENT_TYPES = {
+    "CONVERSATION_CREATED",
+    "PARTICIPANT_ADDED",
+    "COMMUNICATION_CREATED",
+    "CONVERSATION_UPDATED",
+}
 
 
 class StarletteWebSocketAdapter:
