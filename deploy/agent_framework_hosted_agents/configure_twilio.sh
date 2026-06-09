@@ -65,7 +65,7 @@ if [ -n "$PHONE" ] && [ -n "$VOICE_URL" ]; then
       "https://api.twilio.com/2010-04-01/Accounts/$ACCOUNT_SID/IncomingPhoneNumbers/$PN_SID.json" \
       --data-urlencode "VoiceUrl=$VOICE_URL" \
       --data-urlencode "VoiceMethod=POST")
-    if [ "$HTTP" = "200" ]; then echo "    OK (number $PN_SID updated)"; else echo "    WARNING: voice update returned HTTP $HTTP" >&2; fi
+    if [ "$HTTP" = "200" ]; then echo "    OK (number $PN_SID updated)"; VOICE_OK=1; else echo "    WARNING: voice update returned HTTP $HTTP" >&2; fi
   fi
 else
   echo "==> Skipping voice (TWILIO_PHONE_NUMBER or twilioVoiceTwimlUrl missing)."
@@ -95,7 +95,7 @@ print(json.dumps(d))
       -H "X-Pre-Auth-Context: $ACCOUNT_SID" -H "Content-Type: application/json" \
       --data @- "$BASE")
     case "$HTTP" in
-      200|202) echo "    OK (configuration updated, HTTP $HTTP)" ;;
+      200|202) echo "    OK (configuration updated, HTTP $HTTP)"; SMS_OK=1 ;;
       *) echo "    WARNING: configuration update returned HTTP $HTTP" >&2 ;;
     esac
   fi
@@ -104,3 +104,21 @@ else
 fi
 
 echo "==> Twilio configuration complete."
+
+# Tailor the "ready" line to what actually got wired up.
+ACTIONS=""
+if [ -n "${VOICE_OK:-}" ] && [ -n "${SMS_OK:-}" ]; then
+  ACTIONS="text or call"
+elif [ -n "${SMS_OK:-}" ]; then
+  ACTIONS="text"
+elif [ -n "${VOICE_OK:-}" ]; then
+  ACTIONS="call"
+fi
+if [ -n "$ACTIONS" ] && [ -n "$PHONE" ]; then
+  echo ""
+  echo "============================================================"
+  echo " Your agent is ready. Send a $ACTIONS to:"
+  echo ""
+  echo "     $PHONE"
+  echo "============================================================"
+fi
