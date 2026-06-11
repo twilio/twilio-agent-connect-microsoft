@@ -76,6 +76,12 @@ azd auth login
 azd auth login --scope https://ai.azure.com/.default
 ```
 
+> **Multi-tenant accounts.** If your subscription lives in a different AAD
+> tenant than your default Azure account, run `az login --tenant <tenant-id>`
+> **before** `azd auth login`. Otherwise provisioning fails with a confusing
+> "Login expired" error even though `azd auth login` succeeded — the Bicep
+> provider authenticates through the `az` CLI's default tenant.
+
 > **Tenant policy note.** Some tenants enforce Azure Policy on the created
 > resources (required tags, Key Vault firewall, purge protection). The template
 > satisfies the common ones (tags every resource; KV firewall + `AzureServices`
@@ -160,11 +166,13 @@ azd ai agent monitor --session-id <conversationId-or-CallSid>
   from a vendored wheel, so rebuild it first:
   ```bash
   ( cd ../.. && uv build && \
+    WHEEL=$(ls -t dist/twilio_agent_connect_microsoft-*-py3-none-any.whl | head -1) && \
     rm -f deploy/agent_framework_hosted_agents/wheels/*.whl && \
-    cp dist/twilio_agent_connect_microsoft-*-py3-none-any.whl \
-       deploy/agent_framework_hosted_agents/wheels/ )
+    cp "$WHEEL" deploy/agent_framework_hosted_agents/wheels/ )
   make deploy
   ```
+  (`dist/` can hold several past versions; copy only the one just built — the
+  Dockerfile expects exactly one wheel in `wheels/`.)
   (Once the SDK ships to PyPI with `TACHostedAgentsApp`, the wheel goes away and
   `requirements.txt` installs from PyPI.)
 

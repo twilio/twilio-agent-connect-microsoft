@@ -272,8 +272,14 @@ get_if_set() { # prints value to stdout iff the key is set (exit 0); else exit 1
   azd env get-value "$1" "${ENV_ARG[@]}" 2>/dev/null
 }
 bridge() { # bridge <output-key> <env-var>
-  local out_key="$1" var="$2" val
-  get_if_set "$var" >/dev/null 2>&1 && return 0          # already set -> leave it
+  local out_key="$1" var="$2" val cur
+  # Treat a set-but-EMPTY var as unset: `azd env set FOO ""` exits 0, so keying
+  # off exit status alone lets an empty string masquerade as "already set" and
+  # ship a blank value to the agent (e.g. an empty AZURE_OPENAI_DEPLOYMENT_NAME
+  # crashes every invocation as a silent 15s Twilio timeout). Fall back to the
+  # provision output whenever the current value is empty.
+  cur=$(get_if_set "$var" 2>/dev/null || echo "")
+  [ -n "$cur" ] && return 0                              # already set & non-empty -> leave it
   val=$(get_if_set "$out_key") || return 0               # output missing -> skip
   [ -n "$val" ] || return 0
   azd env set "$var" "$val" "${ENV_ARG[@]}"
@@ -298,6 +304,25 @@ if ! get_if_set AZURE_OPENAI_API_KEY >/dev/null 2>&1; then
     OAI_KEY=$(az cognitiveservices account keys list --name "$ACCT" --resource-group "$RG" --query key1 -o tsv 2>/dev/null || echo "")
     [ -n "$OAI_KEY" ] && azd env set AZURE_OPENAI_API_KEY "$OAI_KEY" "${ENV_ARG[@]}"
   fi
+fi
+
+# The Dockerfile installs the TAC SDK from a vendored wheel under wheels/ (not
+# on PyPI yet). A fresh clone has no .whl, so the image build fails hard at the
+# `ls /app/wheels/*.whl` step. Build it on demand so first-time deployers don't
+# have to read "Update code" first. (Editing src/ still requires a rebuild —
+# that's the README "Update code" step; this only covers the missing-wheel case.)
+if ! ls wheels/twilio_agent_connect_microsoft-*.whl >/dev/null 2>&1; then
+  echo "==> Building the TAC SDK wheel (wheels/ is empty on a fresh clone)..."
+  # `uv build` writes to a shared dist/ that may already hold OTHER versions
+  # from past builds. The Dockerfile does `WHEEL=$(ls /app/wheels/*.whl)` and
+  # breaks if more than one wheel lands, so we must copy exactly ONE — the
+  # version we just built — not a `dist/*.whl` glob. Pin it from the freshly
+  # built wheel (newest by mtime), and clear wheels/ first for good measure.
+  ( cd ../.. \
+    && uv build \
+    && WHEEL=$(ls -t dist/twilio_agent_connect_microsoft-*-py3-none-any.whl | head -1) \
+    && rm -f deploy/agent_framework_hosted_agents/wheels/*.whl \
+    && cp "$WHEEL" deploy/agent_framework_hosted_agents/wheels/ )
 fi
 
 echo ""
