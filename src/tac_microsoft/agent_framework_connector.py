@@ -353,8 +353,6 @@ class AgentFrameworkConnector:
         conv_id = context.conversation_id
         message = self._build_message(user_message, context, memory_response)
 
-        # Log metadata only — message content (and the memory context folded
-        # into it) is PII and must not be written to logs.
         logger.info(
             "Processing voice message",
             conversation_id=conv_id,

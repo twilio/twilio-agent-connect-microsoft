@@ -48,18 +48,9 @@
       </when>
     </choose>
 
-    <!-- 1b. Event-type filter. The Hosted Agent only ACTS on
-         COMMUNICATION_CREATED (the inbound message) and
-         CONVERSATION_UPDATED (session/memory cleanup); PARTICIPANT_ADDED
-         and CONVERSATION_CREATED are pure no-ops in every channel.
-         Conversation Orchestrator fires all of these together at the
-         start of a new conversation, and because the agent scales to
-         zero, that simultaneous burst cold-starts several sandboxes at
-         once and the Foundry runtime 500s them - including the
-         COMMUNICATION_CREATED carrying the customer's message.
-         Short-circuiting the no-op events here (200 from APIM, never
-         forwarded) keeps cold sandboxes from being woken for nothing and
-         lets the one event that matters land on its own. -->
+    <!-- 1b. Event-type filter: only forward the Conversation Orchestrator
+         events the agent acts on (COMMUNICATION_CREATED, CONVERSATION_UPDATED);
+         all others are short-circuited here with a 200. -->
     <set-variable name="coEventType" value="@{
         var body = context.Request.Body.As&lt;Newtonsoft.Json.Linq.JObject&gt;(preserveContent: true);
         if (body == null) { return &quot;&quot;; }
