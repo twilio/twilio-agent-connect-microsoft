@@ -306,25 +306,6 @@ if ! get_if_set AZURE_OPENAI_API_KEY >/dev/null 2>&1; then
   fi
 fi
 
-# The Dockerfile installs the TAC SDK from a vendored wheel under wheels/ (not
-# on PyPI yet). A fresh clone has no .whl, so the image build fails hard at the
-# `ls /app/wheels/*.whl` step. Build it on demand so first-time deployers don't
-# have to read "Update code" first. (Editing src/ still requires a rebuild —
-# that's the README "Update code" step; this only covers the missing-wheel case.)
-if ! ls wheels/twilio_agent_connect_microsoft-*.whl >/dev/null 2>&1; then
-  echo "==> Building the TAC SDK wheel (wheels/ is empty on a fresh clone)..."
-  # `uv build` writes to a shared dist/ that may already hold OTHER versions
-  # from past builds. The Dockerfile does `WHEEL=$(ls /app/wheels/*.whl)` and
-  # breaks if more than one wheel lands, so we must copy exactly ONE — the
-  # version we just built — not a `dist/*.whl` glob. Pin it from the freshly
-  # built wheel (newest by mtime), and clear wheels/ first for good measure.
-  ( cd ../.. \
-    && uv build \
-    && WHEEL=$(ls -t dist/twilio_agent_connect_microsoft-*-py3-none-any.whl | head -1) \
-    && rm -f deploy/agent_framework_hosted_agents/wheels/*.whl \
-    && cp "$WHEEL" deploy/agent_framework_hosted_agents/wheels/ )
-fi
-
 echo ""
 echo "==> Deploying the agent..."
 azd deploy --no-prompt "${ENV_ARG[@]}"

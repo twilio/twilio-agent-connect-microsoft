@@ -50,8 +50,6 @@ graph LR
 - **[Azure CLI (`az`)](https://learn.microsoft.com/cli/azure/install-azure-cli)**
 - **[Azure Developer CLI (`azd`)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)**
 - **`make`, `bash`, `curl`, `python3`** (standard on macOS/Linux)
-- **[uv](https://docs.astral.sh/uv/)** — only to rebuild the SDK wheel when
-  editing the TAC SDK (see [Update code](#update-code))
 
 ### Azure account requirements
 
@@ -162,19 +160,9 @@ azd ai agent monitor --session-id <conversationId-or-CallSid>
 ## Update code
 
 - **Edit `agent.py`** → `make deploy` (azd rebuilds + re-pushes the container).
-- **Edit the TAC SDK (`src/tac_microsoft/...`)** → the image installs the SDK
-  from a vendored wheel, so rebuild it first:
-  ```bash
-  ( cd ../.. && uv build && \
-    WHEEL=$(ls -t dist/twilio_agent_connect_microsoft-*-py3-none-any.whl | head -1) && \
-    rm -f deploy/agent_framework_hosted_agents/wheels/*.whl && \
-    cp "$WHEEL" deploy/agent_framework_hosted_agents/wheels/ )
-  make deploy
-  ```
-  (`dist/` can hold several past versions; copy only the one just built — the
-  Dockerfile expects exactly one wheel in `wheels/`.)
-  (Once the SDK ships to PyPI with `TACHostedAgentsApp`, the wheel goes away and
-  `requirements.txt` installs from PyPI.)
+- **Use a newer TAC SDK** → the image installs
+  `twilio-agent-connect-microsoft[hosted-agents]` from PyPI (pinned in
+  `requirements.txt`). Bump that pin, then `make deploy`.
 
 ## Teardown
 

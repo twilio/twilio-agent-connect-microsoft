@@ -32,10 +32,11 @@ changing anything here, so they don't have to be rediscovered.
   `AZURE_CONTAINER_REGISTRY_ENDPOINT`, `AZURE_OPENAI_*`) is set in `deploy.sh`'s
   "bridge" step between provision and the agent push. Add new agent env wiring
   there, not in the hook.
-- **SDK changes need a wheel rebuild.** The Dockerfile installs the TAC SDK from
-  a vendored wheel in `wheels/` (not PyPI yet). Editing `src/tac_microsoft/...`
-  has NO effect until you `uv build` + refresh `wheels/` (see README "Update
-  code"). Editing `agent.py` does NOT need a rebuild.
+- **The TAC SDK installs from PyPI.** `requirements.txt` pins
+  `twilio-agent-connect-microsoft[hosted-agents]` from PyPI, so editing
+  `src/tac_microsoft/...` in this repo has NO effect on the image — bump the pin
+  to a published version instead (see README "Update code"). Editing `agent.py`
+  does NOT need a rebuild.
 - **ACR pull identity is the PROJECT managed identity**, not the account MI.
   `foundry.bicep` grants `AcrPull` to `project.identity.principalId`; granting
   the account MI fails the image pull (`ImageError`).
