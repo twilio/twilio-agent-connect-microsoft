@@ -46,7 +46,7 @@ environment_variables:
   - name: TWILIO_CONVERSATION_CONFIGURATION_ID
     value: ${TWILIO_CONVERSATION_CONFIGURATION_ID}
   - name: TWILIO_LOG_LEVEL
-    value: INFO
+    value: ${TWILIO_LOG_LEVEL=INFO}
 
   # ---- Voice (Conversation Relay) ----------------------------------------
   # Public domain (no scheme, no trailing slash) where APIM exposes the

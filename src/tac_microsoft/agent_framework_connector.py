@@ -353,11 +353,11 @@ class AgentFrameworkConnector:
         conv_id = context.conversation_id
         message = self._build_message(user_message, context, memory_response)
 
-        prompt_preview = message[:100] + "..." if len(message) > 100 else message
         logger.info(
-            f"USER MESSAGE | {prompt_preview}",
+            "Processing voice message",
             conversation_id=conv_id,
             channel="voice",
+            message_length=len(message),
         )
 
         agent = self._get_or_create_voice_agent(conv_id, context)
@@ -372,13 +372,12 @@ class AgentFrameworkConnector:
                     yield chunk.text
 
             response_text = "".join(full_response)
-            response_preview = (
-                response_text[:100] + "..." if len(response_text) > 100 else response_text
-            )
+            # Metadata only — response text is PII.
             logger.info(
-                f"AI RESPONSE | {response_preview}",
+                "Voice response complete",
                 conversation_id=conv_id,
                 channel="voice",
+                response_length=len(response_text),
             )
 
             # Persist session in the background (non-blocking) for
