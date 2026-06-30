@@ -53,7 +53,8 @@ anything here.
   (presents as "no response"). `configure_twilio.sh` sets both correctly.
 - **`createFoundry=false`** is the bring-your-own-project path; then the
   `Foundry User` role grant is the user's job (the template only grants it when
-  it creates the account).
+  it creates the account). `deploy.sh` validates the required bring-your-own
+  vars up front (step 3b) and reprints the grant reminder.
 - **Tenant policy.** Resources are tagged (`created_by`) and the Key Vault has a
   firewall + `AzureServices` bypass to satisfy common deny policies. If a tenant
   denies something new, the error names the policy.
