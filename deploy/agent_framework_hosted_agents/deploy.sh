@@ -103,8 +103,26 @@ prompt_editable() {
 }
 
 # Stable short hash from slug + subscription (same every run → idempotent names).
+# Try a series of common hashers so this works on minimal images that may lack
+# any one of them; aborting here would kill the whole deploy (set -e) with a
+# bare exit code and no message. cksum is in POSIX and is the last resort.
 stable_hash() {
-  printf '%s' "$1-$2" | shasum 2>/dev/null | cut -c1-6
+  local input="$1-$2" out=""
+  if command -v shasum >/dev/null 2>&1; then
+    out=$(printf '%s' "$input" | shasum | cut -c1-6)
+  elif command -v sha256sum >/dev/null 2>&1; then
+    out=$(printf '%s' "$input" | sha256sum | cut -c1-6)
+  elif command -v md5sum >/dev/null 2>&1; then
+    out=$(printf '%s' "$input" | md5sum | cut -c1-6)
+  elif command -v cksum >/dev/null 2>&1; then
+    # cksum prints a decimal checksum; take its first 6 digits.
+    out=$(printf '%s' "$input" | cksum | tr -cd '0-9' | cut -c1-6)
+  fi
+  if [ -z "$out" ]; then
+    echo "ERROR: no hashing tool found (shasum/sha256sum/md5sum/cksum) to derive resource names." >&2
+    exit 1
+  fi
+  printf '%s' "$out"
 }
 
 # ---------------------------------------------------------------------------
@@ -178,6 +196,37 @@ prompt_if_missing TWILIO_API_KEY "Twilio API Key (SK...)"
 prompt_if_missing TWILIO_API_SECRET "Twilio API Secret" secret
 prompt_if_missing TWILIO_PHONE_NUMBER "Twilio phone number (+1...)"
 prompt_if_missing TWILIO_CONVERSATION_CONFIGURATION_ID "Twilio Conversation Configuration ID (conv_configuration_...)"
+
+# ---------------------------------------------------------------------------
+# 3b. Bring-your-own (createFoundry=false) pre-flight validation.
+# ---------------------------------------------------------------------------
+# The default path creates a fresh Foundry account/project, so HOSTED_AGENTS_URL
+# and HOSTED_AGENTS_PROJECT_NAME are derived. In bring-your-own mode the Bicep
+# does NOT validate them: an empty HOSTED_AGENTS_URL makes the template's
+# `split(url, '/')[2]` index out of bounds and an empty project name ships a
+# blank `?project_name=` into the voice WSS handshake — both surface as cryptic
+# downstream errors. Fail fast here with a readable message instead.
+CREATE_FOUNDRY=$(read_val CREATE_FOUNDRY); : "${CREATE_FOUNDRY:=true}"
+case "$CREATE_FOUNDRY" in
+  [fF]|[fF][aA][lL][sS][eE]|0|[nN]|[nN][oO])
+    MISSING=""
+    [ -z "$(read_val HOSTED_AGENTS_URL)" ] && MISSING="$MISSING HOSTED_AGENTS_URL"
+    [ -z "$(read_val HOSTED_AGENTS_PROJECT_NAME)" ] && MISSING="$MISSING HOSTED_AGENTS_PROJECT_NAME"
+    if [ -n "$MISSING" ]; then
+      echo "ERROR: CREATE_FOUNDRY=false (bring-your-own) requires these in .env:$MISSING" >&2
+      echo "       HOSTED_AGENTS_URL must end at /endpoint/protocols. See the" >&2
+      echo "       BRING-YOUR-OWN block in .env.template." >&2
+      exit 1
+    fi
+    echo "==> Bring-your-own Foundry (CREATE_FOUNDRY=false)."
+    echo "    NOTE: you must grant APIM's managed identity the 'Foundry User' role"
+    echo "    on your Foundry account yourself — the template only does this when it"
+    echo "    creates the account. After deploy, run:"
+    echo "      az role assignment create --assignee \"\$(azd env get-value apimPrincipalId)\" \\"
+    echo "        --role 'Foundry User' --scope '<your Foundry account resource id>'"
+    echo ""
+    ;;
+esac
 
 AZURE_ENV_NAME=$(read_val AZURE_ENV_NAME)
 AZURE_LOCATION=$(read_val AZURE_LOCATION); : "${AZURE_LOCATION:=northcentralus}"
