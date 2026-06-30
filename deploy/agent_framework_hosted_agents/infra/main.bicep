@@ -43,14 +43,40 @@ param publisherName string = 'Twilio Agent'
 ])
 param apimSku string = 'BasicV2'
 
-@description('Hosted Agents Foundry account URL plus the agent path. Format: https://<account>.services.ai.azure.com/api/projects/<project>/agents/<agent>/endpoint/protocols. The SMS/voice-twiml policies append `/invocations`; the WS API serviceUrl uses just the host.')
-param hostedAgentsUrl string
+@description('Hosted Agents Foundry account URL plus the agent path. Format: https://<account>.services.ai.azure.com/api/projects/<project>/agents/<agent>/endpoint/protocols. The SMS/voice-twiml policies append `/invocations`; the WS API serviceUrl uses just the host. REQUIRED when createFoundry=false; ignored (derived from the created account/project) when createFoundry=true.')
+param hostedAgentsUrl string = ''
 
-@description('Foundry project name (set as ?project_name= on the WSS upgrade).')
-param projectName string
+@description('Foundry project name (set as ?project_name= on the WSS upgrade). REQUIRED when createFoundry=false; when createFoundry=true this names the project that gets created.')
+param projectName string = ''
 
-@description('Foundry agent name (set as ?agent_name= on the WSS upgrade).')
+@description('Foundry agent name (set as ?agent_name= on the WSS upgrade). Must match the name the agent is registered under (agent.yaml).')
 param agentName string
+
+// ---- Fresh Foundry provisioning (createFoundry=true) ---------------------
+
+@description('Create a fresh Foundry account + project + model deployment + container registry as part of this deployment. When false, bring your own (supply hostedAgentsUrl + projectName for an existing project).')
+param createFoundry bool = true
+
+@description('Foundry account name to create when createFoundry=true. Globally unique; becomes the *.services.ai.azure.com subdomain. Leave empty to derive from apimName.')
+param foundryAccountName string = ''
+
+@description('Region for the created Foundry account/project/model. Hosted Agents is region-limited; northcentralus is a known-good default.')
+param foundryLocation string = 'northcentralus'
+
+@description('Chat model deployment to create when createFoundry=true.')
+param modelName string = 'gpt-5.4-mini'
+
+@description('Model version for the created deployment.')
+param modelVersion string = '2026-03-17'
+
+@description('Model deployment SKU.')
+param modelSkuName string = 'GlobalStandard'
+
+@description('Model deployment capacity. Low default so a fresh subscription quota does not block provisioning; raise as quota allows.')
+param modelCapacity int = 50
+
+@description('Container registry name to create when createFoundry=true (alphanumeric, 5-50 chars, globally unique). Leave empty to derive from apimName.')
+param containerRegistryName string = ''
 
 // ---- Key Vault (mode A — create new) -------------------------------------
 
@@ -87,16 +113,62 @@ param tags object = {
 // Derived values
 // ---------------------------------------------------------------------------
 var createKeyVault = empty(existingKeyVaultName)
-// KV names are globally unique and capped at 24 chars; trim and add a
-// short hash so two deployments with the same apimName don't collide.
-var defaultKeyVaultName = take('kv-${apimName}-${uniqueString(resourceGroup().id, apimName)}', 24)
+// KV names are globally unique, 3-24 chars, must start with a letter, end
+// with a letter/digit, and have no consecutive/trailing hyphens. Building it
+// from the (variable-length) apimName and truncating to 24 risks cutting on a
+// hyphen (e.g. a longer slug yields `kv-...-` -> invalid). Instead use a fixed
+// `kv` prefix + the 13-char alphanumeric uniqueString: always 15 chars, always
+// valid, still globally unique + stable per (RG, apimName).
+var defaultKeyVaultName = 'kv${uniqueString(resourceGroup().id, apimName)}'
 var newKeyVaultName = empty(keyVaultName) ? defaultKeyVaultName : keyVaultName
 var effectiveKeyVaultName = createKeyVault ? newKeyVaultName : existingKeyVaultName
-// Bare host extracted from hostedAgentsUrl for the WSS API serviceUrl.
-var hostedAgentsAccountHost = split(hostedAgentsUrl, '/')[2]
 
-// Built-in role: Key Vault Secrets User.
+// Built-in roles.
 var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+// Foundry User — APIM MI needs this on the Foundry account to forward
+// requests to agents. (Not 'Azure AI User'; that built-in role doesn't exist.)
+var foundryUserRoleId = '53ca6127-db72-4b80-b1b0-d745d6d5456d'
+
+// ---------------------------------------------------------------------------
+// Fresh Foundry account + project + model + ACR (createFoundry=true)
+// ---------------------------------------------------------------------------
+var defaultFoundryAccountName = take('${apimName}-ai', 64)
+var effectiveFoundryAccountName = empty(foundryAccountName) ? defaultFoundryAccountName : foundryAccountName
+// ACR names are alphanumeric only (no hyphens) and globally unique.
+var defaultAcrName = take('acr${replace(apimName, '-', '')}${uniqueString(resourceGroup().id, apimName)}', 50)
+var effectiveAcrName = empty(containerRegistryName) ? defaultAcrName : containerRegistryName
+
+module foundry './foundry.bicep' = if (createFoundry) {
+  name: 'foundry-${uniqueString(resourceGroup().id, effectiveFoundryAccountName)}'
+  params: {
+    accountName: effectiveFoundryAccountName
+    projectName: projectName
+    location: foundryLocation
+    modelName: modelName
+    modelVersion: modelVersion
+    modelSkuName: modelSkuName
+    modelCapacity: modelCapacity
+    acrName: effectiveAcrName
+    tags: tags
+  }
+}
+
+// Effective Foundry wiring: derive from the created account/project when
+// createFoundry=true, otherwise use the bring-your-own params. The agent
+// name is always a known input (it is registered later by `azd deploy`, but
+// its name is fixed up front in agent.yaml), so building the URL here is safe.
+var effectiveHostedAgentsUrl = createFoundry
+  ? '${foundry!.outputs.projectEndpoint}/agents/${agentName}/endpoint/protocols'
+  : hostedAgentsUrl
+// Bare host for the WSS API serviceUrl.
+var hostedAgentsAccountHost = split(effectiveHostedAgentsUrl, '/')[2]
+
+// `existing` reference to the created account so the Foundry User role
+// assignment below has a statically-resolvable scope (can't scope to a
+// module output). Only meaningful when createFoundry=true.
+resource foundryAccount 'Microsoft.CognitiveServices/accounts@2025-06-01' existing = if (createFoundry) {
+  name: effectiveFoundryAccountName
+}
 
 // ---------------------------------------------------------------------------
 // APIM service
@@ -141,11 +213,21 @@ resource newKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' = if (createKeyVault
     // omit the property.
     enablePurgeProtection: keyVaultPurgeProtection ? true : null
     publicNetworkAccess: 'Enabled'
+    // Firewall on (defaultAction Deny) with Azure trusted services bypassed.
+    // Required by the tenant policy "Key Vault should have firewall enabled";
+    // bypass=AzureServices lets APIM's managed identity still fetch the
+    // secret over the service backbone without VNet integration.
+    networkAcls: {
+      defaultAction: 'Deny'
+      bypass: 'AzureServices'
+      ipRules: []
+      virtualNetworkRules: []
+    }
   }
 }
 
-// Seed the Twilio Auth Token only when creating the vault. Reusing an
-// existing vault → the secret is assumed to already be there.
+// Seed the Twilio Auth Token only when creating the vault; an existing vault
+// is assumed to already contain it.
 resource newKeyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (createKeyVault) {
   parent: newKeyVault
   name: 'TwilioAuthToken'
@@ -218,6 +300,18 @@ resource twilioAuthTokenNamedValue 'Microsoft.ApiManagement/service/namedValues@
     apimKeyVaultRoleAssignmentNew
     apimKeyVaultRoleAssignmentExisting
     newKeyVaultSecret
+    // Also wait on the APIs/operations/backend. These take ~20-60s to
+    // create and do NOT depend on this named value, so ordering the
+    // secret-fetch after them lets RBAC propagation finish in the
+    // meantime — turning the common first-run KV 403 into a rare one.
+    // (The operation *policies* depend on this named value, so this can't
+    // depend on them — that would cycle. Depending on the operations
+    // themselves is safe.)
+    twilioApi
+    webhookOp
+    voiceTwimlOp
+    voiceWsApi
+    hostedAgentsBackend
   ]
 }
 
@@ -233,16 +327,43 @@ resource hostedAgentsBackend 'Microsoft.ApiManagement/service/backends@2023-05-0
   name: 'hosted-agents-backend'
   properties: {
     protocol: 'http'
-    url: hostedAgentsUrl
+    url: effectiveHostedAgentsUrl
   }
+}
+
+// ---------------------------------------------------------------------------
+// APIM MI → Foundry User on the created account
+// ---------------------------------------------------------------------------
+// Only when we create the Foundry account here. For bring-your-own
+// (createFoundry=false) the account often lives in another RG/subscription,
+// so that grant stays a documented manual step (README step 3).
+resource apimFoundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (createFoundry) {
+  // Name must be computable at start-of-deployment, so derive from the
+  // (known) account resource id rather than a module output.
+  name: guid(
+    resourceId('Microsoft.CognitiveServices/accounts', effectiveFoundryAccountName),
+    apim.id,
+    foundryUserRoleId
+  )
+  scope: foundryAccount
+  properties: {
+    principalId: apim.identity.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', foundryUserRoleId)
+  }
+  // `foundryAccount` is an `existing` ref; depend on the module that
+  // actually creates the account so the grant runs after it exists.
+  dependsOn: [
+    foundry
+  ]
 }
 
 // ---------------------------------------------------------------------------
 // HTTP API — /twilio/webhook (SMS) + /twilio/twiml (voice TwiML)
 // ---------------------------------------------------------------------------
-// No `serviceUrl` here — the policies pick the backend explicitly via
-// `set-backend-service`. Keeping the routing in one place (the policy)
-// avoids a dual-source-of-truth bug if the backend URL ever changes.
+// No `serviceUrl` here — the policies pick the backend via
+// `set-backend-service`, keeping routing in one place (avoids a
+// dual-source-of-truth bug if the backend URL changes).
 resource twilioApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apim
   name: 'twilio-tac'
@@ -386,3 +507,20 @@ output twilioVoiceTwimlUrl string = '${apim.properties.gatewayUrl}/twilio/twiml'
 output twilioVoiceWssUrl string = 'wss://${apim.name}.azure-api.net/twilio/ws'
 // Set on the agent as TWILIO_VOICE_PUBLIC_DOMAIN (no scheme/slash):
 output voicePublicDomain string = '${apim.name}.azure-api.net/twilio'
+
+// ---- Fresh Foundry outputs (empty strings when createFoundry=false) -------
+// deploy.sh reads these between provision and the agent push and wires them
+// into the agent env vars the `host: azure.ai.agent` deploy step needs
+// (AZURE_AI_PROJECT_ID / FOUNDRY_PROJECT_ENDPOINT /
+// AZURE_CONTAINER_REGISTRY_ENDPOINT / AZURE_OPENAI_ENDPOINT|DEPLOYMENT_NAME).
+output foundryAccountName string = createFoundry ? foundry!.outputs.accountName : ''
+output foundryProjectEndpoint string = createFoundry ? foundry!.outputs.projectEndpoint : ''
+output foundryProjectResourceId string = createFoundry
+  ? '${foundry!.outputs.accountResourceId}/projects/${foundry!.outputs.projectName}'
+  : ''
+output modelDeploymentName string = createFoundry ? foundry!.outputs.modelDeploymentName : ''
+output containerRegistryEndpoint string = createFoundry ? foundry!.outputs.acrLoginServer : ''
+// Azure OpenAI endpoint for the agent when we create the Foundry account.
+// The API key is NOT output (secrets shouldn't live in deployment outputs);
+// deploy.sh fetches it via `az cognitiveservices account keys list`.
+output openAiEndpoint string = createFoundry ? foundry!.outputs.openAiEndpoint : ''

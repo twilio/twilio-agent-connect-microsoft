@@ -1,269 +1,259 @@
-# TAC Agent Framework on Hosted Agents in Foundry Agent Service
+# TAC Hosted Agents (Foundry) Deployment
 
-Run TAC + Microsoft Agent Framework directly inside **Hosted Agents in
-Foundry Agent Service**, with APIM in front for Twilio request signature
-validation, websocket passthrough, and per-conversation sandbox
-affinity.
+Deploy Twilio Agent Connect with Microsoft Agent Framework on **Hosted Agents
+in Foundry Agent Service**, fronted by APIM for Twilio signature validation and
+WebSocket passthrough. One command (`make deploy`) provisions everything fresh.
 
-This is the SMS + voice path; for the Container Apps equivalent, see
+This is the SMS + voice path; for the Container Apps equivalent see
 [`../agent_framework_container_apps`](../agent_framework_container_apps).
 
 ## Architecture
 
 ```mermaid
 graph LR
-    Customer([Customer])
+    Customer([👤 Customer])
 
-    subgraph Twilio
-        CRelay["Twilio ConversationRelay (voice)"]
-        CO["Twilio Conversation Orchestrator (messaging)"]
-        Memory[Twilio Conversation Memory]
+    subgraph Twilio["☁️ Twilio"]
+        CRelay[📞 ConversationRelay<br/>voice]
+        CO[💬 Conversation Orchestrator<br/>messaging]
+        Memory[🧠 Conversation Memory]
     end
 
-    subgraph Azure
-        APIM[APIM<br/>signature check + form→JSON + auth]
-        Foundry[Hosted Agent<br/>TAC + Agent Framework]
+    subgraph Azure["☁️ Azure"]
+        APIM[🛡️ APIM<br/>signature check + auth]
+        Foundry[🤖 Hosted Agent<br/>TAC + Agent Framework]
         AOAI[Azure OpenAI]
     end
 
-    Customer <--> CRelay
-    Customer <--> CO
+    Customer <-->|voice| CRelay
+    Customer <-->|SMS| CO
     CRelay -->|TwiML POST + WSS| APIM
     CO -->|webhook POST| APIM
     APIM <-->|/invocations + /invocations_ws| Foundry
-    Foundry -->|retrieve| Memory
-    Foundry -->|agent.run| AOAI
+    Foundry --> Memory
+    Foundry --> AOAI
 ```
 
-**Flow:**
-- **SMS:** Twilio CO posts JSON to `https://<apim>/twilio/webhook`.
-  APIM verifies the Twilio signature, lifts `data.conversationId` onto
-  `?agent_session_id=...`, and forwards to `/invocations`. The
-  `TACHostedAgentsApp` dispatcher fans the body out to all
-  registered messaging channels.
-- **Voice:** Twilio posts a form to `https://<apim>/twilio/twiml`. APIM
-  verifies the signature, converts form → JSON, and forwards to
-  `/invocations`. The server returns TwiML containing
-  `<Connect><ConversationRelay url="wss://<apim>/twilio/ws?agent_session_id=<CallSid>"/>`.
-- **Voice WS:** Twilio dials the WSS URL. APIM verifies the signature on
-  the upgrade, requires `agent_session_id` on the query, injects the
-  Foundry auth + feature flag, and rewrites to `/invocations_ws`.
+## Deployment Components
 
-## What APIM does
-
-Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`,
-so APIM sits in front and adapts every Twilio request to that shape. Per
-request, the policies:
-
-1. **Validate `X-Twilio-Signature`** (HMAC-SHA1, auth token from Key
-   Vault). SMS and voice-WS sign the URL only; voice TwiML signs URL +
-   sorted form pairs. Mismatch → 401.
-2. **Pin a sandbox** by lifting the Twilio ID onto
-   `?agent_session_id=` — `data.conversationId` for SMS,
-   `CallSid` for voice. Keeps a call's TwiML POST and WSS upgrade (and
-   any retries) on one sandbox.
-3. **Inject an Entra bearer** via APIM's managed identity
-   (`resource=https://ai.azure.com`) — the Foundry endpoint isn't
-   public.
-4. **Convert form → JSON** (voice TwiML only; `set-body`). SMS is
-   already JSON; the WS upgrade has no body.
-5. **Rewrite to the Foundry route** (`/invocations` or
-   `/invocations_ws`) and strip `X-Twilio-Signature` (no longer valid
-   after the rewrite). The WS upgrade also requires `agent_session_id`
-   on the query and injects `project_name` / `agent_name` /
-   `Foundry-Features`.
-
-## Security
-
-APIM is the only authentication boundary in front of your agent, and it
-does two things:
-
-1. **Verifies the Twilio request signature** (the `X-Twilio-Signature`
-   header) so only requests Twilio actually sent reach the agent. The
-   agent layer does not re-check it — APIM strips the header after
-   rewriting the URL and (for voice) the body, so the signature can no
-   longer be reproduced downstream.
-2. **Authenticates to the Hosted Agent.** The Foundry endpoint is not
-   public; it requires an Entra bearer token, and only APIM's managed
-   identity holds the `Foundry User` role. So reaching the agent means
-   compromising APIM's identity, not just hitting a URL.
-
-If you ever expose the Foundry endpoint publicly or with a shared key,
-you'd need to move signature validation into `TACHostedAgentsApp`
-itself — which means having APIM forward the original signed URL and
-body so the signature stays reproducible.
+- **Hosted Agent** — TAC + Agent Framework running in a Foundry sandbox
+  (`POST /invocations` + `WS /invocations_ws`).
+- **APIM** — validates the Twilio signature, authenticates to Foundry, and
+  adapts each Twilio request to the agent's two routes.
+- **Created fresh by the deploy** — Foundry account + project + model
+  deployment, Container Registry, APIM, and Key Vault.
 
 ## Prerequisites
 
-- Azure subscription with permission to create APIM, Key Vault, and
-  role assignments
-- Azure CLI (`az`) and Azure Developer CLI (`azd`) installed and signed in
-- An Azure OpenAI deployment (Bicep here does **not** create one)
-- An existing Foundry account + project (created out of band — `azd`
-  for Hosted Agents expects the project to already exist; this template
-  does not create it)
-- Twilio account with: Auth Token, API Key + Secret, phone number,
-  and a Conversation Configuration ID
+### Required tools
 
-The Bicep template provisions a Key Vault for the Twilio Auth Token by
-default. If you'd rather reuse an existing vault, set
-`EXISTING_KEY_VAULT_NAME` (and optionally `EXISTING_KEY_VAULT_RESOURCE_GROUP`
-if it lives in a different RG) — the vault must already contain a
-secret named `TwilioAuthToken`.
+- **[Azure CLI (`az`)](https://learn.microsoft.com/cli/azure/install-azure-cli)**
+- **[Azure Developer CLI (`azd`)](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)**
+- **`make`, `bash`, `curl`, `python3`** (standard on macOS/Linux)
 
-## Deploy
+### Azure account requirements
 
-`azd up` does both the APIM/Key Vault Bicep and the Foundry agent push
-in one shot — `infra/main.bicep` runs first, then the agent container
-is built and registered with the Foundry project.
+- **Active subscription** with permission to create Cognitive Services
+  (Foundry) accounts, APIM, Key Vault, Container Registry, and role
+  assignments.
+- **Region:** Hosted Agents is region-limited. Defaults to **`northcentralus`**
+  (known-good); override via `AZURE_LOCATION` / `FOUNDRY_LOCATION` only if your
+  region supports Hosted Agents.
 
-### 1. Configure environment + build the SDK wheel
+### Twilio requirements
+
+- Account SID, Auth Token, API Key + Secret, a phone number, and a Conversation
+  (Orchestrator) Configuration ID.
+
+### Sign in
 
 ```bash
-cd deploy/agent_framework_hosted_agents
-cp .env.template .env
-# fill in .env with your values — see "Required env vars" below
-
-# The Dockerfile installs the SDK from a vendored wheel under wheels/
-# (because TACHostedAgentsApp isn't on PyPI yet). Build it from the
-# repo root:
-( cd ../.. && uv build && \
-  cp dist/twilio_agent_connect_microsoft-*-py3-none-any.whl \
-     deploy/agent_framework_hosted_agents/wheels/ )
+az login
+azd auth login
+# If azd later reports an expired token / scope error:
+azd auth login --scope https://ai.azure.com/.default
 ```
 
-Once the SDK is published to PyPI with `TACHostedAgentsApp`, this
-wheel can be removed and `requirements.txt` can install the package
-from PyPI directly.
+> **Multi-tenant accounts.** If your subscription lives in a different AAD
+> tenant than your default Azure account, run `az login --tenant <tenant-id>`
+> **before** `azd auth login`. Otherwise provisioning fails with a confusing
+> "Login expired" error even though `azd auth login` succeeded — the Bicep
+> provider authenticates through the `az` CLI's default tenant.
 
-#### Required env vars (the non-obvious ones)
+> **Tenant policy note.** Some tenants enforce Azure Policy on the created
+> resources (required tags, Key Vault firewall, purge protection). The template
+> satisfies the common ones (tags every resource; KV firewall + `AzureServices`
+> bypass). If a resource is denied, the error names the policy — adjust the
+> matching `.env` value or the tags in `infra/`.
 
-`.env.template` documents every variable inline — fill it in there.
-These cause the most deploy failures when wrong or missing:
+---
 
-- **Agent name** is set by `azure.yaml`/`agent.yaml`, not by
-  `HOSTED_AGENTS_AGENT_NAME`/`HOSTED_AGENTS_URL` — those must match the
-  registered name (a mismatch reads as "APIM 200 / Foundry 404").
-- **`HOSTED_AGENTS_URL`** must end at `/endpoint/protocols`, not the
-  account root — anything else 404s every SMS webhook.
-- **`AZURE_AI_PROJECT_ID`**, **`FOUNDRY_PROJECT_ENDPOINT`**, and
-  **`AZURE_CONTAINER_REGISTRY_ENDPOINT`** aren't auto-discovered by
-  `azd` for `host: azure.ai.agent`; without them `azd deploy` fails
-  partway through.
+## Quick Start
 
-### 2. Run `azd up`
+### 1. Deploy
+
+From this directory:
 
 ```bash
-azd env new my-tac-agent --location eastus2 --subscription <sub-id>
-azd env set AZURE_RESOURCE_GROUP <rg>
-
-# IMPORTANT: load .env into the azd environment BEFORE running azd up.
-# There's no automatic import — azd only substitutes variables that are
-# in its environment, so skipping this causes "missing required inputs"
-# errors. Re-run it after editing .env.
-azd env set --file .env
-
-azd up
+make deploy
 ```
 
-This:
+`make deploy` creates `.env` (from `.env.template`), prompts for any missing
+values, derives globally-unique resource names from a single **slug**,
+provisions everything fresh, and pushes the agent. It's idempotent — re-run it
+anytime.
 
-1. Provisions APIM + Key Vault + APIs/policies via `infra/main.bicep`.
-2. Builds the agent container and registers it with the Foundry project.
+**Two ways to provide config:**
 
-**Heads up:** the first `azd up` against a fresh Key Vault commonly
-fails partway through with `Caller is not authorized to perform action
-on resource ... getSecret/action` — APIM tries to read the seeded
-secret before its `Key Vault Secrets User` role assignment has
-propagated through Azure's RBAC layer. Wait ~30 seconds and re-run
-`azd provision --no-state`; the second attempt always succeeds.
+- **Interactive** — run `make deploy` and answer the prompts (editable
+  defaults; secrets hidden).
+- **Edit `.env` first** — `cp .env.template .env`, fill it in, then
+  `make deploy`. Values already set are used as-is and not prompted (this is
+  also the CI path: pre-fill `.env` so nothing prompts).
 
-### 3. Grant APIM access to Foundry
+Required values prompted (if not already in `.env`): your subscription, a
+deployment **slug** (first initial + last name, e.g. `jsmith` — names all your
+resources), your email, and the Twilio credentials / number / configuration ID.
 
-Bicep can't grant roles on the Foundry account (it commonly lives
-outside the subscription/RG that owns this deployment). Do this once
-manually:
+### 2. Configure Twilio
+
+At the end of the deploy you're asked:
+
+> *Set Conversation Orchestrator webhook URL and Phone number TwiML webhook URL to this deployment now? [y/N]*
+
+Answer **y** to point your number's Voice URL and your CO config's webhook at
+this deployment automatically. Re-runnable anytime with `make configure-twilio`.
+
+To set them by hand instead, use the URLs printed at the end (or `make urls`):
+
+- **Phone Number → Voice URL** (**POST**): `twilioVoiceTwimlUrl`
+- **Conversation Orchestrator → Webhook** (**POST**): `twilioSmsWebhookUrl`
+
+> ⚠️ **Both must be HTTP POST.** APIM only defines `POST`; a Twilio webhook set
+> to GET returns 404 (presents as "no response").
+
+### 3. Test
+
+Text or call your Twilio number.
+
+---
+
+## Make targets
 
 ```bash
-APIM_PRINCIPAL_ID=$(azd env get-values | grep apimPrincipalId | cut -d'"' -f2)
-FOUNDRY_ACCOUNT_RESOURCE_ID=<from your Foundry portal>
-
-az role assignment create \
-  --assignee "$APIM_PRINCIPAL_ID" \
-  --role "Foundry User" \
-  --scope "$FOUNDRY_ACCOUNT_RESOURCE_ID"
+make deploy            # provision everything + push agent (the main command)
+make agent             # rebuild/redeploy just the agent
+make urls              # print the Twilio Voice/SMS URLs
+make configure-twilio  # point your Twilio number + CO config at this deploy
+make down              # tear everything down (prompts, then azd down --force --purge)
 ```
 
-(The role is named `Foundry User`, not `Azure AI User` — the latter
-doesn't exist as a built-in role. This grants APIM the right to
-forward requests to agents under that account.)
+## View logs
 
-### 4. Configure Twilio
+Stream the agent's logs (the session id is the CO `conversationId` for SMS, or
+the `CallSid` for voice):
 
-`azd up` prints these URLs at the end of provisioning (the
-`postprovision` hook in `azure.yaml`). To see them again later, run
-`azd env get-values | grep -i twilio`.
+```bash
+azd ai agent monitor --session-id <conversationId-or-CallSid>
+```
 
-- **Phone Number → Voice URL** (POST): use `twilioVoiceTwimlUrl`.
-- **Conversation Orchestrator → Webhook URL** (POST): use `twilioSmsWebhookUrl`.
+## Update code
 
-(`twilioVoiceWssUrl` is informational — the agent emits the WSS URL
-itself from `TWILIO_VOICE_PUBLIC_DOMAIN`, so you don't enter it in
-Twilio.)
+- **Edit `agent.py`** (prompt, tools) → `make agent` (rebuilds + re-pushes the
+  container only).
+- **Change any env var** (model, Twilio creds, etc.) → edit `.env`, then
+  `make deploy`.
 
-Then set `TWILIO_VOICE_PUBLIC_DOMAIN` in `.env` to the value of
-`voicePublicDomain` (also printed by the hook) and re-run `azd up` so
-the agent emits the correct TwiML WSS URL.
-
-### 5. Test
-
-Make a call or send an SMS to your Twilio number, then watch the agent
-logs in the Azure AI Foundry portal (Agents → your agent → Logs).
+> `make deploy` reloads `.env` into the azd env before deploying; `make agent`
+> deploys from the azd env as-is. So `.env` edits only take effect via
+> `make deploy`.
 
 ## Teardown
 
 ```bash
-azd down --purge                              # Foundry agent
-az group delete --name <rg> --yes --no-wait   # APIM resource group
+make down
 ```
+
+Deletes the resource group and **purges** the soft-deleted APIM, Foundry
+account, and Key Vault so the names are immediately reusable.
+
+---
+
+## Bring-your-own Foundry (advanced)
+
+To deploy against an **existing** Foundry project + ACR instead of creating
+fresh ones, set `CREATE_FOUNDRY=false` in `.env` and fill the commented
+"BRING-YOUR-OWN" block (`HOSTED_AGENTS_URL`, `AZURE_AI_PROJECT_ID`,
+`FOUNDRY_PROJECT_ENDPOINT`, `AZURE_CONTAINER_REGISTRY_ENDPOINT`,
+`AZURE_OPENAI_*`). In this mode, grant APIM's identity the `Foundry User` role
+yourself (the template only does this when it creates the account):
+
+```bash
+az role assignment create \
+  --assignee "$(azd env get-value apimPrincipalId)" \
+  --role "Foundry User" \
+  --scope "<your Foundry account resource id>"
+```
+
+To reuse an existing Key Vault, set `EXISTING_KEY_VAULT_NAME` (+
+`EXISTING_KEY_VAULT_RESOURCE_GROUP` if in another RG); it must contain a secret
+named `TwilioAuthToken`.
+
+---
+
+## How it works
+
+### What APIM does
+
+Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`, so APIM
+adapts every Twilio request to that shape. Per request the policies:
+
+1. **Validate `X-Twilio-Signature`** (HMAC-SHA1, auth token from Key Vault).
+   SMS and voice-WS sign the URL only; voice TwiML signs URL + sorted form
+   pairs. Mismatch → 401.
+2. **Pin a sandbox** by lifting the Twilio ID onto `?agent_session_id=`
+   (`data.conversationId` for SMS, `CallSid` for voice), keeping a call's TwiML
+   POST and WSS upgrade on one sandbox.
+3. **Inject an Entra bearer** via APIM's managed identity — the Foundry
+   endpoint isn't public.
+4. **Convert form → JSON** (voice TwiML only).
+5. **Rewrite to the Foundry route** and strip `X-Twilio-Signature`. The WS
+   upgrade additionally requires `agent_session_id` and injects
+   `project_name` / `agent_name` / `Foundry-Features`.
+
+### Security
+
+APIM is the only auth boundary in front of the agent: it verifies the Twilio
+signature (and strips it after rewriting, so it can't be replayed downstream),
+and authenticates to Foundry with a managed identity that holds the
+`Foundry User` role. Reaching the agent means compromising APIM's identity, not
+just hitting a URL.
+
+---
 
 ## Troubleshooting
 
-- **APIM returns 401 "Invalid X-Twilio-Signature"** — signature
-  mismatch. To see the URL APIM signed and the HMAC it computed, enable
-  the APIM trace console (`Ocp-Apim-Trace` header, or the portal Test
-  tab) and inspect the `twilioFullUrl` / `twilioComputedSig` variables —
-  the policy deliberately does not echo these on the wire.
-  Common causes: `public_domain` env on the agent doesn't match what
-  Twilio is dialing; secret in Key Vault is stale; APIM's MI doesn't
-  have `Key Vault Secrets User` on the vault.
-- **APIM returns 400 "Missing agent_session_id"** on a WSS upgrade —
-  the agent emitted a TwiML wss URL without the query param. Confirm
-  the agent log shows `?agent_session_id=...` in the generated TwiML.
-- **APIM returns 200 but Foundry returns 404** — `HOSTED_AGENTS_URL` is
-  the account root (not the agent's `/endpoint/protocols` path) or names
-  an agent azd didn't register (see "Required env vars"). Fix `.env`,
-  then `azd provision --no-state`.
-- **Foundry returns 502 / 504** on `/invocations` — sandbox hasn't
-  finished its readiness probe. Try again after a few seconds; if
-  persistent, check that `azd up` completed without errors.
-- **Voice connects but agent says nothing** — the wss URL APIM rewrote
-  isn't reaching `/invocations_ws`. Check the WS API's `serviceUrl` and
-  `rewrite-uri` template in the policy.
-- **Bicep error `RoleAssignmentExists`** — the APIM-MI → KV role is
-  already granted (prior deploy, or a manual `az role assignment
-  create`). Set `SKIP_KEY_VAULT_ROLE_ASSIGNMENT=true` in `.env` and
-  redeploy.
-- **`azd deploy` fails with `AZURE_AI_PROJECT_ID is not set`** /
-  `FOUNDRY_PROJECT_ENDPOINT is required` /
-  `could not determine container registry endpoint` — add the three
-  azd-required envs to `.env` (see "Required env vars").
-- **`azd provision` reports "no changes" after editing `.env`** — azd
-  caches the deployment plan. Force a rerun with
-  `azd provision --no-state`.
-- **Phone numbers in the agent env appear without their leading `+`** —
-  cosmetic: `azd env get-values` strips `+` from display output, but the
-  underlying `.azure/<env>/.env` stores and substitutes them correctly.
-- **Bicep error `enablePurgeProtection cannot be set to false`** —
-  your tenant requires purge protection on Key Vaults. Leave
-  `KEY_VAULT_PURGE_PROTECTION=true` in `.env` (the default).
+- **Calls/texts get no response, Twilio shows HTTP 404** — the Twilio webhook
+  HTTP method is GET; APIM only defines POST. Set both webhooks to **POST**
+  (or run `make configure-twilio`).
+- **`/twiml` returns 500 `{"error":"TWILIO_VOICE_PUBLIC_DOMAIN is not set"}`** —
+  the agent was pushed without the voice domain. Re-run `make deploy` (it wires
+  this after provision).
+- **SMS works but voice doesn't, or vice-versa** — `TWILIO_PHONE_NUMBER` and
+  `TWILIO_CONVERSATION_CONFIGURATION_ID` point at different orchestrator
+  configs. Voice keys off the number, SMS off the config; make them match, then
+  `make configure-twilio`.
+- **APIM returns 401 "Invalid X-Twilio-Signature"** — signature mismatch.
+  Enable the APIM trace (`Ocp-Apim-Trace` header / portal Test tab) to inspect
+  the signed URL. Common causes: the agent's public domain doesn't match what
+  Twilio dials; stale Key Vault secret.
+- **Foundry returns 502 / 504** on `/invocations` — sandbox still warming up;
+  retry after a few seconds.
+- **First provision fails with `Caller is not authorized ... getSecret`** — the
+  transient Key Vault RBAC-propagation race. `make deploy` retries it
+  automatically; by hand, wait ~30-60s and re-run `azd provision --no-state`.
+- **`RequestDisallowedByPolicy`** — your tenant enforces a policy the resource
+  doesn't satisfy. The error names it; adjust the matching `.env` value or the
+  tags in `infra/`.
+- **Phone numbers show without their leading `+`** — cosmetic; `azd env
+  get-values` strips `+` from display but stores/substitutes it correctly.

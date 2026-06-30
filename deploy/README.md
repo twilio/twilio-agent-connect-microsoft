@@ -2,86 +2,88 @@
 
 Production deployment options for TAC Microsoft connectors.
 
-## Available Deployments
+## Deployments
+
+### Hosted Agents in Foundry Agent Service (Recommended)
+
+**Architecture:** TAC + Microsoft Agent Framework run inside a Foundry Hosted
+Agents sandbox, fronted by APIM for Twilio signature validation and WebSocket
+passthrough. Voice + SMS.
+
+**Key features:**
+- One command (`make deploy`) provisions everything fresh — Foundry account +
+  project + model deployment, Container Registry, APIM, and Key Vault
+- Interactive (or pre-fill `.env`); idempotent re-runs
+- No servers to manage — the agent runs in the Foundry runtime
+- Bring-your-own mode (`CREATE_FOUNDRY=false`) for an existing Foundry project
+
+**Guide:** [`agent_framework_hosted_agents/README.md`](agent_framework_hosted_agents/README.md)
+
+**Best for:** Getting a working voice + SMS agent stood up fast, with the
+fewest moving parts to operate.
+
+---
 
 ### Azure Container Apps with Agent Framework
 
-Deploy Microsoft Agent Framework agents to Azure Container Apps with Cosmos DB session persistence.
+**Architecture:** TAC Server runs on Container Apps and creates per-conversation
+Agent Framework agents. Sessions persist in Cosmos DB for horizontal scaling.
+Voice (WebSocket) + SMS (HTTP).
 
-**Guide:** [`agent_framework_container_apps/README.md`](agent_framework_container_apps/README.md)
-
-**Includes:**
+**Key features:**
 - Container Apps + Cosmos DB infrastructure (Bicep)
 - Docker multi-stage build
 - Managed Identity for Cosmos DB access
-- Architecture diagrams
 
-**Best for:**
-- Production voice + SMS agents using Azure OpenAI or Azure AI Foundry
-- Horizontally scalable deployments with session persistence
-- Full-featured agents with memory, knowledge, and custom tools
+**Guide:** [`agent_framework_container_apps/README.md`](agent_framework_container_apps/README.md)
+
+**Best for:** Horizontally scalable deployments with session persistence, or
+when you need full control over the server and its infrastructure.
+
+---
 
 ### Azure Container Apps with Voice Live
 
-Deploy Azure AI Foundry Voice Live agents to Azure Container Apps.
+**Architecture:** TAC Server runs on Container Apps and streams text to Azure AI
+Foundry Voice Live over WebSocket. Voice Live manages conversation state
+server-side. Voice-only — no SMS.
 
-**Guide:** [`voice_live_container_apps/README.md`](voice_live_container_apps/README.md)
-
-**Includes:**
+**Key features:**
 - Container Apps infrastructure (Bicep)
 - Docker multi-stage build
 - Voice Live WebSocket integration
 
-**Best for:**
-- Voice-only agents using Azure AI Foundry Voice Live
-- Low-latency voice with server-managed conversation state
-- Simpler deployments without session persistence requirements
+**Guide:** [`voice_live_container_apps/README.md`](voice_live_container_apps/README.md)
 
-## Deployment Architecture
+**Best for:** Low-latency voice-only agents using Azure AI Foundry Voice Live,
+without session-persistence requirements.
 
-### Agent Framework Connector
-TAC Server runs on Container Apps and creates per-conversation Agent Framework agents. Sessions are persisted in Cosmos DB for horizontal scaling. Supports both voice (WebSocket) and SMS (HTTP) channels.
+## Quick deploy
 
-### Voice Live Connector
-TAC Server runs on Container Apps and streams text to Azure AI Foundry Voice Live over WebSocket. Voice Live manages conversation state server-side. Voice-only — no SMS support.
+Each guide has the full steps. In brief:
 
-## Quick Deploy with Azure Developer CLI (azd)
-
-Each deployment variant supports [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/) for one-command provisioning. This automates infrastructure deployment, Docker image build/push, and container app configuration.
-
-**Prerequisites:** `azd` v1.18.0+, Azure CLI (`az`), Docker, Python 3.10+
-
-### Agent Framework
+**Hosted Agents** — interactive, provisions everything fresh:
 
 ```bash
-cd deploy/agent_framework_container_apps
+cd deploy/agent_framework_hosted_agents
+make deploy        # prompts for required values (or pre-fill .env first)
+```
+
+Teardown: `make down`.
+
+**Container Apps (Agent Framework / Voice Live)** — via [Azure Developer CLI](https://learn.microsoft.com/en-us/azure/developer/azure-developer-cli/):
+
+```bash
+cd deploy/agent_framework_container_apps   # or voice_live_container_apps
 cp .env.template .env         # fill in your values
 azd env new my-tac-agent
 azd env set --file .env       # load .env into the azd env (skips prompts)
 azd up
 ```
 
-### Voice Live
+Teardown: `azd down --purge`.
 
-```bash
-cd deploy/voice_live_container_apps
-cp .env.template .env         # fill in your values
-azd env new my-tac-voice-live
-azd env set --file .env       # load .env into the azd env (skips prompts)
-azd up
-```
-
-### Teardown
-
-```bash
-azd down --purge
-```
-
-## Manual Deployment
-
-1. Choose your connector type
-2. Follow the appropriate deployment guide
-3. Configure environment variables
-4. Deploy infrastructure
+**Prerequisites:** `azd` v1.18.0+, Azure CLI (`az`), Docker, Python 3.10+
+(Hosted Agents additionally uses `make`; see its guide).
 
 For local development and testing, see [`../getting_started/README.md`](../getting_started/README.md)
