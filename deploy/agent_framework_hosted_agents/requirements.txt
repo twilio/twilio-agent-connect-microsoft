@@ -81,7 +81,9 @@ taskgroup==0.2.2
 tqdm==4.67.3
 truststore==0.10.4
 twilio==9.10.5
-twilio-agent-connect==1.0.0
+# TAC core: intentional minor+patch range (not an exact freeze) so it tracks
+# the twilio-agent-connect-microsoft pin above within the same major.
+twilio-agent-connect>=1.0.0,<2
 typing-extensions==4.15.0
 typing-inspection==0.4.2
 urllib3==2.6.3
