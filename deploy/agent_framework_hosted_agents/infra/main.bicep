@@ -226,8 +226,8 @@ resource newKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' = if (createKeyVault
   }
 }
 
-// Seed the Twilio Auth Token only when creating the vault. Reusing an
-// existing vault → the secret is assumed to already be there.
+// Seed the Twilio Auth Token only when creating the vault; an existing vault
+// is assumed to already contain it.
 resource newKeyVaultSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (createKeyVault) {
   parent: newKeyVault
   name: 'TwilioAuthToken'
@@ -361,9 +361,9 @@ resource apimFoundryRoleAssignment 'Microsoft.Authorization/roleAssignments@2022
 // ---------------------------------------------------------------------------
 // HTTP API — /twilio/webhook (SMS) + /twilio/twiml (voice TwiML)
 // ---------------------------------------------------------------------------
-// No `serviceUrl` here — the policies pick the backend explicitly via
-// `set-backend-service`. Keeping the routing in one place (the policy)
-// avoids a dual-source-of-truth bug if the backend URL ever changes.
+// No `serviceUrl` here — the policies pick the backend via
+// `set-backend-service`, keeping routing in one place (avoids a
+// dual-source-of-truth bug if the backend URL changes).
 resource twilioApi 'Microsoft.ApiManagement/service/apis@2023-05-01-preview' = {
   parent: apim
   name: 'twilio-tac'

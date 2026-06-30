@@ -9,7 +9,7 @@
 //   - .../deployments/<model>  (the chat model the agent uses)
 //   - Microsoft.ContainerRegistry/registries  (Hosted Agents pushes/pulls the
 //     agent image here; the Foundry account does NOT provide one)
-//   - AcrPull grant to the account MI so the sandbox can pull at runtime
+//   - AcrPull grant to the project MI so the sandbox can pull at runtime
 //
 // This module is invoked by main.bicep only when `createFoundry` is true.
 

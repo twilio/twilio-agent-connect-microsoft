@@ -4,8 +4,8 @@ Deploys TAC + Agent Framework to **Hosted Agents in Foundry Agent Service**,
 fronted by APIM. **For deployment steps, see [README.md](./README.md)** — the
 entry point is `make deploy` (interactive, or pre-fill `.env`).
 
-This file is maintainer/agent-facing: the non-obvious facts to know before
-changing anything here, so they don't have to be rediscovered.
+Maintainer/agent-facing: the non-obvious facts to know before changing
+anything here.
 
 ## Layout
 

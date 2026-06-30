@@ -359,9 +359,8 @@ echo ""
 echo "==> Deploying the agent..."
 azd deploy --no-prompt "${ENV_ARG[@]}"
 
-# Re-print the Twilio config URLs as the final output so they're the last
-# thing on screen (the postprovision hook prints them earlier, but the agent
-# push scrolls them off).
+# Re-print the Twilio config URLs last (the agent push scrolls the earlier
+# postprovision-hook copy off-screen).
 VOICE_URL=$(azd env get-value twilioVoiceTwimlUrl "${ENV_ARG[@]}" 2>/dev/null || echo "")
 SMS_URL=$(azd env get-value twilioSmsWebhookUrl "${ENV_ARG[@]}" 2>/dev/null || echo "")
 echo ""
