@@ -159,10 +159,14 @@ azd ai agent monitor --session-id <conversationId-or-CallSid>
 
 ## Update code
 
-- **Edit `agent.py`** → `make deploy` (azd rebuilds + re-pushes the container).
-- **Use a newer TAC SDK** → the image installs
-  `twilio-agent-connect-microsoft[hosted-agents]` from PyPI (pinned in
-  `requirements.txt`). Bump that pin, then `make deploy`.
+- **Edit `agent.py`** (prompt, tools) → `make agent` (rebuilds + re-pushes the
+  container only).
+- **Change any env var** (model, Twilio creds, etc.) → edit `.env`, then
+  `make deploy`.
+
+> `make deploy` reloads `.env` into the azd env before deploying; `make agent`
+> deploys from the azd env as-is. So `.env` edits only take effect via
+> `make deploy`.
 
 ## Teardown
 
