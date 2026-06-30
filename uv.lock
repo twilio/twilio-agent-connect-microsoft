@@ -12,8 +12,6 @@ resolution-markers = [
 
 [options]
 prerelease-mode = "allow"
-exclude-newer = "2026-05-31T15:15:54.207056Z"
-exclude-newer-span = "P2D"
 
 [[package]]
 name = "a2a-sdk"
