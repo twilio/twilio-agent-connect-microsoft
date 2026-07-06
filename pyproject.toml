@@ -1,6 +1,6 @@
 [project]
 name = "twilio-agent-connect-microsoft"
-version = "1.1.0"
+version = "2.0.0"
 description = "Azure integrations for Twilio Agent Connect (TAC) - connectors for Azure AI agent services"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "twilio-agent-connect>=1.0.0,<2",
+    "twilio-agent-connect>=2.1.0,<3",
     "pydantic>=2.0.0",
     "python-dotenv",
     "truststore>=0.10.4",
@@ -31,12 +31,12 @@ dependencies = [
 [project.optional-dependencies]
 # FastAPI-based TAC Server (uses TAC core's server extras)
 server = [
-    "twilio-agent-connect[server]>=1.0.0,<2",
+    "twilio-agent-connect[server]>=2.1.0,<3",
 ]
 
 # Microsoft Agent Framework connector
 agent-framework = [
-    "agent-framework>=1.2.2,<2",
+    "agent-framework>=1.7.0,<2",
     "azure-identity",
 ]
 
@@ -47,13 +47,12 @@ voice-live = [
 
 # Hosted Agents in Foundry Agent Service server.
 #
-# Pulls tac[server] for TACServerConfig — the same config class
-# TACFastAPIServer uses, but reused here to avoid duplicating the
-# public_domain / websocket_path config surface. That transitively
-# installs FastAPI/uvicorn (small overhead — ~10MB — for the win of
-# config parity across the two server classes).
+# Voice URL config is read from TACConfig (voice_public_domain /
+# voice_websocket_path / voice_action_path), which lives in base `tac`,
+# so this extra does NOT need tac[server]. The Starlette types the server
+# uses come transitively from azure-ai-agentserver-core.
 hosted-agents = [
-    "twilio-agent-connect[server]>=1.0.0,<2",
+    "twilio-agent-connect>=2.1.0,<3",
     "azure-ai-agentserver-invocations>=1.0.0b4,<2",
     "azure-ai-agentserver-core>=2.0.0b4,<3",
 ]
@@ -66,12 +65,12 @@ cosmos = [
 
 # Development dependencies (includes all runtime features)
 dev = [
-    "agent-framework>=1.2.2,<2",
+    "agent-framework>=1.7.0,<2",
     "azure-identity",
     "azure-cosmos>=4.7.0",
     "websockets>=13.0",
     # Server dependencies (via TAC core)
-    "twilio-agent-connect[server]>=1.0.0,<2",
+    "twilio-agent-connect[server]>=2.1.0,<3",
     # Hosted Agents server (tac[server] is already pulled in above).
     "azure-ai-agentserver-invocations>=1.0.0b4,<2",
     "azure-ai-agentserver-core>=2.0.0b4,<3",
@@ -133,6 +132,11 @@ combine-as-imports = true
 
 [tool.mypy]
 python_version = "3.10"
+# Pydantic models (TwiMLOptions, channel configs, etc.) come from core `tac`.
+# The pydantic plugin teaches mypy that `Field(None, ...)` supplies a default,
+# so partial construction (e.g. TwiMLOptions(language=...)) type-checks. Mirrors
+# core TAC's mypy config.
+plugins = ["pydantic.mypy"]
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

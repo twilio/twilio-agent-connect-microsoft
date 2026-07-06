@@ -14,12 +14,14 @@ from tac_microsoft.stores.in_memory import InMemoryAgentSessionStore
 # All connector construction patches the three channels so we don't reach
 # into core TAC's network-attached setup logic.
 def _patched_connector(**kwargs):
-    """Build an AgentFrameworkConnector with Voice/SMS/Chat channels mocked."""
+    """Build an AgentFrameworkConnector with all channel classes mocked."""
     return patch.multiple(
         "tac_microsoft.agent_framework_connector",
         VoiceChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
         SMSChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
         ChatChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
+        RCSChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
+        WhatsAppChannel=MagicMock(return_value=MagicMock(send_response=AsyncMock())),
     )
 
 
@@ -45,6 +47,43 @@ class TestAgentFrameworkConnectorInit:
         assert connector.voice_channel is not None
         assert connector.sms_channel is not None
         assert connector.chat_channel is not None
+
+    def test_rcs_and_whatsapp_created_when_address_configured(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        """RCS/WhatsApp are opt-in but auto-enable when the address env is set
+        on TACConfig (the mock config exposes truthy attributes)."""
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        assert connector.rcs_channel is not None
+        assert connector.whatsapp_channel is not None
+
+    def test_rcs_and_whatsapp_none_when_not_configured(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        """Without an address or an explicit config, the channels are not
+        constructed (keeps existing deployments working)."""
+        mock_tac.config.rcs_sender_id = None
+        mock_tac.config.whatsapp_number = None
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        assert connector.rcs_channel is None
+        assert connector.whatsapp_channel is None
+
+    def test_rcs_created_from_explicit_config_without_address(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        """Passing rcs_config forces construction even if the address attr is
+        absent — the channel class (mocked here) is responsible for validation."""
+        mock_tac.config.rcs_sender_id = None
+        with _patched_connector():
+            connector = AgentFrameworkConnector(
+                tac=mock_tac, create_agent=mock_agent_factory, rcs_config={}
+            )
+
+        assert connector.rcs_channel is not None
 
     def test_defaults_to_in_memory_session_store(
         self, mock_tac: MagicMock, mock_agent_factory: MagicMock
@@ -130,6 +169,40 @@ class TestMessageDispatch:
 
         connector._handle_messaging_message.assert_awaited_once()
 
+    async def test_rcs_channel_routes_to_messaging_handler(
+        self,
+        mock_tac: MagicMock,
+        mock_agent_factory: MagicMock,
+        mock_rcs_session: MagicMock,
+    ) -> None:
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        connector._handle_voice_message = AsyncMock()
+        connector._handle_messaging_message = AsyncMock()
+
+        await connector._handle_message("hi", mock_rcs_session, None)
+
+        connector._handle_messaging_message.assert_awaited_once()
+        connector._handle_voice_message.assert_not_awaited()
+
+    async def test_whatsapp_channel_routes_to_messaging_handler(
+        self,
+        mock_tac: MagicMock,
+        mock_agent_factory: MagicMock,
+        mock_whatsapp_session: MagicMock,
+    ) -> None:
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        connector._handle_voice_message = AsyncMock()
+        connector._handle_messaging_message = AsyncMock()
+
+        await connector._handle_message("hi", mock_whatsapp_session, None)
+
+        connector._handle_messaging_message.assert_awaited_once()
+        connector._handle_voice_message.assert_not_awaited()
+
     async def test_unknown_channel_logged_not_dispatched(
         self,
         mock_tac: MagicMock,
@@ -142,7 +215,7 @@ class TestMessageDispatch:
         connector._handle_messaging_message = AsyncMock()
 
         unknown = MagicMock()
-        unknown.channel = "whatsapp"
+        unknown.channel = "telepathy"
         unknown.conversation_id = "conv_x"
 
         await connector._handle_message("hi", unknown, None)
@@ -170,11 +243,50 @@ class TestMessagingChannelSelection:
 
         assert connector._get_messaging_channel("chat") is connector.chat_channel
 
+    def test_rcs_returns_rcs_channel(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        assert connector._get_messaging_channel("rcs") is connector.rcs_channel
+
+    def test_whatsapp_returns_whatsapp_channel(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        assert connector._get_messaging_channel("whatsapp") is connector.whatsapp_channel
+
     def test_unknown_raises(self, mock_tac: MagicMock, mock_agent_factory: MagicMock) -> None:
         with _patched_connector():
             connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
 
         with pytest.raises(ValueError, match="Unsupported messaging channel"):
+            connector._get_messaging_channel("telepathy")
+
+    def test_rcs_not_configured_raises(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        # No sender ID and no config → rcs_channel is None → clear error.
+        mock_tac.config.rcs_sender_id = None
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        assert connector.rcs_channel is None
+        with pytest.raises(ValueError, match="RCS channel is not configured"):
+            connector._get_messaging_channel("rcs")
+
+    def test_whatsapp_not_configured_raises(
+        self, mock_tac: MagicMock, mock_agent_factory: MagicMock
+    ) -> None:
+        mock_tac.config.whatsapp_number = None
+        with _patched_connector():
+            connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
+
+        assert connector.whatsapp_channel is None
+        with pytest.raises(ValueError, match="WhatsApp channel is not configured"):
             connector._get_messaging_channel("whatsapp")
 
 

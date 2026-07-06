@@ -23,13 +23,36 @@ class TestPackageImports:
     def test_channel_configs_exported(self) -> None:
         from tac_microsoft import (
             ChatChannelConfig,
+            RCSChannelConfig,
             SMSChannelConfig,
             VoiceChannelConfig,
+            WhatsAppChannelConfig,
         )
 
         assert VoiceChannelConfig is not None
         assert SMSChannelConfig is not None
         assert ChatChannelConfig is not None
+        assert RCSChannelConfig is not None
+        assert WhatsAppChannelConfig is not None
+
+    def test_twiml_and_outbound_types_exported(self) -> None:
+        from tac_microsoft import (
+            InitiateChatConversationOptions,
+            InitiateConversationResult,
+            InitiateMessagingConversationOptions,
+            InitiateVoiceConversationOptions,
+            InitiateVoiceConversationResult,
+            TwiMLOptions,
+            TwiMLRequest,
+        )
+
+        assert TwiMLOptions is not None
+        assert TwiMLRequest is not None
+        assert InitiateVoiceConversationOptions is not None
+        assert InitiateVoiceConversationResult is not None
+        assert InitiateMessagingConversationOptions is not None
+        assert InitiateChatConversationOptions is not None
+        assert InitiateConversationResult is not None
 
     def test_conversation_session_exported(self) -> None:
         from tac_microsoft import ConversationSession

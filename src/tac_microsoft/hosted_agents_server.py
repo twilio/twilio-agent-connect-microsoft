@@ -44,7 +44,6 @@ from tac.channels.websocket_protocol import WebSocketDisconnectError
 from tac.core.logging import get_logger
 from tac.core.tac import TAC
 from tac.models.voice import TwiMLOptions
-from tac.server.config import TACServerConfig
 
 if TYPE_CHECKING:
     from tac.channels.messaging import MessagingChannel
@@ -155,11 +154,21 @@ class TACHostedAgentsApp:
         )
         server.start()
 
-    ``config.public_domain`` should be the APIM hostname plus any path
+    Voice URL config is read from ``tac.config`` (a ``TACConfig``):
+    ``voice_public_domain`` should be the APIM hostname plus any path
     prefix the Twilio API points at (e.g.
     ``my-apim.azure-api.net/twilio``). The wss URL emitted to Twilio is
-    ``wss://{public_domain}{websocket_path}?agent_session_id={CallSid}``;
+    ``wss://{voice_public_domain}{voice_websocket_path}?agent_session_id={CallSid}``;
     APIM rewrites that down to ``/invocations_ws`` on the Foundry backend.
+
+    .. note::
+        In TAC 2.x the voice URL fields moved from ``TACServerConfig`` onto
+        ``TACConfig`` (``voice_public_domain`` / ``voice_websocket_path`` /
+        ``voice_action_path``), so this server sources them from
+        ``tac.config`` directly. There is no separate ``welcome_greeting``
+        config field anymore — configure a greeting via
+        ``VoiceChannelConfig.default_twiml_options`` on the voice channel, or
+        rely on the voice channel's built-in default.
     """
 
     def __init__(
@@ -168,11 +177,9 @@ class TACHostedAgentsApp:
         voice_channel: VoiceChannel | None = None,
         messaging_channels: list[MessagingChannel] | None = None,
         *,
-        config: TACServerConfig | None = None,
         idempotency_cache_size: int = 4096,
     ) -> None:
         self.tac = tac
-        self.config = config or TACServerConfig.from_env()
         self.voice_channel = voice_channel
         self.messaging_channels: list[MessagingChannel] = messaging_channels or []
 
@@ -183,9 +190,9 @@ class TACHostedAgentsApp:
             self._webhook_channels.append(self.voice_channel)
         self._webhook_channels.extend(self.messaging_channels)
 
-        if self.voice_channel is not None and not self.config.public_domain:
+        if self.voice_channel is not None and not self.tac.config.voice_public_domain:
             logger.warning(
-                "public_domain is not set — voice URLs will be malformed. "
+                "voice_public_domain is not set — voice URLs will be malformed. "
                 "Set TWILIO_VOICE_PUBLIC_DOMAIN environment variable."
             )
 
@@ -224,15 +231,17 @@ class TACHostedAgentsApp:
         return conv_id if isinstance(conv_id, str) else None
 
     def _build_voice_websocket_url(self, call_sid: str) -> str:
+        cfg = self.tac.config
         return (
-            f"wss://{self.config.public_domain}{self.config.websocket_path}"
+            f"wss://{cfg.voice_public_domain}{cfg.voice_websocket_path}"
             f"?agent_session_id={quote(call_sid, safe='')}"
         )
 
     def _build_voice_action_url(self) -> str | None:
-        if not self.config.public_domain:
+        cfg = self.tac.config
+        if not cfg.voice_public_domain:
             return None
-        return f"https://{self.config.public_domain}{self.config.conversation_relay_callback_path}"
+        return f"https://{cfg.voice_public_domain}{cfg.voice_action_path}"
 
     def _register_handlers(self, app: InvocationAgentServerHost) -> None:
         @app.invoke_handler
@@ -267,21 +276,33 @@ class TACHostedAgentsApp:
     async def _handle_voice_twiml(self, flat: dict[str, str], session_id: str | None) -> Response:
         if self.voice_channel is None:
             return JSONResponse({"error": "voice channel not configured"}, status_code=400)
-        if not self.config.public_domain:
+        if not self.tac.config.voice_public_domain:
             return JSONResponse({"error": "TWILIO_VOICE_PUBLIC_DOMAIN is not set"}, status_code=500)
         call_sid = flat["CallSid"]
         try:
             websocket_url = self._build_voice_websocket_url(call_sid)
-            # Set by the voice channel from ``TACConfig``; ``None`` here is
-            # overwritten in ``handle_incoming_call``.
+            # Per-call transport facts supplied by this host (affinity-routed
+            # WebSocket URL + the CallSid echoed as a custom parameter). These
+            # layer *below* ``VoiceChannelConfig.default_twiml_options`` — we
+            # only pass facts nothing else should override.
+            #
+            # NOTE: build the kwargs so we never set a field to ``None``. In
+            # TAC 2.x, TwiML options merge per-field via ``model_fields_set``,
+            # so an explicit ``None`` would *suppress* the channel's default
+            # (e.g. the default welcome greeting / conversation configuration)
+            # rather than fall through to it. Omit unset fields entirely.
+            #
+            # The welcome greeting is intentionally NOT set here: configure it
+            # on the voice channel via ``VoiceChannelConfig.default_twiml_options``
+            # (or rely on the channel's built-in default). There is no
+            # server-level greeting config field in TAC 2.x.
+            host_options_kwargs: dict[str, Any] = {
+                "websocket_url": websocket_url,
+                "action_url": self._build_voice_action_url(),
+                "custom_parameters": {"agent_session_id": call_sid},
+            }
             twiml_xml = await self.voice_channel.handle_incoming_call(
-                options=TwiMLOptions(
-                    websocket_url=websocket_url,
-                    welcome_greeting=self.config.welcome_greeting,
-                    action_url=self._build_voice_action_url(),
-                    custom_parameters={"agent_session_id": call_sid},
-                    conversation_configuration=None,
-                )
+                host_twiml_options=TwiMLOptions(**host_options_kwargs)
             )
         except Exception:
             logger.error("voice TwiML generation failed", exc_info=True)

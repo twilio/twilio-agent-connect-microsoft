@@ -33,7 +33,7 @@ Ships [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 
 ## Features
 
 - **AgentFrameworkConnector** - connects [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) agents to TAC
-  - Agent lifecycle management (Voice + SMS + Chat)
+  - Agent lifecycle management (Voice + SMS + Chat + RCS + WhatsApp)
   - Supports [Foundry Hosted Agents, Foundry Prompt Agents, Azure OpenAI (Responses API, Chat Completions), and other backends](https://learn.microsoft.com/en-us/agent-framework/agents/providers/?pivots=programming-language-python#provider-comparison)
   - Pluggable session persistence via `AgentSessionStore` protocol
   - Memory context injection and `on_message` / `on_error` hooks
@@ -42,7 +42,7 @@ Ships [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 
   - Server-side conversation state (no local session management)
   - Native interrupt handling via Voice Live `response.cancel` (server-side truncation of in-flight responses)
   - Tool execution with async handlers
-- Multi-channel support (Voice + SMS + Chat)
+- Multi-channel support (Voice + SMS + Chat + RCS + WhatsApp)
 - Built-in TAC tools (memory recall, knowledge search, Studio Flow handoff)
 - Production [reference deployments](./deploy) (Bicep + azd) for running your TAC agent on Azure:
   - [Agent Framework on Azure Container Apps](./deploy/agent_framework_container_apps)
@@ -98,6 +98,9 @@ TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_API_KEY=SKxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_API_SECRET=your_api_key_secret
 TWILIO_PHONE_NUMBER=+1234567890
+# Optional — set to auto-enable the RCS / WhatsApp channels on the connector
+# TWILIO_RCS_SENDER_ID=rcs_sender_xxxxxxxxxxxxxxxxxx
+# TWILIO_WHATSAPP_NUMBER=+1234567890
 
 # Server (required for voice)
 TWILIO_VOICE_PUBLIC_DOMAIN=your-domain.ngrok.io

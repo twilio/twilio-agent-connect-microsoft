@@ -32,6 +32,14 @@ anything here.
   `AZURE_CONTAINER_REGISTRY_ENDPOINT`, `AZURE_OPENAI_*`) is set in `deploy.sh`'s
   "bridge" step between provision and the agent push. Add new agent env wiring
   there, not in the hook.
+- **Voice config comes from `TACConfig`, not `TACServerConfig` (TAC 2.x).**
+  `TACHostedAgentsApp` reads `voice_public_domain` / `voice_websocket_path` /
+  `voice_action_path` off `tac.config` and no longer takes a `config=`
+  parameter. The per-call `host_twiml_options` this server passes
+  (`websocket_url`, `action_url`, `custom_parameters`) layer *below*
+  `VoiceChannelConfig.default_twiml_options` — set the welcome greeting there
+  (or on the voice channel) rather than at the server. There is no
+  server-level `welcome_greeting` field anymore.
 - **The TAC SDK installs from PyPI.** `requirements.txt` pins
   `twilio-agent-connect-microsoft[hosted-agents]` from PyPI, so editing
   `src/tac_microsoft/...` in this repo has NO effect on the image — bump the pin

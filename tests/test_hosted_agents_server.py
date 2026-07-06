@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from tac.models.voice import TwiMLOptions
-from tac.server.config import TACServerConfig
 
 from tac_microsoft.hosted_agents_server import (
     StarletteWebSocketAdapter,
@@ -44,6 +43,19 @@ class _FakeInvocationHost:
         self.run_called = True
 
 
+def _make_tac(public_domain: str = "test.example.com/twilio") -> MagicMock:
+    """Mock TAC whose config carries the 2.x voice URL fields.
+
+    In TAC 2.x these live on TACConfig (not TACServerConfig), and the hosted
+    agents server reads them from ``tac.config``.
+    """
+    tac = MagicMock()
+    tac.config.voice_public_domain = public_domain
+    tac.config.voice_websocket_path = "/ws"
+    tac.config.voice_action_path = "/conversation-relay-callback"
+    return tac
+
+
 def _build_server(
     *,
     voice_channel: MagicMock | None = None,
@@ -51,16 +63,14 @@ def _build_server(
     public_domain: str = "test.example.com/twilio",
 ) -> tuple[TACHostedAgentsApp, _FakeInvocationHost]:
     fake_host = _FakeInvocationHost()
-    cfg = TACServerConfig(public_domain=public_domain)
     with patch(
         "tac_microsoft.hosted_agents_server.InvocationAgentServerHost",
         return_value=fake_host,
     ):
         server = TACHostedAgentsApp(
-            tac=MagicMock(),
+            tac=_make_tac(public_domain),
             voice_channel=voice_channel,
             messaging_channels=messaging_channels or [],
-            config=cfg,
         )
     return server, fake_host
 
@@ -296,7 +306,7 @@ class TestVoiceTwimlDispatch:
         request = _make_request({"CallSid": "CA123"})
         await server._dispatch_invoke(request)
 
-        opts = voice.handle_incoming_call.await_args.kwargs["options"]
+        opts = voice.handle_incoming_call.await_args.kwargs["host_twiml_options"]
         assert isinstance(opts, TwiMLOptions)
         assert opts.websocket_url == "wss://test.example.com/twilio/ws?agent_session_id=CA123"
         # CustomParameters is a Pydantic model with built-in agent_session_id field;
@@ -312,7 +322,7 @@ class TestVoiceTwimlDispatch:
 
         await server._dispatch_invoke(_make_request({"CallSid": "CA/with weird?chars"}))
 
-        opts = voice.handle_incoming_call.await_args.kwargs["options"]
+        opts = voice.handle_incoming_call.await_args.kwargs["host_twiml_options"]
         assert "CA%2Fwith%20weird%3Fchars" in opts.websocket_url
 
     @pytest.mark.asyncio
@@ -345,7 +355,7 @@ class TestVoiceTwimlDispatch:
         response = await server._dispatch_invoke(_make_request(body))
 
         assert response.status_code == 200
-        opts = voice.handle_incoming_call.await_args.kwargs["options"]
+        opts = voice.handle_incoming_call.await_args.kwargs["host_twiml_options"]
         assert "agent_session_id=CA999" in opts.websocket_url
 
 
