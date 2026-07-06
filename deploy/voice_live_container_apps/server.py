@@ -11,13 +11,10 @@ from __future__ import annotations
 
 import os
 
-from tac_microsoft import (
-    TAC,
-    TACConfig,
-    TACFastAPIServer,
-    VoiceLiveConfig,
-    VoiceLiveConnector,
-)
+from tac import TAC, TACConfig
+from tac.server import TACFastAPIServer
+
+from tac_microsoft import VoiceLiveConfig, VoiceLiveConnector
 
 # ---------------------------------------------------------------------------
 # TAC + Voice Live setup

@@ -13,51 +13,32 @@ class TestPackageImports:
 
         assert tac_microsoft is not None
 
-    def test_reexported_tac_core_symbols(self) -> None:
-        """Core TAC symbols are re-exported at the package root."""
-        from tac_microsoft import TAC, TACConfig
+    def test_core_symbols_not_reexported(self) -> None:
+        """tac_microsoft is an add-on: core TAC symbols are NOT re-exported.
 
-        assert TAC is not None
-        assert TACConfig is not None
+        Import core primitives from ``tac`` directly. Keeping them out of the
+        Azure surface is deliberate — it avoids a manual re-export list that
+        must track every core addition, and mirrors the AWS sibling package.
+        """
+        import tac_microsoft
 
-    def test_channel_configs_exported(self) -> None:
-        from tac_microsoft import (
-            ChatChannelConfig,
-            RCSChannelConfig,
-            SMSChannelConfig,
-            VoiceChannelConfig,
-            WhatsAppChannelConfig,
-        )
-
-        assert VoiceChannelConfig is not None
-        assert SMSChannelConfig is not None
-        assert ChatChannelConfig is not None
-        assert RCSChannelConfig is not None
-        assert WhatsAppChannelConfig is not None
-
-    def test_twiml_and_outbound_types_exported(self) -> None:
-        from tac_microsoft import (
-            InitiateChatConversationOptions,
-            InitiateConversationResult,
-            InitiateMessagingConversationOptions,
-            InitiateVoiceConversationOptions,
-            InitiateVoiceConversationResult,
-            TwiMLOptions,
-            TwiMLRequest,
-        )
-
-        assert TwiMLOptions is not None
-        assert TwiMLRequest is not None
-        assert InitiateVoiceConversationOptions is not None
-        assert InitiateVoiceConversationResult is not None
-        assert InitiateMessagingConversationOptions is not None
-        assert InitiateChatConversationOptions is not None
-        assert InitiateConversationResult is not None
-
-    def test_conversation_session_exported(self) -> None:
-        from tac_microsoft import ConversationSession
-
-        assert ConversationSession is not None
+        for name in (
+            "TAC",
+            "TACConfig",
+            "ConversationSession",
+            "SMSChannelConfig",
+            "ChatChannelConfig",
+            "RCSChannelConfig",
+            "WhatsAppChannelConfig",
+            "VoiceChannelConfig",
+            "TwiMLOptions",
+            "TwiMLRequest",
+            "InitiateVoiceConversationOptions",
+            "PartnerConnector",
+        ):
+            assert not hasattr(tac_microsoft, name), (
+                f"{name} should be imported from `tac`, not re-exported by tac_microsoft"
+            )
 
     def test_format_memory_context_exported(self) -> None:
         from tac_microsoft import format_memory_context
@@ -92,11 +73,6 @@ class TestPackageImports:
         assert InMemoryAgentSessionStore is not None
         assert FileAgentSessionStore is not None
         assert CosmosDBAgentSessionStore is not None
-
-    def test_tac_fastapi_server_lazy_loaded(self) -> None:
-        from tac_microsoft import TACFastAPIServer
-
-        assert TACFastAPIServer is not None
 
     def test_unknown_attr_raises(self) -> None:
         import tac_microsoft

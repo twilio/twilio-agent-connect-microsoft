@@ -15,15 +15,12 @@ from pathlib import Path
 from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
 from dotenv import load_dotenv
+from tac import TAC, TACConfig
+from tac.channels.sms import SMSChannelConfig
+from tac.models.session import ConversationSession
+from tac.server import TACFastAPIServer
 
-from tac_microsoft import (
-    TAC,
-    AgentFrameworkConnector,
-    ConversationSession,
-    SMSChannelConfig,
-    TACConfig,
-    TACFastAPIServer,
-)
+from tac_microsoft import AgentFrameworkConnector
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 

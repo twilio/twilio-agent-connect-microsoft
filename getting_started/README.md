@@ -128,10 +128,11 @@ from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
 
-from tac_microsoft import (
-    TAC, TACConfig, TACFastAPIServer,
-    AgentFrameworkConnector, ConversationSession,
-)
+from tac import TAC, TACConfig
+from tac.models.session import ConversationSession
+from tac.server import TACFastAPIServer
+
+from tac_microsoft import AgentFrameworkConnector
 
 load_dotenv()
 

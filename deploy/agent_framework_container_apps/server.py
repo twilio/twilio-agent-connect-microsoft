@@ -15,16 +15,12 @@ import os
 from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
+from tac import TAC, TACConfig
+from tac.channels.sms import SMSChannelConfig
+from tac.models.session import ConversationSession
+from tac.server import TACFastAPIServer
 
-from tac_microsoft import (
-    TAC,
-    AgentFrameworkConnector,
-    ConversationSession,
-    CosmosDBAgentSessionStore,
-    SMSChannelConfig,
-    TACConfig,
-    TACFastAPIServer,
-)
+from tac_microsoft import AgentFrameworkConnector, CosmosDBAgentSessionStore
 
 # ---------------------------------------------------------------------------
 # Azure AI client (authenticates via Managed Identity)

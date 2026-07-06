@@ -21,14 +21,13 @@ from pathlib import Path
 
 from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
+from tac import TAC, TACConfig
+from tac.channels.sms import SMSChannelConfig
+from tac.models.session import ConversationSession
 
 from tac_microsoft import (
-    TAC,
     AgentFrameworkConnector,
-    ConversationSession,
     FileAgentSessionStore,
-    SMSChannelConfig,
-    TACConfig,
     TACHostedAgentsApp,
 )
 
@@ -86,7 +85,9 @@ connector = AgentFrameworkConnector(
     # address is configured) and add connector.rcs_channel /
     # connector.whatsapp_channel to messaging_channels below. The *_config
     # args are optional tuning:
-    # from tac_microsoft import ChatChannelConfig, RCSChannelConfig, WhatsAppChannelConfig
+    # from tac.channels.chat import ChatChannelConfig
+    # from tac.channels.rcs import RCSChannelConfig
+    # from tac.channels.whatsapp import WhatsAppChannelConfig
     # chat_config=ChatChannelConfig(memory_mode="always"),
     # rcs_config=RCSChannelConfig(memory_mode="always"),
     # whatsapp_config=WhatsAppChannelConfig(memory_mode="always"),

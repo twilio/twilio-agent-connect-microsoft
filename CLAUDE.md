@@ -92,7 +92,7 @@ make check             # All checks (lint + type-check + test)
 
 ```
 src/tac_microsoft/
-├── __init__.py                         # Lazy-loaded public exports + re-exports from `tac`
+├── __init__.py                         # Lazy-loaded public exports (Azure-owned symbols only; no core re-exports)
 ├── agent_framework_connector.py        # AgentFrameworkConnector (voice + SMS + chat + RCS + WhatsApp)
 ├── agent_framework_tools.py            # Tool factories returning plain async callables
 ├── agent_framework_types.py            # AgentSessionStore protocol
@@ -179,10 +179,10 @@ Connectors combine agent runtime integration with multi-channel conversation man
 
 The connector owns the `VoiceChannel`, so these voice features are used directly on it — nothing extra to wire:
 
-- **Per-call TwiML customization**: `connector.voice_channel.on_inbound_call_twiml(cb)` where `async cb(req: TwiMLRequest) -> TwiMLOptions`. Fields the callback sets override `VoiceChannelConfig.default_twiml_options` and TAC defaults; unset fields fall through. `TwiMLRequest` / `TwiMLOptions` are re-exported from `tac_microsoft`.
+- **Per-call TwiML customization**: `connector.voice_channel.on_inbound_call_twiml(cb)` where `async cb(req: TwiMLRequest) -> TwiMLOptions`. Fields the callback sets override `VoiceChannelConfig.default_twiml_options` and TAC defaults; unset fields fall through. Import `TwiMLRequest` / `TwiMLOptions` from `tac.models.voice`.
 - **Welcome greeting**: set it via `VoiceChannelConfig(default_twiml_options=TwiMLOptions(welcome_greeting=...))`; the channel supplies a default when unset.
 - **ConversationRelay-only voice** (no Orchestrator): leave `TWILIO_CONVERSATION_CONFIGURATION_ID` unset — core TAC gates orchestrated vs relay-only behavior on it.
-- **Outbound initiation**: `InitiateVoiceConversationOptions` / `InitiateMessagingConversationOptions` / `InitiateChatConversationOptions` and their result types are re-exported from `tac_microsoft`.
+- **Outbound initiation**: `InitiateVoiceConversationOptions` / `InitiateMessagingConversationOptions` / `InitiateChatConversationOptions` and their result types are importable from `tac.models`.
 
 > **Config note:** voice URL fields live on `TACConfig` (`voice_public_domain` / `voice_websocket_path` / `voice_action_path`); `TACHostedAgentsApp` reads them from `tac.config`.
 
@@ -212,7 +212,7 @@ Two export variants:
 
 TAC Microsoft ships two server classes that both plug into the same connector channels:
 
-- **`TACFastAPIServer`** (re-exported from `tac.server`) — FastAPI/uvicorn, runs on Container Apps or any general HTTP host. Five routes: `/webhook`, `/twiml`, `/ws`, `/conversation-relay-callback`, optional `/ci-webhook`.
+- **`TACFastAPIServer`** (import from `tac.server`) — FastAPI/uvicorn, runs on Container Apps or any general HTTP host. Five routes: `/webhook`, `/twiml`, `/ws`, `/conversation-relay-callback`, optional `/ci-webhook`.
 - **`TACHostedAgentsApp`** (`tac_microsoft.hosted_agents_server`) — wraps `InvocationAgentServerHost` for the Hosted Agents in Foundry Agent Service runtime. Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`, so this server overloads the HTTP route and dispatches by payload shape (Conversation Orchestrator JSON envelope vs. Twilio voice TwiML form). APIM in front handles HMAC validation (the only auth boundary — agent does not re-validate `X-Twilio-Signature`), form→JSON conversion, and `agent_session_id` injection.
 
 ```python
@@ -235,16 +235,24 @@ server = TACHostedAgentsApp(
 
 ### Correct Imports
 
-```python
-# TAC imports — external dependency
-from tac import TAC, TACConfig
-from tac.models.session import ConversationSession
+`tac_microsoft` is an **add-on**: import core primitives from `tac`, and the
+Azure-specific pieces from `tac_microsoft`. The package does **not** re-export
+core symbols (same split as the AWS sibling) — this keeps the namespaces honest
+and means core additions never require a re-export here.
 
-# TAC Microsoft imports — local package (re-exports TAC core where possible)
+```python
+# Core — from the `tac` package (TAC, config, channels, models, server)
+from tac import TAC, TACConfig
+from tac.channels.sms import SMSChannelConfig
+from tac.models.session import ConversationSession
+from tac.models.voice import TwiMLOptions, TwiMLRequest
+from tac.server import TACFastAPIServer
+
+# Azure-specific — from `tac_microsoft` (connectors, stores, Voice Live,
+# the Hosted Agents server, format_memory_context)
 from tac_microsoft import (
     AgentFrameworkConnector,
     VoiceLiveConnector,
-    TACFastAPIServer,
     FileAgentSessionStore,
 )
 from tac_microsoft.agent_framework_tools import create_memory_tool, create_knowledge_tool
@@ -256,6 +264,9 @@ from tac_microsoft.agent_framework_tools import create_memory_tool, create_knowl
 # ❌ Wrong - tac_microsoft has no `.core` submodule
 from tac_microsoft.core import TAC
 
+# ❌ Wrong - core symbols are NOT re-exported from tac_microsoft; import from `tac`
+from tac_microsoft import TAC, TACConfig, SMSChannelConfig, TACFastAPIServer
+
 # ❌ Wrong - don't import from source paths
 from src.tac.adapters import BaseAgentAdapter
 ```
@@ -266,11 +277,11 @@ from src.tac.adapters import BaseAgentAdapter
 
 ```python
 from agent_framework.openai import OpenAIChatClient
-from tac_microsoft import (
-    TAC, TACConfig, TACFastAPIServer,
-    AgentFrameworkConnector, ConversationSession,
-    SMSChannelConfig,
-)
+from tac import TAC, TACConfig
+from tac.channels.sms import SMSChannelConfig
+from tac.models.session import ConversationSession
+from tac.server import TACFastAPIServer
+from tac_microsoft import AgentFrameworkConnector
 
 tac = TAC(config=TACConfig.from_env())
 
@@ -317,8 +328,10 @@ connector = AgentFrameworkConnector(
 ### Voice Live with Custom Tools
 
 ```python
+from tac import TAC, TACConfig
+from tac.server import TACFastAPIServer
 from tac.tools.base import function_tool
-from tac_microsoft import TAC, TACConfig, TACFastAPIServer, VoiceLiveConnector, VoiceLiveConfig
+from tac_microsoft import VoiceLiveConnector, VoiceLiveConfig
 
 tac = TAC(config=TACConfig.from_env())
 
