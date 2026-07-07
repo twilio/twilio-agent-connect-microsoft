@@ -1,37 +1,21 @@
-"""TAC Microsoft integration — connectors for Twilio channels.
+"""TAC Microsoft integration — Azure connectors for Twilio Agent Connect.
 
-Re-exports everything from the core ``tac`` package so developers can
-import from a single namespace::
+This package is an **add-on** to core ``tac``: it ships the Azure-specific
+pieces (connectors, session stores, the Voice Live types, the Hosted Agents
+server) and depends on ``tac`` for everything else. Import core primitives
+directly from ``tac``, and Azure pieces from ``tac_microsoft`` — the same
+split the AWS sibling package uses::
 
-    from tac_microsoft import TAC, TACConfig, TACFastAPIServer, AgentFrameworkConnector
+    from tac import TAC, TACConfig                      # core
+    from tac.channels.sms import SMSChannelConfig       # core
+    from tac.server import TACFastAPIServer             # core
+    from tac_microsoft import AgentFrameworkConnector   # Azure add-on
+
+This keeps the two namespaces honest (where a symbol lives tells you which
+package owns it) and means core additions never require a re-export here.
 """
 
 from typing import TYPE_CHECKING
-
-# Re-export all public symbols from core TAC. Kept explicit (no star import) so
-# the public surface is statically visible to linters, IDEs, and type checkers.
-# If core TAC adds a new top-level export, add it here too.
-from tac import (
-    TAC,
-    PartnerConnector,
-    TACConfig,
-    TwiMLOptions,
-    get_logger,
-)
-from tac.channels.chat import ChatChannelConfig
-from tac.channels.rcs import RCSChannelConfig
-from tac.channels.sms import SMSChannelConfig
-from tac.channels.voice import VoiceChannelConfig
-from tac.channels.whatsapp import WhatsAppChannelConfig
-from tac.models import (
-    InitiateChatConversationOptions,
-    InitiateConversationResult,
-    InitiateMessagingConversationOptions,
-    InitiateVoiceConversationOptions,
-    InitiateVoiceConversationResult,
-)
-from tac.models.session import ConversationSession
-from tac.models.voice import TwiMLRequest
 
 from .utils import format_memory_context
 
@@ -40,8 +24,6 @@ from .utils import format_memory_context
 # The TYPE_CHECKING block below is evaluated only by type checkers (mypy, IDEs)
 # and mirrors what `__getattr__` resolves at runtime.
 if TYPE_CHECKING:
-    from tac.server import TACFastAPIServer
-
     from .agent_framework_connector import AgentFrameworkConnector
     from .agent_framework_types import AgentSessionStore
     from .hosted_agents_server import StarletteWebSocketAdapter, TACHostedAgentsApp
@@ -53,12 +35,6 @@ if TYPE_CHECKING:
 
 
 def __getattr__(name: str) -> object:
-    # tac.server — requires twilio-agent-connect-microsoft[server] extra (fastapi, uvicorn)
-    if name == "TACFastAPIServer":
-        from tac.server import TACFastAPIServer
-
-        return TACFastAPIServer
-
     # Agent Framework connector — requires twilio-agent-connect-microsoft[agent-framework] extra
     if name in ("AgentFrameworkConnector", "AgentSessionStore", "InMemoryAgentSessionStore"):
         from .agent_framework_connector import AgentFrameworkConnector
@@ -107,25 +83,6 @@ def __getattr__(name: str) -> object:
 
 
 __all__ = [
-    # Re-exported from tac core
-    "TAC",
-    "TACConfig",
-    "TACFastAPIServer",
-    "TwiMLOptions",
-    "TwiMLRequest",
-    "ConversationSession",
-    "VoiceChannelConfig",
-    "SMSChannelConfig",
-    "ChatChannelConfig",
-    "RCSChannelConfig",
-    "WhatsAppChannelConfig",
-    "InitiateVoiceConversationOptions",
-    "InitiateVoiceConversationResult",
-    "InitiateMessagingConversationOptions",
-    "InitiateChatConversationOptions",
-    "InitiateConversationResult",
-    "PartnerConnector",
-    "get_logger",
     # Connectors
     "AgentFrameworkConnector",
     "VoiceLiveConnector",

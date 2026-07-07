@@ -18,15 +18,11 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+from tac import TAC, TACConfig
+from tac.server import TACFastAPIServer
 from tac.tools.base import function_tool
 
-from tac_microsoft import (
-    TAC,
-    TACConfig,
-    TACFastAPIServer,
-    VoiceLiveConfig,
-    VoiceLiveConnector,
-)
+from tac_microsoft import VoiceLiveConfig, VoiceLiveConnector
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 

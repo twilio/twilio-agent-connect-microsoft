@@ -35,22 +35,20 @@ from agent_framework import Agent
 from agent_framework.openai import OpenAIChatClient
 from azure.identity.aio import DefaultAzureCredential
 from dotenv import load_dotenv
+from tac import TAC, TACConfig
+from tac.channels.chat import ChatChannelConfig
+from tac.channels.rcs import RCSChannelConfig
+from tac.channels.sms import SMSChannelConfig
+from tac.channels.voice import VoiceChannelConfig
+from tac.channels.whatsapp import WhatsAppChannelConfig
 from tac.models import TACMemoryResponse
+from tac.models.session import ConversationSession
+from tac.models.voice import TwiMLOptions, TwiMLRequest
+from tac.server import TACFastAPIServer
 
 from tac_microsoft import (
-    TAC,
     AgentFrameworkConnector,
-    ChatChannelConfig,
-    ConversationSession,
     FileAgentSessionStore,
-    RCSChannelConfig,
-    SMSChannelConfig,
-    TACConfig,
-    TACFastAPIServer,
-    TwiMLOptions,
-    TwiMLRequest,
-    VoiceChannelConfig,
-    WhatsAppChannelConfig,
     format_memory_context,
 )
 from tac_microsoft.agent_framework_tools import (

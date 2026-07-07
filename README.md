@@ -124,14 +124,18 @@ See [`getting_started/examples/.env.example`](https://github.com/twilio/twilio-a
 
 ## Quick Start
 
-Everything imports from `tac_microsoft` — no need to import from the underlying `tac` package:
+`tac_microsoft` is an add-on to core `tac`: import core primitives (TAC, config,
+channels, models, server) from `tac`, and the Azure-specific pieces from
+`tac_microsoft`.
 
 ```python
-from tac_microsoft import (
-    TAC, TACConfig, TACFastAPIServer,
-    AgentFrameworkConnector, ConversationSession,
-    FileAgentSessionStore,
-)
+# Core — from the `tac` package
+from tac import TAC, TACConfig
+from tac.models.session import ConversationSession
+from tac.server import TACFastAPIServer
+
+# Azure-specific — from `tac_microsoft`
+from tac_microsoft import AgentFrameworkConnector, FileAgentSessionStore
 from tac_microsoft.agent_framework_tools import create_memory_tool
 ```
 
