@@ -183,13 +183,9 @@ connector = AgentFrameworkConnector(
     on_message=on_message,
     on_error=on_error,
     voice_config=VoiceChannelConfig(
-        # Disabling auto memory for best latency — the agent can call the
-        # memory tool when it needs context.
+        # Disable auto memory for best latency; the agent uses the memory tool.
         memory_mode="never",
-        # In TAC 2.x the welcome greeting is configured here (there is no
-        # server-level greeting field). Fields set on default_twiml_options
-        # apply to every inbound call unless a per-call customizer overrides
-        # them.
+        # Applies to every inbound call unless a per-call customizer overrides it.
         default_twiml_options=TwiMLOptions(
             welcome_greeting="Thanks for calling Owl Internet! How can I help?",
         ),

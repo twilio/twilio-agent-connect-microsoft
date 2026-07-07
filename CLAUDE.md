@@ -175,16 +175,16 @@ Connectors combine agent runtime integration with multi-channel conversation man
 - One `VoiceLiveSession` per conversation; WebSocket managed internally.
 - Tool execution via Azure-side function-calling protocol.
 
-### Voice / TwiML customization, relay-only, and outbound (TAC 2.x)
+### Voice / TwiML customization, relay-only, and outbound
 
-The connector owns the `VoiceChannel`, so the core-TAC 2.x voice features are used directly on it — nothing extra to wire:
+The connector owns the `VoiceChannel`, so these voice features are used directly on it — nothing extra to wire:
 
 - **Per-call TwiML customization**: `connector.voice_channel.on_inbound_call_twiml(cb)` where `async cb(req: TwiMLRequest) -> TwiMLOptions`. Fields the callback sets override `VoiceChannelConfig.default_twiml_options` and TAC defaults; unset fields fall through. `TwiMLRequest` / `TwiMLOptions` are re-exported from `tac_microsoft`.
-- **Welcome greeting**: set it via `VoiceChannelConfig(default_twiml_options=TwiMLOptions(welcome_greeting=...))` (there is no separate server-level greeting field in 2.x; the channel supplies a default when unset).
+- **Welcome greeting**: set it via `VoiceChannelConfig(default_twiml_options=TwiMLOptions(welcome_greeting=...))`; the channel supplies a default when unset.
 - **ConversationRelay-only voice** (no Orchestrator): leave `TWILIO_CONVERSATION_CONFIGURATION_ID` unset — core TAC gates orchestrated vs relay-only behavior on it.
 - **Outbound initiation**: `InitiateVoiceConversationOptions` / `InitiateMessagingConversationOptions` / `InitiateChatConversationOptions` and their result types are re-exported from `tac_microsoft`.
 
-> **TAC 2.x config note:** the voice URL fields moved from `TACServerConfig` onto `TACConfig` (`voice_public_domain` / `voice_websocket_path` / `voice_action_path`). `TACHostedAgentsApp` reads them from `tac.config` and no longer takes a `config=` parameter.
+> **Config note:** voice URL fields live on `TACConfig` (`voice_public_domain` / `voice_websocket_path` / `voice_action_path`); `TACHostedAgentsApp` reads them from `tac.config`.
 
 ### Session Stores
 

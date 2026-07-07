@@ -181,18 +181,14 @@ class AgentFrameworkConnector:
         self.chat_channel = ChatChannel(tac=self.tac, config=chat_config)
 
         # -- RCS channel ------------------------------------------------------
-        # Like SMS/Chat, ``rcs_config`` is optional. The channel is created
-        # when an RCS sender ID is configured (``TWILIO_RCS_SENDER_ID`` /
-        # ``TACConfig.rcs_sender_id``) — that address is what ``RCSChannel``
-        # requires, so ``rcs_channel`` is left ``None`` when RCS isn't set up
-        # rather than constructing a channel that would raise.
+        # Created only when a sender ID is configured; None otherwise, since
+        # RCSChannel requires it. rcs_config is optional (like SMS/Chat).
         self.rcs_channel: RCSChannel | None = None
         if self.tac.config.rcs_sender_id:
             self.rcs_channel = RCSChannel(tac=self.tac, config=rcs_config)
 
         # -- WhatsApp channel -------------------------------------------------
-        # Same rule as RCS, gated on ``TWILIO_WHATSAPP_NUMBER`` /
-        # ``TACConfig.whatsapp_number``.
+        # Created only when a number is configured; None otherwise.
         self.whatsapp_channel: WhatsAppChannel | None = None
         if self.tac.config.whatsapp_number:
             self.whatsapp_channel = WhatsAppChannel(tac=self.tac, config=whatsapp_config)

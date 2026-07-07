@@ -159,14 +159,10 @@ class TACHostedAgentsApp:
     ``wss://{voice_public_domain}{voice_websocket_path}?agent_session_id={CallSid}``;
     APIM rewrites that down to ``/invocations_ws`` on the Foundry backend.
 
-    .. note::
-        In TAC 2.x the voice URL fields moved from ``TACServerConfig`` onto
-        ``TACConfig`` (``voice_public_domain`` / ``voice_websocket_path`` /
-        ``voice_action_path``), so this server sources them from
-        ``tac.config`` directly. There is no separate ``welcome_greeting``
-        config field anymore — configure a greeting via
-        ``VoiceChannelConfig.default_twiml_options`` on the voice channel, or
-        rely on the voice channel's built-in default.
+    Voice URL fields are read from ``tac.config`` (``voice_public_domain`` /
+    ``voice_websocket_path`` / ``voice_action_path``). Configure a welcome
+    greeting via ``VoiceChannelConfig.default_twiml_options`` on the voice
+    channel.
     """
 
     def __init__(
@@ -179,11 +175,8 @@ class TACHostedAgentsApp:
     ) -> None:
         self.tac = tac
 
-        # Validate channel types up front. A common mistake is passing
-        # ``connector.rcs_channel`` / ``whatsapp_channel`` — which are ``None``
-        # when that channel isn't configured — straight into the list. Catch
-        # it here with a clear error instead of an opaque ``AttributeError``
-        # deep in webhook dispatch.
+        # Fail fast on a wrong-typed channel (commonly a None from an
+        # unconfigured connector channel) instead of a later AttributeError.
         if voice_channel is not None and not isinstance(voice_channel, VoiceChannel):
             raise TypeError(
                 f"voice_channel must be a VoiceChannel or None, got {type(voice_channel).__name__}."
@@ -298,21 +291,10 @@ class TACHostedAgentsApp:
         call_sid = flat["CallSid"]
         try:
             websocket_url = self._build_voice_websocket_url(call_sid)
-            # Per-call transport facts supplied by this host (affinity-routed
-            # WebSocket URL + the CallSid echoed as a custom parameter). These
-            # layer *below* ``VoiceChannelConfig.default_twiml_options`` — we
-            # only pass facts nothing else should override.
-            #
-            # NOTE: build the kwargs so we never set a field to ``None``. In
-            # TAC 2.x, TwiML options merge per-field via ``model_fields_set``,
-            # so an explicit ``None`` would *suppress* the channel's default
-            # (e.g. the default welcome greeting / conversation configuration)
-            # rather than fall through to it. Omit unset fields entirely.
-            #
-            # The welcome greeting is intentionally NOT set here: configure it
-            # on the voice channel via ``VoiceChannelConfig.default_twiml_options``
-            # (or rely on the channel's built-in default). There is no
-            # server-level greeting config field in TAC 2.x.
+            # Per-call transport facts only. Never set a field to None: TwiML
+            # options merge per-field, so an explicit None suppresses the
+            # channel's default rather than falling through. Configure the
+            # greeting on the voice channel, not here.
             host_options_kwargs: dict[str, Any] = {
                 "websocket_url": websocket_url,
                 "action_url": self._build_voice_action_url(),
