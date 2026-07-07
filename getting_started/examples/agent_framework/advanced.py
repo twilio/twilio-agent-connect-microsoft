@@ -14,9 +14,9 @@ Demonstrates the full feature set of AgentFrameworkConnector:
 - on_conversation_ended hook (clean up session files)
 - on_error hook (custom error responses)
 
-RCS and WhatsApp are opt-in: they are only enabled when the connector is
-given a config (or the corresponding address env var is set —
-TWILIO_RCS_SENDER_ID / TWILIO_WHATSAPP_NUMBER).
+RCS and WhatsApp are created only when their address is configured
+(TWILIO_RCS_SENDER_ID / TWILIO_WHATSAPP_NUMBER); otherwise those channel
+attributes are None. Their config args are optional (tuning only), like SMS.
 """
 
 from __future__ import annotations
@@ -196,8 +196,9 @@ connector = AgentFrameworkConnector(
     ),
     sms_config=SMSChannelConfig(memory_mode="always"),
     chat_config=ChatChannelConfig(memory_mode="always"),
-    # RCS / WhatsApp are opt-in. Passing a config enables the channel; it can
-    # also auto-enable from TWILIO_RCS_SENDER_ID / TWILIO_WHATSAPP_NUMBER.
+    # RCS / WhatsApp channels are created when TWILIO_RCS_SENDER_ID /
+    # TWILIO_WHATSAPP_NUMBER are set; these configs are optional tuning
+    # (memory_mode etc.) and have no effect if the address isn't configured.
     rcs_config=RCSChannelConfig(memory_mode="always"),
     whatsapp_config=WhatsAppChannelConfig(memory_mode="always"),
     session_store=session_store,

@@ -10,10 +10,9 @@ Key design:
 - Voice, SMS, chat, RCS, and WhatsApp channel instances are exposed as
   ``voice_channel`` / ``sms_channel`` / ``chat_channel`` / ``rcs_channel`` /
   ``whatsapp_channel`` — pass whichever you need to ``TACFastAPIServer`` to
-  wire up routing.  RCS and WhatsApp are opt-in: their channels are created
-  only when a config is supplied or the required address is present on
-  ``TACConfig`` (``rcs_sender_id`` / ``whatsapp_number``); otherwise the
-  attribute is ``None``.
+  wire up routing.  Voice/SMS/Chat are always created; RCS and WhatsApp are
+  created only when their address is configured (``rcs_sender_id`` /
+  ``whatsapp_number`` on ``TACConfig``), and are ``None`` otherwise.
 
 Conversation history:
 - The bridge passes an ``AgentSession`` to every ``agent.run()`` call so
@@ -111,15 +110,15 @@ class AgentFrameworkConnector:
             (``ChatChannelConfig`` or dict).  Controls agent identity,
             auto memory retrieval, deduplication capacity, etc.
         rcs_config: Optional RCS channel configuration
-            (``RCSChannelConfig`` or dict).  When supplied — or when
-            ``TACConfig.rcs_sender_id`` is set — an ``rcs_channel`` is
-            created; otherwise ``rcs_channel`` is ``None``.  Requires
-            ``TWILIO_RCS_SENDER_ID``.
+            (``RCSChannelConfig`` or dict).  Optional like ``sms_config``.
+            The ``rcs_channel`` is created when an RCS sender ID is
+            configured (``TWILIO_RCS_SENDER_ID`` / ``TACConfig.rcs_sender_id``)
+            and is ``None`` otherwise.
         whatsapp_config: Optional WhatsApp channel configuration
-            (``WhatsAppChannelConfig`` or dict).  When supplied — or when
-            ``TACConfig.whatsapp_number`` is set — a ``whatsapp_channel`` is
-            created; otherwise ``whatsapp_channel`` is ``None``.  Requires
-            ``TWILIO_WHATSAPP_NUMBER``.
+            (``WhatsAppChannelConfig`` or dict).  Optional like ``sms_config``.
+            The ``whatsapp_channel`` is created when a WhatsApp number is
+            configured (``TWILIO_WHATSAPP_NUMBER`` /
+            ``TACConfig.whatsapp_number``) and is ``None`` otherwise.
         session_store: Persistence layer for ``AgentSession`` objects.
             Used for SMS session continuity across messages and for
             background persistence of voice sessions (auditing, Foundry
@@ -181,18 +180,21 @@ class AgentFrameworkConnector:
         # -- Chat channel -----------------------------------------------------
         self.chat_channel = ChatChannel(tac=self.tac, config=chat_config)
 
-        # -- RCS channel (opt-in) ---------------------------------------------
-        # Created only when configured explicitly or when the sender ID is
-        # present on TACConfig — RCSChannel raises without ``rcs_sender_id``,
-        # so unconditional construction would break deployments that don't
-        # use RCS.
+        # -- RCS channel ------------------------------------------------------
+        # Like SMS/Chat, ``rcs_config`` is optional. The channel is created
+        # when an RCS sender ID is configured (``TWILIO_RCS_SENDER_ID`` /
+        # ``TACConfig.rcs_sender_id``) — that address is what ``RCSChannel``
+        # requires, so ``rcs_channel`` is left ``None`` when RCS isn't set up
+        # rather than constructing a channel that would raise.
         self.rcs_channel: RCSChannel | None = None
-        if rcs_config is not None or getattr(self.tac.config, "rcs_sender_id", None):
+        if self.tac.config.rcs_sender_id:
             self.rcs_channel = RCSChannel(tac=self.tac, config=rcs_config)
 
-        # -- WhatsApp channel (opt-in) ----------------------------------------
+        # -- WhatsApp channel -------------------------------------------------
+        # Same rule as RCS, gated on ``TWILIO_WHATSAPP_NUMBER`` /
+        # ``TACConfig.whatsapp_number``.
         self.whatsapp_channel: WhatsAppChannel | None = None
-        if whatsapp_config is not None or getattr(self.tac.config, "whatsapp_number", None):
+        if self.tac.config.whatsapp_number:
             self.whatsapp_channel = WhatsAppChannel(tac=self.tac, config=whatsapp_config)
 
         # -- TAC callbacks ----------------------------------------------------
@@ -314,9 +316,9 @@ class AgentFrameworkConnector:
     def _get_messaging_channel(self, channel: str) -> MessagingChannel:
         """Return the messaging channel instance for the given channel name.
 
-        RCS and WhatsApp are opt-in; if a message arrives for a channel that
-        was not constructed, raise a clear error rather than dispatch to a
-        missing channel.
+        RCS and WhatsApp are only created when their address is configured; if
+        a message arrives for a channel that was not constructed, raise a clear
+        error rather than dispatch to a missing channel.
         """
         if channel == "sms":
             return self.sms_channel
@@ -326,14 +328,14 @@ class AgentFrameworkConnector:
             if self.rcs_channel is None:
                 raise ValueError(
                     "Received an RCS message but the RCS channel is not configured. "
-                    "Set TWILIO_RCS_SENDER_ID or pass rcs_config to enable it."
+                    "Set TWILIO_RCS_SENDER_ID (or TACConfig.rcs_sender_id) to enable it."
                 )
             return self.rcs_channel
         if channel == "whatsapp":
             if self.whatsapp_channel is None:
                 raise ValueError(
                     "Received a WhatsApp message but the WhatsApp channel is not "
-                    "configured. Set TWILIO_WHATSAPP_NUMBER or pass whatsapp_config "
+                    "configured. Set TWILIO_WHATSAPP_NUMBER (or TACConfig.whatsapp_number) "
                     "to enable it."
                 )
             return self.whatsapp_channel

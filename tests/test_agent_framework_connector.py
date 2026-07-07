@@ -51,19 +51,19 @@ class TestAgentFrameworkConnectorInit:
     def test_rcs_and_whatsapp_created_when_address_configured(
         self, mock_tac: MagicMock, mock_agent_factory: MagicMock
     ) -> None:
-        """RCS/WhatsApp are opt-in but auto-enable when the address env is set
-        on TACConfig (the mock config exposes truthy attributes)."""
+        """RCS/WhatsApp are created when the address is configured on
+        TACConfig (the mock config exposes truthy addresses by default)."""
         with _patched_connector():
             connector = AgentFrameworkConnector(tac=mock_tac, create_agent=mock_agent_factory)
 
         assert connector.rcs_channel is not None
         assert connector.whatsapp_channel is not None
 
-    def test_rcs_and_whatsapp_none_when_not_configured(
+    def test_rcs_and_whatsapp_none_when_address_not_configured(
         self, mock_tac: MagicMock, mock_agent_factory: MagicMock
     ) -> None:
-        """Without an address or an explicit config, the channels are not
-        constructed (keeps existing deployments working)."""
+        """Without a configured address, the channels are not constructed
+        (keeps deployments that don't use RCS/WhatsApp working)."""
         mock_tac.config.rcs_sender_id = None
         mock_tac.config.whatsapp_number = None
         with _patched_connector():
@@ -72,18 +72,23 @@ class TestAgentFrameworkConnectorInit:
         assert connector.rcs_channel is None
         assert connector.whatsapp_channel is None
 
-    def test_rcs_created_from_explicit_config_without_address(
+    def test_config_alone_does_not_create_channel_without_address(
         self, mock_tac: MagicMock, mock_agent_factory: MagicMock
     ) -> None:
-        """Passing rcs_config forces construction even if the address attr is
-        absent — the channel class (mocked here) is responsible for validation."""
+        """Passing rcs_config is tuning only — it does NOT enable the channel.
+        Existence is gated on the configured address, not the config arg."""
         mock_tac.config.rcs_sender_id = None
+        mock_tac.config.whatsapp_number = None
         with _patched_connector():
             connector = AgentFrameworkConnector(
-                tac=mock_tac, create_agent=mock_agent_factory, rcs_config={}
+                tac=mock_tac,
+                create_agent=mock_agent_factory,
+                rcs_config={},
+                whatsapp_config={},
             )
 
-        assert connector.rcs_channel is not None
+        assert connector.rcs_channel is None
+        assert connector.whatsapp_channel is None
 
     def test_defaults_to_in_memory_session_store(
         self, mock_tac: MagicMock, mock_agent_factory: MagicMock

@@ -12,6 +12,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tac.channels.messaging import MessagingChannel
+from tac.channels.voice import VoiceChannel
 from tac.models.voice import TwiMLOptions
 
 from tac_microsoft.hosted_agents_server import (
@@ -92,7 +94,8 @@ def _make_request(
 
 
 def _make_voice_channel() -> MagicMock:
-    channel = MagicMock()
+    # spec= so the server's isinstance(voice_channel, VoiceChannel) check passes.
+    channel = MagicMock(spec=VoiceChannel)
     channel.handle_incoming_call = AsyncMock(return_value="<Response/>")
     channel.handle_websocket = AsyncMock()
     channel.process_webhook = AsyncMock()
@@ -101,7 +104,8 @@ def _make_voice_channel() -> MagicMock:
 
 
 def _make_messaging_channel(name: str = "sms") -> MagicMock:
-    channel = MagicMock()
+    # spec= so the server's isinstance(c, MessagingChannel) check passes.
+    channel = MagicMock(spec=MessagingChannel)
     channel.process_webhook = AsyncMock()
     channel.get_channel_name = MagicMock(return_value=name)
     return channel
@@ -136,6 +140,21 @@ class TestConstruction:
         server, host = _build_server(messaging_channels=[_make_messaging_channel()])
         server.start()
         assert host.run_called is True
+
+    def test_none_in_messaging_channels_raises_typeerror(self) -> None:
+        """A None slipping into messaging_channels (e.g. an unconfigured
+        connector.rcs_channel) is rejected at construction with a clear error,
+        not an opaque AttributeError during webhook dispatch."""
+        with pytest.raises(TypeError, match="MessagingChannel"):
+            _build_server(messaging_channels=[_make_messaging_channel(), None])
+
+    def test_wrong_type_in_messaging_channels_raises_typeerror(self) -> None:
+        with pytest.raises(TypeError, match="MessagingChannel"):
+            _build_server(messaging_channels=["not a channel"])
+
+    def test_non_voice_channel_raises_typeerror(self) -> None:
+        with pytest.raises(TypeError, match="VoiceChannel"):
+            _build_server(voice_channel=_make_messaging_channel())
 
 
 # ---------------------------------------------------------------------------

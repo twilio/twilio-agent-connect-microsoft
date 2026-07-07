@@ -36,18 +36,16 @@ belt + suspenders so APIM has at least one place to pluck it from).
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from urllib.parse import quote
 
 from tac.channels.base import BaseChannel
+from tac.channels.messaging import MessagingChannel
+from tac.channels.voice import VoiceChannel
 from tac.channels.websocket_protocol import WebSocketDisconnectError
 from tac.core.logging import get_logger
 from tac.core.tac import TAC
 from tac.models.voice import TwiMLOptions
-
-if TYPE_CHECKING:
-    from tac.channels.messaging import MessagingChannel
-    from tac.channels.voice import VoiceChannel
 
 try:
     from azure.ai.agentserver.invocations import InvocationAgentServerHost
@@ -180,6 +178,25 @@ class TACHostedAgentsApp:
         idempotency_cache_size: int = 4096,
     ) -> None:
         self.tac = tac
+
+        # Validate channel types up front. A common mistake is passing
+        # ``connector.rcs_channel`` / ``whatsapp_channel`` — which are ``None``
+        # when that channel isn't configured — straight into the list. Catch
+        # it here with a clear error instead of an opaque ``AttributeError``
+        # deep in webhook dispatch.
+        if voice_channel is not None and not isinstance(voice_channel, VoiceChannel):
+            raise TypeError(
+                f"voice_channel must be a VoiceChannel or None, got {type(voice_channel).__name__}."
+            )
+        for c in messaging_channels or []:
+            if not isinstance(c, MessagingChannel):
+                raise TypeError(
+                    "messaging_channels must contain MessagingChannel instances, got "
+                    f"{type(c).__name__}. If you're passing connector.rcs_channel / "
+                    "whatsapp_channel, those are None when the channel isn't configured — "
+                    "filter them out (or set TWILIO_RCS_SENDER_ID / TWILIO_WHATSAPP_NUMBER)."
+                )
+
         self.voice_channel = voice_channel
         self.messaging_channels: list[MessagingChannel] = messaging_channels or []
 
