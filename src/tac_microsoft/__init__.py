@@ -19,9 +19,19 @@ from tac import (
     get_logger,
 )
 from tac.channels.chat import ChatChannelConfig
+from tac.channels.rcs import RCSChannelConfig
 from tac.channels.sms import SMSChannelConfig
 from tac.channels.voice import VoiceChannelConfig
+from tac.channels.whatsapp import WhatsAppChannelConfig
+from tac.models import (
+    InitiateChatConversationOptions,
+    InitiateConversationResult,
+    InitiateMessagingConversationOptions,
+    InitiateVoiceConversationOptions,
+    InitiateVoiceConversationResult,
+)
 from tac.models.session import ConversationSession
+from tac.models.voice import TwiMLRequest
 
 from .utils import format_memory_context
 
@@ -102,10 +112,18 @@ __all__ = [
     "TACConfig",
     "TACFastAPIServer",
     "TwiMLOptions",
+    "TwiMLRequest",
     "ConversationSession",
     "VoiceChannelConfig",
     "SMSChannelConfig",
     "ChatChannelConfig",
+    "RCSChannelConfig",
+    "WhatsAppChannelConfig",
+    "InitiateVoiceConversationOptions",
+    "InitiateVoiceConversationResult",
+    "InitiateMessagingConversationOptions",
+    "InitiateChatConversationOptions",
+    "InitiateConversationResult",
     "PartnerConnector",
     "get_logger",
     # Connectors

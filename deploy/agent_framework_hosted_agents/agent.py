@@ -81,11 +81,22 @@ connector = AgentFrameworkConnector(
     create_agent=create_agent,
     session_store=FileAgentSessionStore(storage_dir=session_dir),
     sms_config=SMSChannelConfig(memory_mode="always"),
+    # To also serve RCS and/or WhatsApp, set TWILIO_RCS_SENDER_ID /
+    # TWILIO_WHATSAPP_NUMBER (the connector creates those channels when the
+    # address is configured) and add connector.rcs_channel /
+    # connector.whatsapp_channel to messaging_channels below. The *_config
+    # args are optional tuning:
+    # from tac_microsoft import ChatChannelConfig, RCSChannelConfig, WhatsAppChannelConfig
+    # chat_config=ChatChannelConfig(memory_mode="always"),
+    # rcs_config=RCSChannelConfig(memory_mode="always"),
+    # whatsapp_config=WhatsAppChannelConfig(memory_mode="always"),
 )
 
 server = TACHostedAgentsApp(
     tac=tac,
     voice_channel=connector.voice_channel,
+    # Add connector.chat_channel / rcs_channel / whatsapp_channel here once
+    # enabled above (filter out any that are None).
     messaging_channels=[connector.sms_channel],
 )
 

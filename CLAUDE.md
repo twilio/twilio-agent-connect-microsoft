@@ -41,7 +41,7 @@ TAC (Twilio Agent Connect) is middleware that integrates with several Twilio pla
 - Provides memory context to your agent callback via `TACMemoryResponse`
 - Falls back to Conversation Orchestrator's communication history if Memory API fails
 
-**In TAC Microsoft**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `memory_mode` on `SMSChannelConfig` / `ChatChannelConfig` / `VoiceChannelConfig` (`"always"` | `"never"` | `"once"`, default `"never"`) toggles this behavior.
+**In TAC Microsoft**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `memory_mode` on `SMSChannelConfig` / `ChatChannelConfig` / `RCSChannelConfig` / `WhatsAppChannelConfig` / `VoiceChannelConfig` (`"always"` | `"never"` | `"once"`, default `"never"`) toggles this behavior.
 
 ### Conversation Intelligence
 
@@ -93,7 +93,7 @@ make check             # All checks (lint + type-check + test)
 ```
 src/tac_microsoft/
 ├── __init__.py                         # Lazy-loaded public exports + re-exports from `tac`
-├── agent_framework_connector.py        # AgentFrameworkConnector (voice + SMS + chat)
+├── agent_framework_connector.py        # AgentFrameworkConnector (voice + SMS + chat + RCS + WhatsApp)
 ├── agent_framework_tools.py            # Tool factories returning plain async callables
 ├── agent_framework_types.py            # AgentSessionStore protocol
 ├── hosted_agents_server.py             # TACHostedAgentsApp (Hosted Agents in Foundry Agent Service)
@@ -138,7 +138,7 @@ TAC Microsoft depends on TAC published on PyPI:
 
 ```toml
 dependencies = [
-    "twilio-agent-connect>=1.0.0,<2",
+    "twilio-agent-connect>=2.1.0,<3",
 ]
 ```
 
@@ -157,7 +157,7 @@ dependencies = [
 
 Connectors combine agent runtime integration with multi-channel conversation management. They:
 - Create and manage per-conversation agent instances
-- Create Voice, SMS, and Chat channel instances (`VoiceChannel`, `SMSChannel`, `ChatChannel` from core TAC)
+- Create Voice, SMS, Chat, RCS, and WhatsApp channel instances (`VoiceChannel`, `SMSChannel`, `ChatChannel`, `RCSChannel`, `WhatsAppChannel` from core TAC)
 - Persist `AgentSession` via a pluggable `AgentSessionStore`
 - Route responses to the right channel based on `context.channel`
 - Register with TAC via `on_message_ready()`, `on_conversation_ended()`, `on_interrupt()` callbacks
@@ -167,13 +167,24 @@ Connectors combine agent runtime integration with multi-channel conversation man
 **AgentFrameworkConnector** — Microsoft Agent Framework integration:
 - Accepts `tac`, `create_agent: (ConversationSession) -> Agent`, optional hooks (`on_message`, `on_error`), optional channel configs, optional `session_store`.
 - Voice: agent + `AgentSession` cached in-memory for the call duration; streamed responses; background save to `AgentSessionStore` after each utterance.
-- SMS / Chat: load `AgentSession` from store → `agent.run()` → save back. Preserves Foundry `thread_id` and Responses API history across messages.
-- Channels exposed as `voice_channel` / `sms_channel` / `chat_channel`.
+- SMS / Chat / RCS / WhatsApp: load `AgentSession` from store → `agent.run()` → save back. Preserves Foundry `thread_id` and Responses API history across messages. All four share one messaging handler.
+- Channels exposed as `voice_channel` / `sms_channel` / `chat_channel` / `rcs_channel` / `whatsapp_channel`. **RCS and WhatsApp are opt-in**: their channel is created only when a `rcs_config` / `whatsapp_config` is passed or the address is set on `TACConfig` (`TWILIO_RCS_SENDER_ID` / `TWILIO_WHATSAPP_NUMBER`); otherwise the attribute is `None`.
 
 **VoiceLiveConnector** — Azure AI Foundry Voice Live integration:
 - Voice only (server-side conversation state; no `AgentSession` needed).
 - One `VoiceLiveSession` per conversation; WebSocket managed internally.
 - Tool execution via Azure-side function-calling protocol.
+
+### Voice / TwiML customization, relay-only, and outbound
+
+The connector owns the `VoiceChannel`, so these voice features are used directly on it — nothing extra to wire:
+
+- **Per-call TwiML customization**: `connector.voice_channel.on_inbound_call_twiml(cb)` where `async cb(req: TwiMLRequest) -> TwiMLOptions`. Fields the callback sets override `VoiceChannelConfig.default_twiml_options` and TAC defaults; unset fields fall through. `TwiMLRequest` / `TwiMLOptions` are re-exported from `tac_microsoft`.
+- **Welcome greeting**: set it via `VoiceChannelConfig(default_twiml_options=TwiMLOptions(welcome_greeting=...))`; the channel supplies a default when unset.
+- **ConversationRelay-only voice** (no Orchestrator): leave `TWILIO_CONVERSATION_CONFIGURATION_ID` unset — core TAC gates orchestrated vs relay-only behavior on it.
+- **Outbound initiation**: `InitiateVoiceConversationOptions` / `InitiateMessagingConversationOptions` / `InitiateChatConversationOptions` and their result types are re-exported from `tac_microsoft`.
+
+> **Config note:** voice URL fields live on `TACConfig` (`voice_public_domain` / `voice_websocket_path` / `voice_action_path`); `TACHostedAgentsApp` reads them from `tac.config`.
 
 ### Session Stores
 
@@ -349,7 +360,7 @@ make check
 
 1. **Don't import TAC classes from `tac_microsoft` internal paths** — use `from tac.X import Y`.
 2. **Don't copy TAC source code** — TAC is a pinned git dependency, not vendored.
-3. **Connectors own the channels** — don't instantiate `VoiceChannel` / `SMSChannel` / `ChatChannel` yourself; read them off the connector.
+3. **Connectors own the channels** — don't instantiate `VoiceChannel` / `SMSChannel` / `ChatChannel` / `RCSChannel` / `WhatsAppChannel` yourself; read them off the connector (RCS/WhatsApp may be `None` when not configured).
 4. **`create_knowledge_tool` is async** — if you call it inside a sync `create_agent` factory, build it once at module load via `asyncio.run()` and reuse the result.
 5. **Lazy `__getattr__`** — if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/tac_microsoft/__init__.py`.
 

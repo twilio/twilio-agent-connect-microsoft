@@ -448,7 +448,7 @@ resource voiceTwimlPolicy 'Microsoft.ApiManagement/service/apis/operations/polic
 // ---------------------------------------------------------------------------
 // WebSocket API — /twilio/ws (Conversation Relay)
 // ---------------------------------------------------------------------------
-// Path is `/ws` to match TACServerConfig.websocket_path default — the
+// Path is `/ws` to match TACConfig.voice_websocket_path default — the
 // server emits `wss://{public_domain}/ws?agent_session_id=...` and this
 // API receives those upgrades. serviceUrl is just the host so the
 // policy's `rewrite-uri` can set the full Foundry path on the upgrade.

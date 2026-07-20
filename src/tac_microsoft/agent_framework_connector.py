@@ -1,15 +1,18 @@
 """
-Agent Framework Bridge for TAC
+Agent Framework connector for TAC
 
-Bridge logic (agent lifecycle, session management, tool factories) for Microsoft
+Connector logic (agent lifecycle, session management, tool factories) for Microsoft
 Agent Framework.  HTTP/WebSocket routing is delegated to ``TACFastAPIServer`` from the
 ``tac`` package.
 
 Key design:
 - ``create_agent`` factory returns an Agent Framework ``Agent``
-- Voice, SMS, and chat channel instances are exposed as ``voice_channel`` /
-  ``sms_channel`` / ``chat_channel`` — pass whichever you need to
-  ``TACFastAPIServer`` to wire up routing
+- Voice, SMS, chat, RCS, and WhatsApp channel instances are exposed as
+  ``voice_channel`` / ``sms_channel`` / ``chat_channel`` / ``rcs_channel`` /
+  ``whatsapp_channel`` — pass whichever you need to ``TACFastAPIServer`` to
+  wire up routing.  Voice/SMS/Chat are always created; RCS and WhatsApp are
+  created only when their address is configured (``rcs_sender_id`` /
+  ``whatsapp_number`` on ``TACConfig``), and are ``None`` otherwise.
 
 Conversation history:
 - The bridge passes an ``AgentSession`` to every ``agent.run()`` call so
@@ -45,8 +48,10 @@ from agent_framework import Agent, AgentSession
 from tac import PartnerConnector
 from tac.channels.chat import ChatChannel, ChatChannelConfig
 from tac.channels.messaging import MessagingChannel
+from tac.channels.rcs import RCSChannel, RCSChannelConfig
 from tac.channels.sms import SMSChannel, SMSChannelConfig
 from tac.channels.voice import VoiceChannel, VoiceChannelConfig
+from tac.channels.whatsapp import WhatsAppChannel, WhatsAppChannelConfig
 from tac.core.logging import get_logger
 from tac.models.session import ConversationSession
 from tac.session import ThreadSafeSessionManager
@@ -64,14 +69,17 @@ logger = get_logger(__name__)
 
 class AgentFrameworkConnector:
     """
-    Bridge for Twilio channels (Voice, SMS, Chat) with Agent Framework agents.
+    Connector for Twilio channels (Voice, SMS, Chat, RCS, WhatsApp) with
+    Agent Framework agents.
 
-    All three channel flows are fully managed internally.  The developer
+    All channel flows are fully managed internally.  The developer
     supplies a ``create_agent`` factory and, optionally, hooks for message
     augmentation and error handling.  HTTP/WebSocket routing is handled
     by ``TACFastAPIServer`` — pass ``voice_channel`` and/or messaging channels
-    (``sms_channel`` / ``chat_channel``) to it to control which channels are
-    active.
+    (``sms_channel`` / ``chat_channel`` / ``rcs_channel`` / ``whatsapp_channel``)
+    to it to control which channels are active.  RCS and WhatsApp are opt-in
+    (see ``rcs_config`` / ``whatsapp_config`` below); when not configured, the
+    corresponding attribute is ``None``.
 
     Conversation history is managed via Agent Framework's ``AgentSession``.
     For voice, the agent and session persist in-memory for the duration of
@@ -101,6 +109,16 @@ class AgentFrameworkConnector:
         chat_config: Optional Chat channel configuration
             (``ChatChannelConfig`` or dict).  Controls agent identity,
             auto memory retrieval, deduplication capacity, etc.
+        rcs_config: Optional RCS channel configuration
+            (``RCSChannelConfig`` or dict).  Optional like ``sms_config``.
+            The ``rcs_channel`` is created when an RCS sender ID is
+            configured (``TWILIO_RCS_SENDER_ID`` / ``TACConfig.rcs_sender_id``)
+            and is ``None`` otherwise.
+        whatsapp_config: Optional WhatsApp channel configuration
+            (``WhatsAppChannelConfig`` or dict).  Optional like ``sms_config``.
+            The ``whatsapp_channel`` is created when a WhatsApp number is
+            configured (``TWILIO_WHATSAPP_NUMBER`` /
+            ``TACConfig.whatsapp_number``) and is ``None`` otherwise.
         session_store: Persistence layer for ``AgentSession`` objects.
             Used for SMS session continuity across messages and for
             background persistence of voice sessions (auditing, Foundry
@@ -124,6 +142,8 @@ class AgentFrameworkConnector:
         voice_config: VoiceChannelConfig | dict[str, Any] | None = None,
         sms_config: SMSChannelConfig | dict[str, Any] | None = None,
         chat_config: ChatChannelConfig | dict[str, Any] | None = None,
+        rcs_config: RCSChannelConfig | dict[str, Any] | None = None,
+        whatsapp_config: WhatsAppChannelConfig | dict[str, Any] | None = None,
         session_store: AgentSessionStore | None = None,
     ):
         self.tac = tac
@@ -160,6 +180,19 @@ class AgentFrameworkConnector:
         # -- Chat channel -----------------------------------------------------
         self.chat_channel = ChatChannel(tac=self.tac, config=chat_config)
 
+        # -- RCS channel ------------------------------------------------------
+        # Created only when a sender ID is configured; None otherwise, since
+        # RCSChannel requires it. rcs_config is optional (like SMS/Chat).
+        self.rcs_channel: RCSChannel | None = None
+        if self.tac.config.rcs_sender_id:
+            self.rcs_channel = RCSChannel(tac=self.tac, config=rcs_config)
+
+        # -- WhatsApp channel -------------------------------------------------
+        # Created only when a number is configured; None otherwise.
+        self.whatsapp_channel: WhatsAppChannel | None = None
+        if self.tac.config.whatsapp_number:
+            self.whatsapp_channel = WhatsAppChannel(tac=self.tac, config=whatsapp_config)
+
         # -- TAC callbacks ----------------------------------------------------
         self.tac.on_message_ready(self._handle_message)
         self.tac.on_conversation_ended(self._handle_conversation_ended)
@@ -184,7 +217,7 @@ class AgentFrameworkConnector:
         """
         if context.channel == "voice":
             await self._handle_voice_message(user_message, context, memory_response)
-        elif context.channel in ("sms", "chat"):
+        elif context.channel in ("sms", "chat", "rcs", "whatsapp"):
             await self._handle_messaging_message(user_message, context, memory_response)
         else:
             logger.warning(
@@ -277,11 +310,31 @@ class AgentFrameworkConnector:
     # -------------------------------------------------------------------------
 
     def _get_messaging_channel(self, channel: str) -> MessagingChannel:
-        """Return the messaging channel instance for the given channel name."""
+        """Return the messaging channel instance for the given channel name.
+
+        RCS and WhatsApp are only created when their address is configured; if
+        a message arrives for a channel that was not constructed, raise a clear
+        error rather than dispatch to a missing channel.
+        """
         if channel == "sms":
             return self.sms_channel
         if channel == "chat":
             return self.chat_channel
+        if channel == "rcs":
+            if self.rcs_channel is None:
+                raise ValueError(
+                    "Received an RCS message but the RCS channel is not configured. "
+                    "Set TWILIO_RCS_SENDER_ID (or TACConfig.rcs_sender_id) to enable it."
+                )
+            return self.rcs_channel
+        if channel == "whatsapp":
+            if self.whatsapp_channel is None:
+                raise ValueError(
+                    "Received a WhatsApp message but the WhatsApp channel is not "
+                    "configured. Set TWILIO_WHATSAPP_NUMBER (or TACConfig.whatsapp_number) "
+                    "to enable it."
+                )
+            return self.whatsapp_channel
         raise ValueError(f"Unsupported messaging channel: {channel}")
 
     async def _handle_messaging_message(

@@ -23,6 +23,11 @@ def mock_tac() -> MagicMock:
     tac.config.phone_number = "+15555550100"
     tac.config.api_key = "SK" + "0" * 32
     tac.config.api_secret = "secret"
+    # RCS / WhatsApp addresses present by default so the opt-in channels are
+    # constructed; tests that exercise the "not configured" path set these
+    # back to None explicitly.
+    tac.config.rcs_sender_id = "rcs-sender-1"
+    tac.config.whatsapp_number = "+15555550101"
     return tac
 
 
@@ -79,6 +84,30 @@ def mock_chat_session() -> MagicMock:
     session.profile_id = "prof_123"
     session.author_info = MagicMock()
     session.author_info.address = "user_123"
+    return session
+
+
+@pytest.fixture
+def mock_rcs_session() -> MagicMock:
+    """Create a mock ConversationSession for an RCS message."""
+    session = MagicMock()
+    session.conversation_id = "conv_rcs_321"
+    session.channel = "rcs"
+    session.profile_id = "prof_123"
+    session.author_info = MagicMock()
+    session.author_info.address = "+15555550123"
+    return session
+
+
+@pytest.fixture
+def mock_whatsapp_session() -> MagicMock:
+    """Create a mock ConversationSession for a WhatsApp message."""
+    session = MagicMock()
+    session.conversation_id = "conv_wa_654"
+    session.channel = "whatsapp"
+    session.profile_id = "prof_123"
+    session.author_info = MagicMock()
+    session.author_info.address = "+15555550123"
     return session
 
 

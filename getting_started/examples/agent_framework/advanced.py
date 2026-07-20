@@ -1,8 +1,11 @@
-"""Owl Internet Voice + SMS Agent — advanced example.
+"""Owl Internet omni-channel Agent — advanced example.
 
 Demonstrates the full feature set of AgentFrameworkConnector:
 
-- Channel-aware system prompts (voice vs SMS)
+- All messaging channels (SMS, Chat, RCS, WhatsApp) plus Voice
+- Channel-aware system prompts (voice vs text)
+- Per-call TwiML customization via on_inbound_call_twiml
+- A welcome greeting set through VoiceChannelConfig.default_twiml_options
 - Custom tools (outage lookup)
 - Knowledge base tool
 - Memory recall tool
@@ -10,6 +13,10 @@ Demonstrates the full feature set of AgentFrameworkConnector:
 - Session persistence (FileAgentSessionStore, with CosmosDB option)
 - on_conversation_ended hook (clean up session files)
 - on_error hook (custom error responses)
+
+RCS and WhatsApp are created only when their address is configured
+(TWILIO_RCS_SENDER_ID / TWILIO_WHATSAPP_NUMBER); otherwise those channel
+attributes are None. Their config args are optional (tuning only), like SMS.
 """
 
 from __future__ import annotations
@@ -33,12 +40,17 @@ from tac.models import TACMemoryResponse
 from tac_microsoft import (
     TAC,
     AgentFrameworkConnector,
+    ChatChannelConfig,
     ConversationSession,
     FileAgentSessionStore,
+    RCSChannelConfig,
     SMSChannelConfig,
     TACConfig,
     TACFastAPIServer,
+    TwiMLOptions,
+    TwiMLRequest,
     VoiceChannelConfig,
+    WhatsAppChannelConfig,
     format_memory_context,
 )
 from tac_microsoft.agent_framework_tools import (
@@ -69,8 +81,9 @@ VOICE_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant on a 
 Keep responses clear, concise, and conversational.
 Use plain text only — no markdown, no lists, no special formatting."""
 
-SMS_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant over SMS.
-Keep responses concise and formatted for text messaging.
+TEXT_SYSTEM_PROMPT = """You are Owl Internet's customer service assistant over text
+messaging (SMS, chat, RCS, or WhatsApp).
+Keep responses concise and formatted for messaging.
 Use short paragraphs. Bullet points are OK."""
 
 # ---------------------------------------------------------------------------
@@ -109,7 +122,7 @@ knowledge_tool = (
 
 
 def create_agent(session: ConversationSession) -> Agent:
-    prompt = VOICE_SYSTEM_PROMPT if session.channel == "voice" else SMS_SYSTEM_PROMPT
+    prompt = VOICE_SYSTEM_PROMPT if session.channel == "voice" else TEXT_SYSTEM_PROMPT
 
     tools = [create_memory_tool(tac, session), look_up_outage_tool, knowledge_tool]
 
@@ -170,16 +183,51 @@ connector = AgentFrameworkConnector(
     on_message=on_message,
     on_error=on_error,
     voice_config=VoiceChannelConfig(
-        memory_mode="never"
-    ),  # Disabling auto memory for best latency. Agent can use memory tool when needed.
+        # Disable auto memory for best latency; the agent uses the memory tool.
+        memory_mode="never",
+        # Applies to every inbound call unless a per-call customizer overrides it.
+        default_twiml_options=TwiMLOptions(
+            welcome_greeting="Thanks for calling Owl Internet! How can I help?",
+        ),
+    ),
     sms_config=SMSChannelConfig(memory_mode="always"),
+    chat_config=ChatChannelConfig(memory_mode="always"),
+    # RCS / WhatsApp channels are created when TWILIO_RCS_SENDER_ID /
+    # TWILIO_WHATSAPP_NUMBER are set; these configs are optional tuning
+    # (memory_mode etc.) and have no effect if the address isn't configured.
+    rcs_config=RCSChannelConfig(memory_mode="always"),
+    whatsapp_config=WhatsAppChannelConfig(memory_mode="always"),
     session_store=session_store,
 )
+
+
+# Per-call TwiML customization: greet Spanish-speaking callers in Spanish.
+# Fields the callback sets override default_twiml_options and TAC defaults;
+# unset fields fall through.
+async def customize_inbound_twiml(request: TwiMLRequest) -> TwiMLOptions:
+    if request.caller_country == "MX":
+        return TwiMLOptions(
+            language="es-MX",
+            welcome_greeting="¡Gracias por llamar a Owl Internet! ¿Cómo puedo ayudarle?",
+        )
+    return TwiMLOptions()
+
+
+connector.voice_channel.on_inbound_call_twiml(customize_inbound_twiml)
+
+# Every messaging channel the connector exposes; RCS/WhatsApp are None when
+# not enabled, so filter them out before handing the list to the server.
+messaging_channels = [
+    connector.sms_channel,
+    connector.chat_channel,
+    connector.rcs_channel,
+    connector.whatsapp_channel,
+]
 
 server = TACFastAPIServer(
     tac=tac,
     voice_channel=connector.voice_channel,
-    messaging_channels=[connector.sms_channel],
+    messaging_channels=[c for c in messaging_channels if c is not None],
 )
 
 if __name__ == "__main__":

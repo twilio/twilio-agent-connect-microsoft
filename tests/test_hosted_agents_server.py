@@ -12,8 +12,9 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from tac.channels.messaging import MessagingChannel
+from tac.channels.voice import VoiceChannel
 from tac.models.voice import TwiMLOptions
-from tac.server.config import TACServerConfig
 
 from tac_microsoft.hosted_agents_server import (
     StarletteWebSocketAdapter,
@@ -44,6 +45,19 @@ class _FakeInvocationHost:
         self.run_called = True
 
 
+def _make_tac(public_domain: str = "test.example.com/twilio") -> MagicMock:
+    """Mock TAC whose config carries the 2.x voice URL fields.
+
+    In TAC 2.x these live on TACConfig (not TACServerConfig), and the hosted
+    agents server reads them from ``tac.config``.
+    """
+    tac = MagicMock()
+    tac.config.voice_public_domain = public_domain
+    tac.config.voice_websocket_path = "/ws"
+    tac.config.voice_action_path = "/conversation-relay-callback"
+    return tac
+
+
 def _build_server(
     *,
     voice_channel: MagicMock | None = None,
@@ -51,16 +65,14 @@ def _build_server(
     public_domain: str = "test.example.com/twilio",
 ) -> tuple[TACHostedAgentsApp, _FakeInvocationHost]:
     fake_host = _FakeInvocationHost()
-    cfg = TACServerConfig(public_domain=public_domain)
     with patch(
         "tac_microsoft.hosted_agents_server.InvocationAgentServerHost",
         return_value=fake_host,
     ):
         server = TACHostedAgentsApp(
-            tac=MagicMock(),
+            tac=_make_tac(public_domain),
             voice_channel=voice_channel,
             messaging_channels=messaging_channels or [],
-            config=cfg,
         )
     return server, fake_host
 
@@ -82,7 +94,8 @@ def _make_request(
 
 
 def _make_voice_channel() -> MagicMock:
-    channel = MagicMock()
+    # spec= so the server's isinstance(voice_channel, VoiceChannel) check passes.
+    channel = MagicMock(spec=VoiceChannel)
     channel.handle_incoming_call = AsyncMock(return_value="<Response/>")
     channel.handle_websocket = AsyncMock()
     channel.process_webhook = AsyncMock()
@@ -91,7 +104,8 @@ def _make_voice_channel() -> MagicMock:
 
 
 def _make_messaging_channel(name: str = "sms") -> MagicMock:
-    channel = MagicMock()
+    # spec= so the server's isinstance(c, MessagingChannel) check passes.
+    channel = MagicMock(spec=MessagingChannel)
     channel.process_webhook = AsyncMock()
     channel.get_channel_name = MagicMock(return_value=name)
     return channel
@@ -126,6 +140,21 @@ class TestConstruction:
         server, host = _build_server(messaging_channels=[_make_messaging_channel()])
         server.start()
         assert host.run_called is True
+
+    def test_none_in_messaging_channels_raises_typeerror(self) -> None:
+        """A None slipping into messaging_channels (e.g. an unconfigured
+        connector.rcs_channel) is rejected at construction with a clear error,
+        not an opaque AttributeError during webhook dispatch."""
+        with pytest.raises(TypeError, match="MessagingChannel"):
+            _build_server(messaging_channels=[_make_messaging_channel(), None])
+
+    def test_wrong_type_in_messaging_channels_raises_typeerror(self) -> None:
+        with pytest.raises(TypeError, match="MessagingChannel"):
+            _build_server(messaging_channels=["not a channel"])
+
+    def test_non_voice_channel_raises_typeerror(self) -> None:
+        with pytest.raises(TypeError, match="VoiceChannel"):
+            _build_server(voice_channel=_make_messaging_channel())
 
 
 # ---------------------------------------------------------------------------
@@ -296,7 +325,7 @@ class TestVoiceTwimlDispatch:
         request = _make_request({"CallSid": "CA123"})
         await server._dispatch_invoke(request)
 
-        opts = voice.handle_incoming_call.await_args.kwargs["options"]
+        opts = voice.handle_incoming_call.await_args.kwargs["host_twiml_options"]
         assert isinstance(opts, TwiMLOptions)
         assert opts.websocket_url == "wss://test.example.com/twilio/ws?agent_session_id=CA123"
         # CustomParameters is a Pydantic model with built-in agent_session_id field;
@@ -312,7 +341,7 @@ class TestVoiceTwimlDispatch:
 
         await server._dispatch_invoke(_make_request({"CallSid": "CA/with weird?chars"}))
 
-        opts = voice.handle_incoming_call.await_args.kwargs["options"]
+        opts = voice.handle_incoming_call.await_args.kwargs["host_twiml_options"]
         assert "CA%2Fwith%20weird%3Fchars" in opts.websocket_url
 
     @pytest.mark.asyncio
@@ -345,7 +374,7 @@ class TestVoiceTwimlDispatch:
         response = await server._dispatch_invoke(_make_request(body))
 
         assert response.status_code == 200
-        opts = voice.handle_incoming_call.await_args.kwargs["options"]
+        opts = voice.handle_incoming_call.await_args.kwargs["host_twiml_options"]
         assert "agent_session_id=CA999" in opts.websocket_url
 
 
