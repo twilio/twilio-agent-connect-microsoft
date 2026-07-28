@@ -86,6 +86,9 @@ make lint              # Lint check only
 make type-check        # mypy strict mode
 make test              # Run pytest
 make check             # All checks (lint + type-check + test)
+make docs              # Build the docs site into site/
+make docs-serve        # Serve docs locally with live reload
+make docs-versions     # List versioned docs published to gh-pages
 ```
 
 ## Package Structure
@@ -356,6 +359,16 @@ uv sync --all-extras
 make check
 ```
 
+## Documentation
+
+- The public API reference is published at https://twilio.github.io/twilio-agent-connect-microsoft/ — versioned with `mike`, deployed from `.github/workflows/docs.yml` on each GitHub release.
+- API docs are generated from docstrings by MkDocs Material + mkdocstrings, so **docstrings are published documentation** — write them for both source readers and the rendered site.
+- Use **Markdown** in docstrings: `**bold**` for emphasis, `- ` bullet lists, backticks for identifiers, and fenced code blocks for examples. Leave a blank line before a list or fenced block so mkdocstrings parses it correctly.
+- TAC core types (`TAC`, `ConversationSession`, ...) resolve to the TAC Python docs via the `inventories` entry in `mkdocs.yml`, so annotating with real TAC types produces cross-repo links for free.
+- `docs/api/*.md` targets individual modules (e.g. `tac_microsoft.agent_framework_connector`), not the top-level `tac_microsoft` package: `src/tac_microsoft/__init__.py` resolves optional connectors/stores/server through `__getattr__` at runtime, which griffe can't resolve statically. When you add a new module, add it to the corresponding docs page directly.
+- `docs/index.md` and `docs/deploy/**/README.md` are one-line snippet includes of `README.md` and the `deploy/*/README.md` guides — edit the source Markdown, never the docs stub. Use **absolute** GitHub URLs for paths outside the mirrored `deploy/` tree (e.g. links to `getting_started/`) in those files — relative links to unmirrored paths break once included in the site.
+- Verify docs changes with `make docs` (`uv run --group docs mkdocs build --strict`), which turns broken links into build failures.
+
 ## Common Pitfalls
 
 1. **Don't import TAC classes from `tac_microsoft` internal paths** — use `from tac.X import Y`.
@@ -370,3 +383,4 @@ make check
 - TAC AWS sibling: [CLAUDE.md](https://github.com/twilio/twilio-agent-connect-aws/blob/main/CLAUDE.md)
 - Microsoft Agent Framework: [github.com/microsoft/agent-framework](https://github.com/microsoft/agent-framework)
 - Azure AI Foundry Voice Live: [learn.microsoft.com/azure/ai-foundry](https://learn.microsoft.com/azure/ai-foundry/)
+- Published API reference: [twilio.github.io/twilio-agent-connect-microsoft](https://twilio.github.io/twilio-agent-connect-microsoft/)

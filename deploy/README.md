@@ -11,8 +11,10 @@ Agents sandbox, fronted by APIM for Twilio signature validation and WebSocket
 passthrough. Voice + SMS.
 
 **Key features:**
+
 - One command (`make deploy`) provisions everything fresh — Foundry account +
   project + model deployment, Container Registry, APIM, and Key Vault
+
 - Interactive (or pre-fill `.env`); idempotent re-runs
 - No servers to manage — the agent runs in the Foundry runtime
 - Bring-your-own mode (`CREATE_FOUNDRY=false`) for an existing Foundry project
@@ -31,6 +33,7 @@ Agent Framework agents. Sessions persist in Cosmos DB for horizontal scaling.
 Voice (WebSocket) + SMS (HTTP).
 
 **Key features:**
+
 - Container Apps + Cosmos DB infrastructure (Bicep)
 - Docker multi-stage build
 - Managed Identity for Cosmos DB access
@@ -49,6 +52,7 @@ Foundry Voice Live over WebSocket. Voice Live manages conversation state
 server-side. Voice-only — no SMS.
 
 **Key features:**
+
 - Container Apps infrastructure (Bicep)
 - Docker multi-stage build
 - Voice Live WebSocket integration
@@ -86,4 +90,4 @@ Teardown: `azd down --purge`.
 **Prerequisites:** `azd` v1.18.0+, Azure CLI (`az`), Docker, Python 3.10+
 (Hosted Agents additionally uses `make`; see its guide).
 
-For local development and testing, see [`../getting_started/README.md`](../getting_started/README.md)
+For local development and testing, see [`getting_started/README.md`](https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/getting_started/README.md)

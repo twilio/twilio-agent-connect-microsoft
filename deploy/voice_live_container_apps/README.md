@@ -14,6 +14,7 @@ Complete guide for deploying Twilio Agent Connect (TAC) with Azure AI Foundry Vo
 ## Overview
 
 This deployment runs a voice-only AI agent using:
+
 - **Twilio** — Voice via ConversationRelay (STT/TTS), plus optional Conversation Memory / Conversation Orchestrator
 - **Azure AI Foundry Voice Live** — Low-latency LLM inference via WebSocket (pre-existing; not provisioned by this Bicep)
 - **TAC (Twilio Agent Connect)** — Integration middleware
@@ -50,6 +51,7 @@ graph LR
 ```
 
 **Flow:**
+
 - Twilio Phone receives call → `POST /twiml` → response TwiML contains `<ConversationRelay>` → ConversationRelay handles STT/TTS and opens a WebSocket to `/ws` for bidirectional text.
 - TAC opens a Voice Live WebSocket (text-only mode) per call; Voice Live manages conversation state server-side.
 - Memory retrieval is **opt-in** (`VoiceChannelConfig(memory_mode="always")`); disabled in the sample.
@@ -115,6 +117,7 @@ can resolve every Bicep parameter without prompting. Omit it only if you're
 happy answering the prompts on first run.
 
 This automatically:
+
 1. Deploys all Azure infrastructure (Container Registry, Container App)
 2. Builds and pushes the Docker image to ACR (dependencies installed from PyPI)
 3. Configures the Container App with the image and FQDN
@@ -124,6 +127,7 @@ This automatically:
 After deployment completes, the app URL is printed. Use it to configure Twilio:
 
 **Voice (Phone Numbers):**
+
 1. Go to Twilio Console > Phone Numbers > Active Numbers
 2. Select your phone number
 3. Set **Voice URL:** `https://<FQDN>/twiml` (POST)

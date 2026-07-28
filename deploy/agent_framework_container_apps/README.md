@@ -14,6 +14,7 @@ Complete guide for deploying Twilio Agent Connect (TAC) with Microsoft Agent Fra
 ## Overview
 
 This deployment runs a voice and SMS AI agent using:
+
 - **Twilio** — Voice (ConversationRelay) and SMS, plus Conversation Orchestrator and Conversation Memory
 - **Azure OpenAI** — LLM inference (e.g. GPT-4o). Azure AI Foundry is also supported by the connector; the Bicep defaults provision against Azure OpenAI.
 - **Microsoft Agent Framework** — Agent orchestration (Python library running inside the Container App)
@@ -57,6 +58,7 @@ graph LR
 ```
 
 **Flow:**
+
 - **Voice:** Twilio Phone receives call → `POST /twiml` → response TwiML contains `<ConversationRelay>` → ConversationRelay handles STT/TTS and opens a WebSocket to `/ws` for bidirectional text.
 - **SMS:** Conversation Orchestrator delivers inbound SMS to `POST /webhook` and is used to send outbound replies.
 - **Every turn:** TAC optionally retrieves memory (Conversation Memory, with fallback to Conversation Orchestrator `list_communications`), then `agent.run()` against Azure OpenAI.
@@ -100,6 +102,7 @@ graph LR
   - Conversation Configuration ID from Conversation Orchestrator
 
 **Where to find Twilio credentials:**
+
 - Auth Token & API Keys: Twilio Console > Account > API Keys & Tokens
 - Conversation Configuration ID: Twilio Console > Conversation Orchestrator > Configuration
 
@@ -129,6 +132,7 @@ can resolve every Bicep parameter without prompting. Omit it only if you're
 happy answering the prompts on first run.
 
 This automatically:
+
 1. Deploys all Azure infrastructure (Container Registry, Cosmos DB, Container App)
 2. Builds and pushes the Docker image to ACR (dependencies installed from PyPI)
 3. Configures the Container App with the image and FQDN
@@ -138,11 +142,13 @@ This automatically:
 After deployment completes, the app URL is printed. Use it to configure Twilio:
 
 **Voice (Phone Numbers):**
+
 1. Go to Twilio Console > Phone Numbers > Active Numbers
 2. Select your phone number
 3. Set **Voice URL:** `https://<FQDN>/twiml` (POST)
 
 **SMS (Conversation Orchestrator):**
+
 1. Go to Twilio Console > Conversation Orchestrator
 2. Select your Conversation Configuration
 3. Set **Webhook URL:** `https://<FQDN>/webhook` (POST)

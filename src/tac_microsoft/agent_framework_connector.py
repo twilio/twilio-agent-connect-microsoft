@@ -6,6 +6,7 @@ Agent Framework.  HTTP/WebSocket routing is delegated to ``TACFastAPIServer`` fr
 ``tac`` package.
 
 Key design:
+
 - ``create_agent`` factory returns an Agent Framework ``Agent``
 - Voice, SMS, chat, RCS, and WhatsApp channel instances are exposed as
   ``voice_channel`` / ``sms_channel`` / ``chat_channel`` / ``rcs_channel`` /
@@ -15,14 +16,17 @@ Key design:
   ``whatsapp_number`` on ``TACConfig``), and are ``None`` otherwise.
 
 Conversation history:
+
 - The bridge passes an ``AgentSession`` to every ``agent.run()`` call so
   that Agent Framework can load/save conversation history automatically.
+
 - Voice: agent + session are cached in-memory for the duration of the
   WebSocket call.  The same agent handles all utterances within a single
   call, and history accumulates naturally.  The session is also persisted
   to the ``AgentSessionStore`` in the background (fire-and-forget) after each
   utterance and on disconnect, enabling auditing and persistence of
   Foundry thread IDs without impacting voice latency.
+
 - SMS/chat: an ``AgentSessionStore`` persists the ``AgentSession`` between
   messages.  Before each ``agent.run()``, the bridge loads the session from
   the store (or creates a new one); after the run it saves the session

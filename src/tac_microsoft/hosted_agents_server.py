@@ -15,6 +15,7 @@ two fixed routes:
   - Twilio voice TwiML form (APIM converts form → JSON before this point;
     we detect by ``CallSid`` + absent ``eventType``) → call
     ``voice_channel.handle_incoming_call(...)`` and return the TwiML XML.
+
 * ``/invocations_ws`` wraps the Starlette ``WebSocket`` in
   ``StarletteWebSocketAdapter`` and delegates to
   ``voice_channel.handle_websocket(...)``.

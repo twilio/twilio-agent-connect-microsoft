@@ -5,7 +5,7 @@ in Foundry Agent Service**, fronted by APIM for Twilio signature validation and
 WebSocket passthrough. One command (`make deploy`) provisions everything fresh.
 
 This is the SMS + voice path; for the Container Apps equivalent see
-[`../agent_framework_container_apps`](../agent_framework_container_apps).
+[`../agent_framework_container_apps`](../agent_framework_container_apps/README.md).
 
 ## Architecture
 
@@ -38,8 +38,10 @@ graph LR
 
 - **Hosted Agent** — TAC + Agent Framework running in a Foundry sandbox
   (`POST /invocations` + `WS /invocations_ws`).
+
 - **APIM** — validates the Twilio signature, authenticates to Foundry, and
   adapts each Twilio request to the agent's two routes.
+
 - **Created fresh by the deploy** — Foundry account + project + model
   deployment, Container Registry, APIM, and Key Vault.
 
@@ -56,6 +58,7 @@ graph LR
 - **Active subscription** with permission to create Cognitive Services
   (Foundry) accounts, APIM, Key Vault, Container Registry, and role
   assignments.
+
 - **Region:** Hosted Agents is region-limited. Defaults to **`northcentralus`**
   (known-good); override via `AZURE_LOCATION` / `FOUNDRY_LOCATION` only if your
   region supports Hosted Agents.
@@ -107,6 +110,7 @@ anytime.
 
 - **Interactive** — run `make deploy` and answer the prompts (editable
   defaults; secrets hidden).
+
 - **Edit `.env` first** — `cp .env.template .env`, fill it in, then
   `make deploy`. Values already set are used as-is and not prompted (this is
   also the CI path: pre-fill `.env` so nothing prompts).
@@ -161,6 +165,7 @@ azd ai agent monitor --session-id <conversationId-or-CallSid>
 
 - **Edit `agent.py`** (prompt, tools) → `make agent` (rebuilds + re-pushes the
   container only).
+
 - **Change any env var** (model, Twilio creds, etc.) → edit `.env`, then
   `make deploy`.
 
@@ -211,11 +216,14 @@ adapts every Twilio request to that shape. Per request the policies:
 1. **Validate `X-Twilio-Signature`** (HMAC-SHA1, auth token from Key Vault).
    SMS and voice-WS sign the URL only; voice TwiML signs URL + sorted form
    pairs. Mismatch → 401.
+
 2. **Pin a sandbox** by lifting the Twilio ID onto `?agent_session_id=`
    (`data.conversationId` for SMS, `CallSid` for voice), keeping a call's TwiML
    POST and WSS upgrade on one sandbox.
+
 3. **Inject an Entra bearer** via APIM's managed identity — the Foundry
    endpoint isn't public.
+
 4. **Convert form → JSON** (voice TwiML only).
 5. **Rewrite to the Foundry route** and strip `X-Twilio-Signature`. The WS
    upgrade additionally requires `agent_session_id` and injects
@@ -236,24 +244,31 @@ just hitting a URL.
 - **Calls/texts get no response, Twilio shows HTTP 404** — the Twilio webhook
   HTTP method is GET; APIM only defines POST. Set both webhooks to **POST**
   (or run `make configure-twilio`).
+
 - **`/twiml` returns 500 `{"error":"TWILIO_VOICE_PUBLIC_DOMAIN is not set"}`** —
   the agent was pushed without the voice domain. Re-run `make deploy` (it wires
   this after provision).
+
 - **SMS works but voice doesn't, or vice-versa** — `TWILIO_PHONE_NUMBER` and
   `TWILIO_CONVERSATION_CONFIGURATION_ID` point at different orchestrator
   configs. Voice keys off the number, SMS off the config; make them match, then
   `make configure-twilio`.
+
 - **APIM returns 401 "Invalid X-Twilio-Signature"** — signature mismatch.
   Enable the APIM trace (`Ocp-Apim-Trace` header / portal Test tab) to inspect
   the signed URL. Common causes: the agent's public domain doesn't match what
   Twilio dials; stale Key Vault secret.
+
 - **Foundry returns 502 / 504** on `/invocations` — sandbox still warming up;
   retry after a few seconds.
+
 - **First provision fails with `Caller is not authorized ... getSecret`** — the
   transient Key Vault RBAC-propagation race. `make deploy` retries it
   automatically; by hand, wait ~30-60s and re-run `azd provision --no-state`.
+
 - **`RequestDisallowedByPolicy`** — your tenant enforces a policy the resource
   doesn't satisfy. The error names it; adjust the matching `.env` value or the
   tags in `infra/`.
+
 - **Phone numbers show without their leading `+`** — cosmetic; `azd env
   get-values` strips `+` from display but stores/substitutes it correctly.
