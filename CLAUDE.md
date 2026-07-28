@@ -367,6 +367,6 @@ make check
 ## Related Documentation
 
 - TAC Core: [CLAUDE.md](https://github.com/twilio/twilio-agent-connect-python/blob/main/CLAUDE.md)
-- TAC AWS sibling: [CLAUDE.md](https://github.com/twilio/aws-twilio-agent-connect-python/blob/main/CLAUDE.md)
+- TAC AWS sibling: [CLAUDE.md](https://github.com/twilio/twilio-agent-connect-aws/blob/main/CLAUDE.md)
 - Microsoft Agent Framework: [github.com/microsoft/agent-framework](https://github.com/microsoft/agent-framework)
 - Azure AI Foundry Voice Live: [learn.microsoft.com/azure/ai-foundry](https://learn.microsoft.com/azure/ai-foundry/)
