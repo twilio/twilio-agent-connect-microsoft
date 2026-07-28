@@ -9,11 +9,14 @@ Conversation Relay handles STT/TTS.  The connector sends text in and
 streams text deltas back.
 
 Key design:
+
 - ``VoiceLiveConfig`` holds connection parameters, instructions, tools,
   and tool executors
+
 - A ``voice_channel`` instance is exposed — pass it to ``TACFastAPIServer``
 
 Conversation history:
+
 - A single ``VoiceLiveSession`` (WebSocket) is kept open for the
   duration of the call.  Voice Live manages conversation state
   server-side, so all utterances within a call share context.

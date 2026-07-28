@@ -1,6 +1,6 @@
 <div align="center">
   <div>
-    <img src="logo.svg" alt="Twilio Agent Connect for Microsoft Logo" width="120" height="120">
+    <img src="https://raw.githubusercontent.com/twilio/twilio-agent-connect-microsoft/main/logo.svg" alt="Twilio Agent Connect for Microsoft Logo" width="120" height="120">
   </div>
 
   <h1>
@@ -26,7 +26,7 @@
   </p>
 </div>
 
-Ships [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) and [Azure AI Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), plus [production Azure deployments](./deploy) for each.
+Ships [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) and [Azure AI Voice Live](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/voice-live) connectors for [Twilio Agent Connect (TAC)](https://github.com/twilio/twilio-agent-connect-python), plus [production Azure deployments](deploy/README.md) for each.
 
 ---
 
@@ -44,10 +44,10 @@ Ships [Microsoft Agent Framework](https://github.com/microsoft/agent-framework) 
   - Tool execution with async handlers
 - Multi-channel support (Voice + SMS + Chat + RCS + WhatsApp)
 - Built-in TAC tools (memory recall, knowledge search, Studio Flow handoff)
-- Production [reference deployments](./deploy) (Bicep + azd) for running your TAC agent on Azure:
-  - [Agent Framework on Azure Container Apps](./deploy/agent_framework_container_apps)
-  - [Agent Framework on Hosted Agents in Foundry Agent Service](./deploy/agent_framework_hosted_agents) (`TACHostedAgentsApp`, APIM-fronted)
-  - [Voice Live on Azure Container Apps](./deploy/voice_live_container_apps)
+- Production [reference deployments](deploy/README.md) (Bicep + azd) for running your TAC agent on Azure:
+  - [Agent Framework on Azure Container Apps](deploy/agent_framework_container_apps/README.md)
+  - [Agent Framework on Hosted Agents in Foundry Agent Service](deploy/agent_framework_hosted_agents/README.md) (`TACHostedAgentsApp`, APIM-fronted)
+  - [Voice Live on Azure Container Apps](deploy/voice_live_container_apps/README.md)
 - [`AgentSessionStore`](#agentsessionstore) implementations for in-memory, file, and Cosmos DB
 
 ## Installation
@@ -70,7 +70,7 @@ pip install twilio-agent-connect-microsoft[voice-live,server]
 pip install twilio-agent-connect-microsoft[hosted-agents]
 ```
 
-The `hosted-agents` extra provides the Hosted Agents runtime (`TACHostedAgentsApp`) and includes `tac[server]`, so a separate `server` extra isn't needed. `TACHostedAgentsApp` hosts any TAC connector, so add the extra for the connector you want — e.g. `[hosted-agents,agent-framework]` (as the [deployment example](./deploy/agent_framework_hosted_agents) does) or `[hosted-agents,voice-live]`. Or pair it with TAC core to host an agent built on any other SDK.
+The `hosted-agents` extra provides the Hosted Agents runtime (`TACHostedAgentsApp`) and includes `tac[server]`, so a separate `server` extra isn't needed. `TACHostedAgentsApp` hosts any TAC connector, so add the extra for the connector you want — e.g. `[hosted-agents,agent-framework]` (as the [deployment example](deploy/agent_framework_hosted_agents/README.md) does) or `[hosted-agents,voice-live]`. Or pair it with TAC core to host an agent built on any other SDK.
 
 ### Development
 
@@ -150,7 +150,7 @@ The `AgentSessionStore` protocol defines how Agent Framework sessions are persis
 Three implementations are included:
 
 - **`InMemoryAgentSessionStore`** — default, suitable for single-instance deployments
-- **`FileAgentSessionStore`** — persists sessions as JSON files on disk (single-instance, local dev). Also the recommended store for [Hosted Agents in Foundry Agent Service](./deploy/agent_framework_hosted_agents), where APIM pins each conversation to one sandbox via `agent_session_id` affinity and `$HOME` survives idle eviction — giving durable continuity without Cosmos DB
+- **`FileAgentSessionStore`** — persists sessions as JSON files on disk (single-instance, local dev). Also the recommended store for [Hosted Agents in Foundry Agent Service](deploy/agent_framework_hosted_agents/README.md), where APIM pins each conversation to one sandbox via `agent_session_id` affinity and `$HOME` survives idle eviction — giving durable continuity without Cosmos DB
 - **`CosmosDBAgentSessionStore`** — persists sessions in Azure Cosmos DB for NoSQL (horizontally scaled production). Requires the `cosmos` extra: `pip install twilio-agent-connect-microsoft[cosmos]`
 
 Implement the protocol to use any other backing store (Redis, DynamoDB, Postgres, etc.).
@@ -175,11 +175,18 @@ See [`getting_started/README.md`](https://github.com/twilio/twilio-agent-connect
 ## Dependencies
 
 TAC Microsoft depends on:
+
 - **twilio-agent-connect** - Core [Twilio Agent Connect](https://pypi.org/project/twilio-agent-connect/) framework (installed from PyPI)
   - Requires `twilio-agent-connect[server]` extra for TACFastAPIServer support
 - **agent-framework** (optional) - [Microsoft Agent Framework](https://github.com/microsoft/agent-framework)
 - **websockets** (optional) - For Voice Live connector
 - **azure-cosmos** (optional) - For CosmosDB session store
+
+## Documentation
+
+- **[API Reference](https://twilio.github.io/twilio-agent-connect-microsoft/)** - Full API documentation generated from the source
+- **[CLAUDE.md](https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/CLAUDE.md)** - Architecture, development guide, and API reference
+- **[Getting Started Guide](https://github.com/twilio/twilio-agent-connect-microsoft/blob/main/getting_started/README.md)** - Setup instructions, environment variables, and troubleshooting
 
 ## Contributing
 

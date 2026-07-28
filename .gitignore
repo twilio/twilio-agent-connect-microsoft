@@ -30,6 +30,10 @@ venv/
 # Azure Developer CLI
 .azure/
 
+# mkdocs documentation
+/site
+docs/_build/
+
 # OS
 .DS_Store
 Thumbs.db
