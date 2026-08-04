@@ -1219,9 +1219,7 @@ agent = client.as_agent(name="Agent", tools=[t for t in tools if t])
   </span>
 
 <a href="#tac_microsoft.agent_framework_tools.fetch_knowledge_base_info" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">fetch_knowledge_base_info</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="KnowledgeBaseInfo
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">fetch_knowledge_base_info</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="KnowledgeBaseInfo
 
 
   
@@ -1347,13 +1345,7 @@ knowledge base configuration without hardcoding them.</p>
 
 
 <a href="#tac_microsoft.agent_framework_tools.create_memory_tool" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_memory_tool</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span>
-    <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span> <span class="o">|</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_memory_tool</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span> <span class="o">|</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1379,14 +1371,7 @@ not met (no memory client or <code>profile_id</code>).</p>
   </span>
 
 <a href="#tac_microsoft.agent_framework_tools.create_knowledge_tool" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_knowledge_tool</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span>
-    <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">top_k</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_knowledge_tool</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1408,11 +1393,7 @@ metadata to derive defaults. Returns a plain async function.</p>
 
 
 <a href="#tac_microsoft.agent_framework_tools.create_handoff_tool" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_handoff_tool</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span>
-    <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span>
-    <span class="n">attributes</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_handoff_tool</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span> <span class="n">attributes</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="typing.Any">Any</span></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1438,9 +1419,7 @@ metadata to derive defaults. Returns a plain async function.</p>
   </span>
 
 <a href="#tac_microsoft.agent_framework_tools.interstitial_filler" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">interstitial_filler</span><span class="p">(</span>
-    <span class="n">filler_words</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="collections.abc.AsyncGenerator">AsyncGenerator</span></span><span class="p">[</span><span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">interstitial_filler</span><span class="p">(</span><span class="n">filler_words</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><span title="collections.abc.AsyncGenerator">AsyncGenerator</span></span><span class="p">[</span><span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1608,9 +1587,7 @@ config = VoiceLiveConfig(..., tools=[t for t in tools if t])
   </span>
 
 <a href="#tac_microsoft.voice_live_tools.fetch_knowledge_base_info" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">fetch_knowledge_base_info</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="KnowledgeBaseInfo
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">fetch_knowledge_base_info</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-internal" title="KnowledgeBaseInfo
 
 
   
@@ -1736,13 +1713,7 @@ knowledge base configuration without hardcoding them.</p>
 
 
 <a href="#tac_microsoft.voice_live_tools.create_memory_tool" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_memory_tool</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span>
-    <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="tac.tools.base.TACTool" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/tools/#tac.tools.TACTool">TACTool</a></span> <span class="o">|</span> <span class="kc">None</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_memory_tool</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="tac.tools.base.TACTool" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/tools/#tac.tools.TACTool">TACTool</a></span> <span class="o">|</span> <span class="kc">None</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1767,14 +1738,7 @@ knowledge base configuration without hardcoding them.</p>
   </span>
 
 <a href="#tac_microsoft.voice_live_tools.create_knowledge_tool" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_knowledge_tool</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span>
-    <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">top_k</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="tac.tools.base.TACTool" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/tools/#tac.tools.TACTool">TACTool</a></span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_knowledge_tool</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">knowledge_base_id</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="tac.tools.base.TACTool" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/tools/#tac.tools.TACTool">TACTool</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1796,11 +1760,7 @@ metadata to derive defaults.</p>
 
 
 <a href="#tac_microsoft.voice_live_tools.create_handoff_tool" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_handoff_tool</span><span class="p">(</span>
-    <span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span>
-    <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span>
-    <span class="n">attributes</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="tac.tools.base.TACTool" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/tools/#tac.tools.TACTool">TACTool</a></span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">create_handoff_tool</span><span class="p">(</span><span class="n">tac</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.TAC" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/core/#tac.core.TAC">TAC</a></span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n"><a class="autorefs autorefs-external" title="tac.models.session.ConversationSession" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/models/#tac.models.ConversationSession">ConversationSession</a></span><span class="p">,</span> <span class="n">attributes</span><span class="p">:</span> <span class="n"><span title="dict">dict</span></span><span class="p">[</span><span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n"><a class="autorefs autorefs-external" title="tac.tools.base.TACTool" href="https://twilio.github.io/twilio-agent-connect-python/latest/api/tools/#tac.tools.TACTool">TACTool</a></span>
 </code></pre></div>
 
     <div class="doc doc-contents ">

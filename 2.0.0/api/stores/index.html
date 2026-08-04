@@ -1568,9 +1568,7 @@ a persistent implementation (Redis, CosmosDB, etc.).</p>
 
 
 <a href="#tac_microsoft.stores.file.FileAgentSessionStore" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">FileAgentSessionStore</span><span class="p">(</span>
-    <span class="n">storage_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">=</span> <span class="s2">&quot;/tmp/tac_sessions&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">FileAgentSessionStore</span><span class="p">(</span><span class="n">storage_dir</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="n"><span title="pathlib.Path">Path</span></span> <span class="o">=</span> <span class="s1">&#39;/tmp/tac_sessions&#39;</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1771,13 +1769,7 @@ Created automatically if it doesn't exist.</p>
 
 
 <a href="#tac_microsoft.stores.cosmos.CosmosDBAgentSessionStore" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><span class="nf">CosmosDBAgentSessionStore</span><span class="p">(</span>
-    <span class="n">endpoint</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span>
-    <span class="n">credential</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span>
-    <span class="n">database_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;tac&quot;</span><span class="p">,</span>
-    <span class="n">container_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s2">&quot;sessions&quot;</span><span class="p">,</span>
-    <span class="n">ttl</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><span class="nf">CosmosDBAgentSessionStore</span><span class="p">(</span><span class="n">endpoint</span><span class="p">:</span> <span class="n"><span title="str">str</span></span><span class="p">,</span> <span class="n">credential</span><span class="p">:</span> <span class="n"><span title="typing.Any">Any</span></span><span class="p">,</span> <span class="n">database_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s1">&#39;tac&#39;</span><span class="p">,</span> <span class="n">container_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="s1">&#39;sessions&#39;</span><span class="p">,</span> <span class="n">ttl</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
