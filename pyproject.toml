@@ -121,6 +121,7 @@ exclude = [
 # (e.g. azure-search-documents==11.7.0b2), so the lock can only be resolved
 # with prereleases enabled. Recording it here makes uv.lock reproducible.
 prerelease = "allow"
+required-version = "==0.9.26"
 
 [tool.ruff]
 line-length = 100
