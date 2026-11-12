@@ -24,13 +24,13 @@ dev-setup: sync
 
 format:
 	@echo "Formatting code with ruff..."
-	uv run ruff format src getting_started tests deploy
-	uv run ruff check --fix src getting_started tests deploy
+	uv run ruff format .
+	uv run ruff check --fix .
 
 lint:
 	@echo "Running lint checks..."
-	uv run ruff check src getting_started tests deploy
-	uv run ruff format --check src getting_started tests deploy
+	uv run ruff check .
+	uv run ruff format --check .
 
 type-check:
 	@echo "Running mypy type checking..."
