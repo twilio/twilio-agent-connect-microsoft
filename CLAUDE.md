@@ -123,14 +123,14 @@ The connector owns the `VoiceChannel`, so these voice features are used directly
 
 - **Per-call TwiML customization**: `connector.voice_channel.on_inbound_call_twiml(cb)` where `async cb(req: TwiMLRequest) -> TwiMLOptions`. Fields the callback sets override `VoiceChannelConfig.default_twiml_options` and TAC defaults; unset fields fall through. `TwiMLRequest` / `TwiMLOptions` are re-exported from `tac_microsoft`.
 - **Welcome greeting**: set it via `VoiceChannelConfig(default_twiml_options=TwiMLOptions(welcome_greeting=...))`; the channel supplies a default when unset.
-- **ConversationRelay-only voice** (no Orchestrator): leave `TWILIO_CONVERSATION_CONFIGURATION_ID` unset — core TAC gates orchestrated vs relay-only behavior on it.
+- **ConversationRelay-only voice** (no Orchestrator): leave `TWILIO_CONVERSATION_CONFIGURATION_ID` unset — core TAC gates orchestrated vs relay-only behavior on it. Only `VoiceLiveConnector` supports this: `AgentFrameworkConnector` always builds SMS and Chat, and core messaging channels raise `ValueError` without Orchestrator.
 - **Outbound initiation**: `InitiateVoiceConversationOptions` / `InitiateMessagingConversationOptions` / `InitiateChatConversationOptions` and their result types are re-exported from `tac_microsoft`.
 
 > **Config note:** voice URL fields live on `TACConfig` (`voice_public_domain` / `voice_websocket_path` / `voice_action_path`); `TACHostedAgentsApp` reads them from `tac.config`.
 
 ### Session Stores
 
-`AgentSessionStore` is a Protocol (`load` / `save` / `delete`). Three implementations ship:
+`AgentSessionStore` is a Protocol (`load` / `save`). Three implementations ship (the file and Cosmos stores also add `delete`):
 
 - `InMemoryAgentSessionStore` — default, single-instance only.
 - `FileAgentSessionStore` — JSON on disk, good for local dev.
@@ -301,6 +301,7 @@ CI's `TAC Compat` matrix also runs lint, mypy and tests against the latest patch
 When a new `twilio-agent-connect` release is published to PyPI, bump every `twilio-agent-connect` constraint in `pyproject.toml` together (base dependency and each extra that pulls it), then re-lock and run all checks:
 
 ```bash
+uv lock --upgrade-package twilio-agent-connect
 make sync
 make check
 ```
