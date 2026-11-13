@@ -2,94 +2,42 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Keep it accurate: when a change alters anything described here (behavior, commands, layout, CI), update this file in the same PR.
+
+If a PR, including later pushes to it, conflicts with anything in this file, the PR must also update this file to match before it merges.
+
 ## Project Overview
 
-TAC Microsoft is an open-source library providing Azure-specific integrations for Twilio Agent Connect (TAC). It contains connectors that combine agent runtime integration with multi-channel conversation management.
+twilio-agent-connect-microsoft is an open-source library providing Azure integrations for Twilio Agent Connect (TAC). It contains connectors that combine an Azure agent runtime integration with multi-channel conversation management.
 
-**Key Architecture**: TAC Microsoft is a separate package that depends on TAC (Core Python) as an external dependency. It does NOT contain TAC source code — it imports from the `tac` package.
+**Key Architecture**: twilio-agent-connect-microsoft is a separate package that depends on TAC (core Python) as an external dependency. It does NOT contain TAC source code — it imports from the `tac` package.
 
-## Understanding TAC and Twilio Platform Services
+## Understanding TAC
 
-TAC (Twilio Agent Connect) is middleware that integrates with several Twilio platform services to enable context-aware AI agents. Understanding these services is essential for using TAC Microsoft effectively.
+TAC (Twilio Agent Connect) is middleware that integrates with Twilio platform services:
+- **Conversation Orchestrator** - Organizes voice/SMS/WhatsApp into conversations
+- **Conversation Memory** - Stores customer context, preferences, and history
+- **Conversation Intelligence** - Extracts insights via language operators
+- **Knowledge** - Semantic search over knowledge bases
 
-### Conversation Orchestrator
-
-**What it is**: Conversation Orchestrator organizes your voice calls, SMS messages, and WhatsApp messages into conversations. It observes traffic from your Twilio account, links it to customer profiles, and makes it available for AI agents and analytics.
-
-**How TAC uses it**: TAC initializes a `ConversationClient` that interacts with Conversation Orchestrator APIs to:
-- Create and manage conversations
-- Track participants across channels
-- List conversation history (communications)
-- Link channel IDs (call IDs, message IDs) to conversations
-- Retrieve conversation configuration (including memory store ID)
-
-**In TAC Microsoft**: Connectors use TAC's conversation management to route messages to the appropriate agent instance per conversation. The `conversation_id` from Orchestrator becomes the session identifier for Azure agent runtimes (Agent Framework `AgentSession`, Voice Live WebSocket session).
-
-### Conversation Memory
-
-**What it is**: Conversation Memory provides agents with real-time, contextual data about customers. It stores and retrieves key facts, conversation history, preferences, and insights across different channels. This allows agents to build on previous conversations rather than treating every interaction as isolated.
-
-**Key capabilities**:
-- **Observations**: Facts and preferences extracted from conversations (e.g., "prefers window seats", "allergic to peanuts")
-- **Summaries**: Conversation summaries that provide quick context
-- **Sessions**: Historical session data
-- **Profile lookup**: Find customer profiles by phone/email
-
-**How TAC uses it**: TAC initializes a `MemoryClient` (using the memory_store_id from Conversation Orchestrator configuration) that:
-- Retrieves memories via `retrieve_memory()` with optional semantic search
-- Looks up profiles by phone/email when profile_id isn't available
-- Provides memory context to your agent callback via `TACMemoryResponse`
-- Falls back to Conversation Orchestrator's communication history if Memory API fails
-
-**In TAC Microsoft**: Memory context is auto-retrieved per message and injected into the user message via `format_memory_context()` or a custom `on_message` hook. `memory_mode` on `SMSChannelConfig` / `ChatChannelConfig` / `RCSChannelConfig` / `WhatsAppChannelConfig` / `VoiceChannelConfig` (`"always"` | `"never"` | `"once"`, default `"never"`) toggles this behavior.
-
-### Conversation Intelligence
-
-**What it is**: Conversation Intelligence analyzes conversations using language operators to extract insights, detect sentiment, generate summaries, and more. It processes conversations asynchronously and sends results via webhooks.
-
-**How TAC uses it**: TAC includes an `OperatorResultProcessor` that:
-- Processes Conversation Intelligence webhook events
-- Filters events by configuration ID and operator SID
-- Automatically creates observations or summaries in Conversation Memory based on CI results
-- Handles multiple operator results per event
-
-**In TAC Microsoft**: `TACFastAPIServer` provides an optional `/ci-webhook` endpoint for receiving Conversation Intelligence events. Connectors don't directly interact with CI, but they benefit from the observations and summaries that CI writes back into Memory.
-
-### Knowledge
-
-**What it is**: Knowledge provides semantic search capabilities over knowledge bases (FAQs, product documentation, company policies, etc.). It enables agents to ground responses in authoritative source material.
-
-**How TAC uses it**: TAC optionally initializes a `KnowledgeClient` that:
-- Searches knowledge bases with semantic queries
-- Returns relevant chunks with relevance scores
-- Provides a `create_knowledge_tool()` for LLM function calling
-
-**In TAC Microsoft**: Knowledge search is exposed via `create_knowledge_tool()` in both `agent_framework_tools` (plain async callable) and `voice_live_tools` (`TACTool` instance). Knowledge results can supplement agent context alongside memory.
-
-### How It All Works Together
-
-1. **Conversation starts**: Customer sends SMS or calls → Conversation Orchestrator creates a conversation
-2. **TAC retrieves context**: TAC uses conversation_id and profile_id to fetch memories from Conversation Memory
-3. **Memory is injected**: TAC provides memory context to your agent (via callback or `format_memory_context()`)
-4. **Agent responds**: Your agent (Agent Framework, Voice Live, etc.) processes user message with full context
-5. **Conversation continues**: Subsequent messages in the same conversation maintain context
-6. **Intelligence analyzes**: Conversation Intelligence processes the conversation and creates new observations/summaries
-7. **Memory grows**: Future conversations benefit from richer customer profiles
+**In twilio-agent-connect-microsoft**: Connectors register `on_message_ready()`, `on_conversation_ended()` and `on_interrupt()` callbacks on a `TAC` instance, inject Conversation Memory into the user message (`format_memory_context()` or a custom `on_message` hook, toggled per channel by `memory_mode`: `"always"` | `"never"` | `"once"`, default `"never"`), and route each reply back on the channel it arrived on. The TAC conversation id is the key for per-conversation agent state (an Agent Framework `AgentSession`, a Voice Live WebSocket session). Knowledge is exposed through `create_knowledge_tool()`, and Conversation Intelligence results reach agents only through the observations and summaries CI writes back into Memory (via `TACFastAPIServer`'s optional `/ci-webhook`).
 
 ## Development Commands
 
 ```bash
-make sync              # Install dependencies (uses uv)
-make dev-setup         # Full dev setup
+make sync              # Install dependencies (uv sync --all-extras)
+make dev-setup         # Full dev setup (sync only; no pre-commit hooks)
 make format            # Format with ruff
 make lint              # Lint check only
-make type-check        # mypy strict mode
+make type-check        # mypy (disallow_untyped_defs)
 make test              # Run pytest
 make check             # All checks (lint + type-check + test)
-make docs              # Build the docs site into site/
+make docs              # Build the docs site into site/ (--strict, fails on broken links)
 make docs-serve        # Serve docs locally with live reload
 make docs-versions     # List versioned docs published to gh-pages
 ```
+
+Lint and format run ruff over the whole repo; mypy covers `src/tac_microsoft`, `getting_started` and `deploy`; pytest covers `tests/`.
 
 ## Package Structure
 
@@ -127,17 +75,15 @@ tests/                                  # pytest suite (native asyncio mode)
 
 ## Code Conventions
 
-- **Python 3.10+**: Prefer modern syntax (`str | None`, `list[str]`), `from __future__ import annotations` in new modules.
-- **mypy strict**: All functions need type hints, no incomplete defs.
-- **ruff**: Line length 100, isort-compatible import ordering.
-- **Imports from TAC**: Always import from `tac` package, never from internal `tac_microsoft` paths except for local imports.
+- **Python 3.10+**: `requires-python` is `>=3.10`. Use modern syntax (`str | None`, `list[str]`) with `from __future__ import annotations`.
+- **mypy**: `disallow_untyped_defs` and `disallow_incomplete_defs` are on, so every function needs full type hints. The `pydantic.mypy` plugin is enabled to match core TAC.
+- **ruff**: Line length 100, rule sets `E W F I B C4 UP N`, isort ordering with `tac_microsoft` as first-party.
+- **Imports from TAC**: Always import from the `tac` package; never import TAC classes from internal `tac_microsoft` paths.
 - **Lazy imports**: `tac_microsoft.__init__` uses `__getattr__` to lazy-load optional-extra modules so `import tac_microsoft` succeeds with just core deps installed.
 
 ## Dependencies
 
 ### Core Dependency
-
-TAC Microsoft depends on TAC published on PyPI:
 
 ```toml
 dependencies = [
@@ -147,36 +93,29 @@ dependencies = [
 
 ### Optional Extras
 
+Each runtime's Azure SDK is only required by its own extra, so installing with no extras never fails on import.
+
 - `server` — TAC FastAPI server (pulls `tac[server]`)
 - `agent-framework` — Microsoft Agent Framework + Azure AI + azure-identity
 - `voice-live` — websockets client for Azure AI Foundry Voice Live
 - `cosmos` — Azure Cosmos DB client for `CosmosDBAgentSessionStore`
 - `hosted-agents` — Hosted Agents in Foundry Agent Service server (`TACHostedAgentsApp`). Pulls `azure-ai-agentserver-invocations` and `azure-ai-agentserver-core` (both pre-release betas as of writing) from PyPI.
-- `dev` — All of the above plus ruff, mypy
+- `dev` — All of the above plus pytest, ruff and mypy
+- `docs` is a dependency group (`uv run --group docs ...`), not an extra
 
 ## Key Concepts
 
 ### Connectors
 
-Connectors combine agent runtime integration with multi-channel conversation management. They:
-- Create and manage per-conversation agent instances
-- Create Voice, SMS, Chat, RCS, and WhatsApp channel instances (`VoiceChannel`, `SMSChannel`, `ChatChannel`, `RCSChannel`, `WhatsAppChannel` from core TAC)
-- Persist `AgentSession` via a pluggable `AgentSessionStore`
-- Route responses to the right channel based on `context.channel`
-- Register with TAC via `on_message_ready()`, `on_conversation_ended()`, `on_interrupt()` callbacks
+Connectors combine agent runtime integration with channel management. Each one:
+- Builds the channel set: Voice always; `AgentFrameworkConnector` adds SMS and Chat always, plus RCS and WhatsApp only when `TWILIO_RCS_SENDER_ID` / `TWILIO_WHATSAPP_NUMBER` is configured. Their `*_config` args are tuning only and never enable a channel.
+- Exposes channels as attributes (`voice_channel`, `sms_channel`, `chat_channel`, and `rcs_channel` / `whatsapp_channel`, which are `None` when not configured).
+- Registers with TAC via `on_message_ready()`, `on_conversation_ended()` and `on_interrupt()`.
+- Injects Conversation Memory into the user message per the channel's `memory_mode`.
 
-**Available Connectors:**
+**AgentFrameworkConnector**: Microsoft Agent Framework integration. Accepts `tac`, `create_agent: (ConversationSession) -> Agent`, optional hooks (`on_message`, `on_error`), optional channel configs and an optional `session_store`. Voice caches the agent and `AgentSession` in memory for the call, streams responses, and saves to the `AgentSessionStore` in the background after each utterance. SMS / Chat / RCS / WhatsApp share one messaging handler: load `AgentSession` from the store, `agent.run()`, save back, preserving Foundry `thread_id` and Responses API history across messages.
 
-**AgentFrameworkConnector** — Microsoft Agent Framework integration:
-- Accepts `tac`, `create_agent: (ConversationSession) -> Agent`, optional hooks (`on_message`, `on_error`), optional channel configs, optional `session_store`.
-- Voice: agent + `AgentSession` cached in-memory for the call duration; streamed responses; background save to `AgentSessionStore` after each utterance.
-- SMS / Chat / RCS / WhatsApp: load `AgentSession` from store → `agent.run()` → save back. Preserves Foundry `thread_id` and Responses API history across messages. All four share one messaging handler.
-- Channels exposed as `voice_channel` / `sms_channel` / `chat_channel` / `rcs_channel` / `whatsapp_channel`. **RCS and WhatsApp are opt-in**: their channel is created only when a `rcs_config` / `whatsapp_config` is passed or the address is set on `TACConfig` (`TWILIO_RCS_SENDER_ID` / `TWILIO_WHATSAPP_NUMBER`); otherwise the attribute is `None`.
-
-**VoiceLiveConnector** — Azure AI Foundry Voice Live integration:
-- Voice only (server-side conversation state; no `AgentSession` needed).
-- One `VoiceLiveSession` per conversation; WebSocket managed internally.
-- Tool execution via Azure-side function-calling protocol.
+**VoiceLiveConnector**: Azure AI Foundry Voice Live integration. Voice only, with server-side conversation state (no `AgentSession`). One `VoiceLiveSession` per conversation with the WebSocket managed internally; tools run over the Azure-side function-calling protocol.
 
 ### Voice / TwiML customization, relay-only, and outbound
 
@@ -213,7 +152,7 @@ Two export variants:
 
 ### Server
 
-TAC Microsoft ships two server classes that both plug into the same connector channels:
+twilio-agent-connect-microsoft ships two server classes that both plug into the same connector channels:
 
 - **`TACFastAPIServer`** (re-exported from `tac.server`) — FastAPI/uvicorn, runs on Container Apps or any general HTTP host. Five routes: `/webhook`, `/twiml`, `/ws`, `/conversation-relay-callback`, optional `/ci-webhook`.
 - **`TACHostedAgentsApp`** (`tac_microsoft.hosted_agents_server`) — wraps `InvocationAgentServerHost` for the Hosted Agents in Foundry Agent Service runtime. Hosted Agents only exposes `POST /invocations` and `WS /invocations_ws`, so this server overloads the HTTP route and dispatches by payload shape (Conversation Orchestrator JSON envelope vs. Twilio voice TwiML form). APIM in front handles HMAC validation (the only auth boundary — agent does not re-validate `X-Twilio-Signature`), form→JSON conversion, and `agent_session_id` injection.
@@ -239,11 +178,11 @@ server = TACHostedAgentsApp(
 ### Correct Imports
 
 ```python
-# TAC imports — external dependency
+# TAC imports - external dependency
 from tac import TAC, TACConfig
 from tac.models.session import ConversationSession
 
-# TAC Microsoft imports — local package (re-exports TAC core where possible)
+# twilio-agent-connect-microsoft imports - local package (re-exports TAC core where possible)
 from tac_microsoft import (
     AgentFrameworkConnector,
     VoiceLiveConnector,
@@ -300,6 +239,8 @@ server = TACFastAPIServer(
 server.start()
 ```
 
+**See full examples**: `getting_started/examples/agent_framework/` (`basic.py`, `advanced.py`)
+
 ### Horizontal Scaling with CosmosDBAgentSessionStore
 
 ```python
@@ -316,6 +257,8 @@ connector = AgentFrameworkConnector(
     session_store=session_store,
 )
 ```
+
+**See full examples**: `deploy/agent_framework_container_apps/`
 
 ### Voice Live with Custom Tools
 
@@ -342,47 +285,54 @@ server = TACFastAPIServer(tac=tac, voice_channel=connector.voice_channel)
 server.start()
 ```
 
+**See full examples**: `getting_started/examples/voice_live/basic.py`
+
 ## Testing
 
-Tests live in `tests/` and use pytest with `asyncio_mode = auto` (via `pytest.ini`). Run with `make test` or `uv run pytest`. Conventions:
+Tests live in `tests/` and use pytest with `asyncio_mode = auto` (see `pytest.ini`). Run with `make test` or `uv run pytest`. Tests should:
+- Import from `tac_microsoft` (local) and `tac` (external dependency)
+- Mock `TAC`, channels and Azure clients with `AsyncMock` / `MagicMock` rather than calling Azure APIs
+- Treat the tool factories as thin wrappers around `tac.tools`: test the wiring, not core's behavior
 
-- Import from `tac_microsoft` (local) and `tac` (external).
-- Use `AsyncMock` / `MagicMock` for `TAC`, channels, and Azure clients.
-- Treat the tool factories as thin wrappers around `tac.tools` — prefer testing the wiring, not reimplementing core's tests.
-
-CI's `TAC Compat` matrix also runs lint, mypy and tests against the latest patch of each `twilio-agent-connect` minor in the `pyproject.toml` range (`.github/scripts/tac_versions.py`), so code must work on the oldest supported minor, not just the locked one. Reproduce and fix steps: CONTRIBUTING.md, "SDK Compatibility Checks".
+CI's `TAC Compat` matrix also runs lint, mypy and tests against the latest patch of each `twilio-agent-connect` minor in the `pyproject.toml` range (`.github/scripts/tac_versions.py`), so code must work on the oldest supported minor, not just the locked one. The matrix runs on Python 3.10, the oldest version this package supports. Reproduce and fix steps: CONTRIBUTING.md, "SDK Compatibility Checks".
 
 ## Updating TAC Dependency
 
-When a new `twilio-agent-connect` version is released on PyPI, bump the version constraint in `pyproject.toml` (all three entries — base, server extra, dev extra) and re-sync:
+When a new `twilio-agent-connect` release is published to PyPI, bump every `twilio-agent-connect` constraint in `pyproject.toml` together (base dependency and each extra that pulls it), then re-lock and run all checks:
 
 ```bash
-uv sync --all-extras
+make sync
 make check
 ```
 
+Raising the lower bound drops older minors from the `TAC Compat` matrix, so only raise it when code needs a newer TAC feature.
+
 ## Documentation
 
-- The public API reference is published at https://twilio.github.io/twilio-agent-connect-microsoft/ — versioned with `mike`, deployed from `.github/workflows/docs.yml` on each GitHub release.
-- API docs are generated from docstrings by MkDocs Material + mkdocstrings, so **docstrings are published documentation** — write them for both source readers and the rendered site.
-- Use **Markdown** in docstrings: `**bold**` for emphasis, `- ` bullet lists, backticks for identifiers, and fenced code blocks for examples. Leave a blank line before a list or fenced block so mkdocstrings parses it correctly.
-- TAC core types (`TAC`, `ConversationSession`, ...) resolve to the TAC Python docs via the `inventories` entry in `mkdocs.yml`, so annotating with real TAC types produces cross-repo links for free.
+- The public API reference is published at https://twilio.github.io/twilio-agent-connect-microsoft/, versioned with `mike` and deployed from `.github/workflows/docs.yml` on each GitHub release.
+- API docs are generated from docstrings by MkDocs Material + mkdocstrings, so **docstrings are published documentation**. Write them for both source readers and the rendered site.
+- Use **Markdown** in docstrings: `**bold**`, `- ` bullet lists, backticks for identifiers, and fenced code blocks for examples, with a blank line before a list or fenced block.
+- TAC core types (`TAC`, `ConversationSession`, ...) resolve to the TAC Python docs via the `inventories` entry in `mkdocs.yml`, so annotating with real TAC types produces cross-repo links.
 - `docs/api/*.md` targets individual modules (e.g. `tac_microsoft.agent_framework_connector`), not the top-level `tac_microsoft` package: `src/tac_microsoft/__init__.py` resolves optional connectors/stores/server through `__getattr__` at runtime, which griffe can't resolve statically. When you add a new module, add it to the corresponding docs page directly.
-- `docs/index.md` and `docs/deploy/**/README.md` are one-line snippet includes of `README.md` and the `deploy/*/README.md` guides — edit the source Markdown, never the docs stub. Use **absolute** GitHub URLs for paths outside the mirrored `deploy/` tree (e.g. links to `getting_started/`) in those files — relative links to unmirrored paths break once included in the site.
-- Verify docs changes with `make docs` (`uv run --group docs mkdocs build --strict`), which turns broken links into build failures.
+- `docs/index.md` and `docs/deploy/**/README.md` are one-line snippet includes of `README.md` and the `deploy/*/README.md` guides. Edit the source Markdown, never the stub, and use absolute GitHub URLs for paths outside the mirrored `deploy/` tree (e.g. `getting_started/`) in those files.
+- Verify docs changes with `make docs` (`uv run --group docs mkdocs build --strict`).
 
 ## Common Pitfalls
 
-1. **Don't import TAC classes from `tac_microsoft` internal paths** — use `from tac.X import Y`.
-2. **Don't copy TAC source code** — TAC is a pinned git dependency, not vendored.
-3. **Connectors own the channels** — don't instantiate `VoiceChannel` / `SMSChannel` / `ChatChannel` / `RCSChannel` / `WhatsAppChannel` yourself; read them off the connector (RCS/WhatsApp may be `None` when not configured).
-4. **`create_knowledge_tool` is async** — if you call it inside a sync `create_agent` factory, build it once at module load via `asyncio.run()` and reuse the result.
-5. **Lazy `__getattr__`** — if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/tac_microsoft/__init__.py`.
+1. **Don't import TAC classes from internal `tac_microsoft` paths** - use `from tac.X import Y`, or the top-level `tac_microsoft` re-exports.
+2. **Don't copy TAC source code** - TAC is a dependency, not vendored.
+3. **Don't pass `None` channels to a server** - `connector.rcs_channel` and `connector.whatsapp_channel` are `None` when not configured.
+4. **Connectors own the channels** - don't create separate channel instances for them.
+5. **`create_knowledge_tool` is async** - if you call it inside a sync `create_agent` factory, build it once at module load via `asyncio.run()` and reuse the result.
+6. **Lazy `__getattr__`** - if you add a new top-level export, update both the `__getattr__` branch and `__all__` in `src/tac_microsoft/__init__.py`.
 
 ## Related Documentation
 
-- TAC Core: [CLAUDE.md](https://github.com/twilio/twilio-agent-connect-python/blob/main/CLAUDE.md)
-- TAC AWS sibling: [CLAUDE.md](https://github.com/twilio/twilio-agent-connect-aws/blob/main/CLAUDE.md)
+- TAC Core: [twilio-agent-connect-python](https://github.com/twilio/twilio-agent-connect-python)
+- TAC AWS sibling: [twilio-agent-connect-aws](https://github.com/twilio/twilio-agent-connect-aws)
+- TAC Google sibling: [twilio-agent-connect-google](https://github.com/twilio/twilio-agent-connect-google)
 - Microsoft Agent Framework: [github.com/microsoft/agent-framework](https://github.com/microsoft/agent-framework)
 - Azure AI Foundry Voice Live: [learn.microsoft.com/azure/ai-foundry](https://learn.microsoft.com/azure/ai-foundry/)
+- Examples: `getting_started/examples/`
+- Deployment: `deploy/README.md`
 - Published API reference: [twilio.github.io/twilio-agent-connect-microsoft](https://twilio.github.io/twilio-agent-connect-microsoft/)
