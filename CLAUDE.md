@@ -350,6 +350,8 @@ Tests live in `tests/` and use pytest with `asyncio_mode = auto` (via `pytest.in
 - Use `AsyncMock` / `MagicMock` for `TAC`, channels, and Azure clients.
 - Treat the tool factories as thin wrappers around `tac.tools` — prefer testing the wiring, not reimplementing core's tests.
 
+CI's `TAC Compat` matrix also runs lint, mypy and tests against the latest patch of each `twilio-agent-connect` minor in the `pyproject.toml` range (`.github/scripts/tac_versions.py`), so code must work on the oldest supported minor, not just the locked one. Reproduce and fix steps: CONTRIBUTING.md, "SDK Compatibility Checks".
+
 ## Updating TAC Dependency
 
 When a new `twilio-agent-connect` version is released on PyPI, bump the version constraint in `pyproject.toml` (all three entries — base, server extra, dev extra) and re-sync:
