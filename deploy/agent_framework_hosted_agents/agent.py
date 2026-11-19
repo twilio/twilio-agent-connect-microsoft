@@ -19,6 +19,8 @@ from tac_microsoft import (
     TACHostedAgentsApp,
 )
 
+# --- Your agent: build it with Agent Framework. Change the model, prompt and tools here.
+
 client = OpenAIChatClient(
     azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
     api_key=os.environ["AZURE_OPENAI_API_KEY"],
@@ -35,6 +37,8 @@ when appropriate."""
 def create_agent(session: ConversationSession) -> Agent:
     return client.as_agent(name="TwilioAgent", instructions=SYSTEM_PROMPT)
 
+
+# --- TAC: connect your agent to Twilio and run it on Foundry Hosted Agents.
 
 tac = TAC(config=TACConfig.from_env())
 
